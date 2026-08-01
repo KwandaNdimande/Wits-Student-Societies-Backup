@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SGO Assistant - Wits Student Societies</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Times New Roman', serif;
+            background: #f8f9fa;
+            padding: 40px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            color: #003B5C;
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .chat-container {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            max-width: 70%;
+            padding: 10px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            word-wrap: break-word;
+        }
+        .message.user {
+            background: #003B5C;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .message.bot {
+            background: #f1f3f5;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .message.typing {
+            background: #f1f3f5;
+            color: #6c757d;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .chat-input {
+            border-top: 1px solid #dee2e6;
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+        }
+        .chat-input input:focus {
+            outline: none;
+            border-color: #003B5C;
+            box-shadow: 0 0 0 3px rgba(0, 59, 92, 0.1);
+        }
+        .chat-input button {
+            padding: 10px 20px;
+            background: #003B5C;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .chat-input button:hover {
+            background: #002a44;
+        }
+        .nav-links {
+            margin-top: 24px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .nav-links a {
+            color: #003B5C;
+            text-decoration: none;
+            padding: 8px 16px;
+            border: 1px solid #003B5C;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .nav-links a:hover {
+            background: #003B5C;
+            color: white;
+        }
+        .nav-links a.active {
+            background: #003B5C;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>SGO Assistant</h1>
+        </div>
+
+        <!-- Chat Container -->
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                <!-- Messages will be rendered here -->
+            </div>
+            <div class="chat-input">
+                <input 
+                    id="chat-input" 
+                    type="text" 
+                    placeholder="Ask a question..." 
+                    onkeydown="if(event.key === 'Enter') sendMessage()"
+                />
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="nav-links">
+            <a href="/leader-dashboard.html">Dashboard</a>
+            <a href="/leader-announcements.html">Announcements</a>
+            <a href="/leader-requests.html">Requests</a>
+            <a href="/leader-manage.html">Manage Society</a>
+            <a href="/leader-reports.html">Reports</a>
+            <a href="/chatbot.html" class="active">SGO Assistant</a>
+            <a href="/login.html">Logout</a>
+        </div>
+    </div>
+
+    <script>
+        // Responses database
+        const responses = {
+            "submit": "To submit a request, go to Submit Request in the navigation menu. You will need your Budget Form, Meeting Minutes, and Vendor Quotation in PDF format.",
+            "document": "You need three documents: a Budget Form, Meeting Minutes signed by your executive, and a Vendor Quotation. Download the templates from the Document Repository.",
+            "status": "You can check your request status on the My Requests page. Statuses are colour-coded: blue for Submitted, yellow for Under Review, green for Approved, and red for Rejected.",
+            "contact": "You can contact the SGO office directly at sgo@wits.ac.za or visit Room 101, Senate House, Wits University.",
+        };
+
+        // State
+        let messages = [
+            { from: "bot", text: "Hi! I'm the Wits SGO assistant. Ask me about submitting requests, required documents, or checking your status." }
+        ];
+        let typing = false;
+
+        // DOM elements
+        const messagesContainer = document.getElementById('chat-messages');
+        const inputField = document.getElementById('chat-input');
+
+        // Render messages
+        function renderMessages() {
+            messagesContainer.innerHTML = messages.map((m, i) => {
+                const className = m.from === 'user' ? 'message user' : 'message bot';
+                return `<div key="${i}" class="${className}">${m.text}</div>`;
+            }).join('');
+
+            // Add typing indicator if needed
+            if (typing) {
+                messagesContainer.innerHTML += `<div class="message typing">Typing...</div>`;
+            }
+
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Send message
+        function sendMessage() {
+            const userMsg = inputField.value.trim();
+            if (!userMsg) return;
+
+            // Add user message
+            messages.push({ from: "user", text: userMsg });
+            inputField.value = '';
+            typing = true;
+            renderMessages();
+
+            // Simulate bot response
+            setTimeout(() => {
+                const key = Object.keys(responses).find(k => userMsg.toLowerCase().includes(k));
+                const reply = key ? responses[key] : "I'm not sure about that. Please contact the SGO office directly at sgo@wits.ac.za";
+                
+                messages.push({ from: "bot", text: reply });
+                typing = false;
+                renderMessages();
+            }, 800);
+        }
+
+        // Initial render
+        renderMessages();
+    </script>
+</body>
+</html>

@@ -13,13 +13,47 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Check authentication
+// Check authentication and role
 const userUid = localStorage.getItem('userUid');
+const userRole = localStorage.getItem('userRole');
+
+// If not logged in, redirect to login
 if (!userUid) {
     window.location.href = '/login.html';
 }
 
-// Responses database - could be stored in Firestore
+// Update navigation based on role
+function updateNavigation() {
+    const navLinks = document.querySelector('.nav-links');
+    if (!navLinks) return;
+
+    if (userRole === 'officer') {
+        // Officer navigation
+        navLinks.innerHTML = `
+            <a href="/officer/dashboard.html">Dashboard</a>
+            <a href="/officer/announcements.html">Announcements</a>
+            <a href="/officer/all-requests.html">All Requests</a>
+            <a href="/officer/societies.html">Manage Societies</a>
+            <a href="/officer/reports.html">Reports</a>
+            <a href="/chatbot.html" class="active">SGO Assistant</a>
+            <a href="/officer/documents.html">Documents</a>
+            <a href="/login.html">Logout</a>
+        `;
+    } else {
+        // Leader navigation (default)
+        navLinks.innerHTML = `
+            <a href="/leader/dashboard.html">Dashboard</a>
+            <a href="/leader/announcements.html">Announcements</a>
+            <a href="/leader/my-requests.html">My Requests</a>
+            <a href="/leader/new-request.html">New Request</a>
+            <a href="/leader/documents.html">Documents</a>
+            <a href="/chatbot.html" class="active">SGO Assistant</a>
+            <a href="/login.html">Logout</a>
+        `;
+    }
+}
+
+// Responses database
 const responses = {
     "submit": "To submit a request, go to Submit Request in the navigation menu. You will need your Budget Form, Meeting Minutes, and Vendor Quotation in PDF format.",
     "document": "You need three documents: a Budget Form, Meeting Minutes signed by your executive, and a Vendor Quotation. Download the templates from the Document Repository.",
@@ -86,8 +120,16 @@ function sendMessage() {
 }
 
 // Enter key support
-inputField.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') sendMessage();
+if (inputField) {
+    inputField.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+}
+
+// Update navigation when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    updateNavigation();
+    // Remove the hardcoded nav-links from HTML and let JS handle it
 });
 
 // Initial render

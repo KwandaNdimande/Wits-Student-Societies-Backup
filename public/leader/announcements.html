@@ -1,4 +1,52 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Announcements - Leader Dashboard</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Times New Roman',serif;background:#f8f9fa;padding:40px}.container{max-width:1200px;margin:0 auto}.header{margin-bottom:24px}.header h1{color:#003B5C;font-size:32px;font-weight:bold}.header p{color:#6c757d;margin-top:4px;font-size:16px}.announcement-card{border:1px solid #dee2e6;border-radius:8px;padding:20px;background:white;margin-bottom:16px}.announcement-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:4px}.announcement-title{font-weight:600;color:#003B5C;font-size:18px}.announcement-date{font-size:12px;color:#6c757d;white-space:nowrap}.announcement-body{font-size:14px;color:#6c757d;margin-top:4px}.no-announcements{color:#6c757d;font-size:14px}.nav-links{margin-top:24px;display:flex;gap:12px;flex-wrap:wrap}.nav-links a{color:#003B5C;text-decoration:none;padding:8px 16px;border:1px solid #003B5C;border-radius:6px;font-size:14px;transition:all 0.2s}.nav-links a:hover{background:#003B5C;color:white}.nav-links a.active{background:#003B5C;color:white}</style></head>
-<body><div class="container"><div class="header"><h1>Announcements</h1><p>Society Leader Dashboard</p></div><div id="announcements-container"></div><div class="nav-links"><a href="/leader/dashboard.html">Dashboard</a><a href="/leader/announcements.html" class="active">Announcements</a><a href="/leader/my-requests.html">Requests</a><a href="/leader/new-request.html">New Request</a><a href="/leader/documents.html">Documents</a><a href="/chatbot.html">SGO Assistant</a><a href="/login.html">Logout</a></div></div><script>const announcements=[{id:1,title:"Budget Submission Deadline",body:"All budget requests for Semester 2 must be submitted by 15 July 2026.",date:"2026-06-10"},{id:2,title:"SGO Office Hours Update",body:"The SGO office will be closed from 25 June to 2 July for the mid-year break.",date:"2026-06-05"}];const container=document.getElementById('announcements-container');if(announcements.length===0){container.innerHTML='<p class="no-announcements">No announcements at this time.</p>';}else{container.innerHTML=announcements.map(a=>`<div class="announcement-card"><div class="announcement-header"><h2 class="announcement-title">${a.title}</h2><span class="announcement-date">${a.date}</span></div><p class="announcement-body">${a.body}</p></div>`).join('');}</script></body></html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Announcements - Leader Dashboard</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Times New Roman',serif;background:#f8f9fa;padding:40px}
+        .container{max-width:1200px;margin:0 auto}
+        .header{margin-bottom:24px}
+        .header h1{color:#003B5C;font-size:32px;font-weight:bold}
+        .header p{color:#6c757d;margin-top:4px;font-size:16px}
+        .announcement-card{border:1px solid #dee2e6;border-radius:8px;padding:20px;background:white;margin-bottom:16px}
+        .announcement-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:4px}
+        .announcement-title{font-weight:600;color:#003B5C;font-size:18px}
+        .announcement-date{font-size:12px;color:#6c757d;white-space:nowrap}
+        .announcement-body{font-size:14px;color:#6c757d;margin-top:4px}
+        .no-announcements{color:#6c757d;font-size:14px}
+        .nav-links{margin-top:24px;display:flex;gap:12px;flex-wrap:wrap}
+        .nav-links a{color:#003B5C;text-decoration:none;padding:8px 16px;border:1px solid #003B5C;border-radius:6px;font-size:14px;transition:all 0.2s}
+        .nav-links a:hover{background:#003B5C;color:white}
+        .nav-links a.active{background:#003B5C;color:white}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Announcements</h1>
+            <p>Society Leader Dashboard</p>
+        </div>
+        <div id="announcements-container"></div>
+        <div class="nav-links">
+            <a href="/leader/dashboard.html">Dashboard</a>
+            <a href="/leader/announcements.html" class="active">Announcements</a>
+            <a href="/leader/my-requests.html">My Requests</a>
+            <a href="/leader/new-request.html">New Request</a>
+            <a href="/leader/documents.html">Documents</a>
+            <a href="/chatbot.html">SGO Assistant</a>
+            <a href="/login.html">Logout</a>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- Custom JS -->
+    <script src="/js/leader-announcements.js"></script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wits Student Societies</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Times New Roman', serif;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            text-align: center;
+            max-width: 600px;
+            padding: 40px;
+        }
+        .logo {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #003B5C;
+        }
+        h1 {
+            color: #003B5C;
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #6c757d;
+            font-size: 18px;
+            margin-bottom: 32px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 32px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-family: 'Times New Roman', serif;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: #003B5C;
+            color: white;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: #002a44;
+        }
+        .btn-secondary {
+            background: transparent;
+            color: #003B5C;
+            border: 2px solid #003B5C;
+        }
+        .btn-secondary:hover {
+            background: #003B5C;
+            color: white;
+        }
+        .features {
+            margin-top: 48px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+        .feature {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        .feature-title {
+            font-weight: 600;
+            color: #003B5C;
+            font-size: 16px;
+        }
+        .feature-desc {
+            color: #6c757d;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🏛️</div>
+        <h1>Wits Student Societies</h1>
+        <p class="subtitle">Manage your society events, budgets, and requests</p>
+
+        <div class="btn-group">
+            <a href="/login.html" class="btn btn-primary">Sign In</a>
+            <a href="/register.html" class="btn btn-secondary">Register</a>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">📋</div>
+                <div class="feature-title">Submit Requests</div>
+                <div class="feature-desc">Budget & event requests</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <div class="feature-title">Track Status</div>
+                <div class="feature-desc">Real-time updates</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📢</div>
+                <div class="feature-title">Announcements</div>
+                <div class="feature-desc">Stay informed</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -51,9 +51,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_156C4B52DDFA46DB966A5EC982805C6F }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_AFDDBBA5A8EA4DD8B8D7B2DB3C4DC382 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_81FD949551B046749714FA432FC6C2E9 }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
@@ -62,4 +62,3 @@ jobs:
           app-name: 'wits-student-societies-backup'
           slot-name: 'Production'
           package: .
-          

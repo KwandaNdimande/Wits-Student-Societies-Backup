@@ -4,129 +4,222 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Wits Student Societies</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --navy-900: #0B1F3A;
+            --navy-800: #13315C;
+            --navy-700: #1B3E73;
+            --blue-600: #2E6FBA;
+            --blue-500: #3E7CB1;
+            --blue-100: #E7F0FB;
+            --bg: #F3F6FB;
+            --surface: #FFFFFF;
+            --text-900: #16213E;
+            --text-600: #3D4A63;
+            --text-500: #5A6B87;
+            --border: #E1E7F0;
+            --radius: 12px;
+        }
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
         body {
-            font-family: 'Times New Roman', serif;
-            background: #f8f9fa;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text-900);
+            -webkit-font-smoothing: antialiased;
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
         }
         .container {
+            max-width: 680px;
+            width: 100%;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 52px 44px 40px;
+            box-shadow: 0 8px 32px rgba(11, 31, 58, 0.06);
             text-align: center;
-            max-width: 600px;
-            padding: 40px;
         }
         .logo {
-            font-size: 48px;
-            margin-bottom: 16px;
-            color: #003B5C;
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--navy-800), var(--navy-700));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 24px;
+            color: #fff;
+            margin: 0 auto 20px;
+            box-shadow: 0 4px 12px rgba(19, 49, 92, 0.25);
         }
         h1 {
-            color: #003B5C;
-            font-size: 36px;
-            font-weight: bold;
-            margin-bottom: 8px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 30px;
+            font-weight: 600;
+            color: var(--navy-900);
+            margin-bottom: 6px;
+            letter-spacing: -0.01em;
         }
         .subtitle {
-            color: #6c757d;
-            font-size: 18px;
-            margin-bottom: 32px;
+            font-size: 16px;
+            color: var(--text-500);
+            margin-bottom: 34px;
+            line-height: 1.5;
+            font-weight: 400;
         }
         .btn-group {
             display: flex;
-            gap: 16px;
+            gap: 12px;
             justify-content: center;
             flex-wrap: wrap;
+            margin-bottom: 42px;
         }
         .btn {
-            padding: 12px 32px;
-            border-radius: 6px;
-            font-size: 16px;
-            font-family: 'Times New Roman', serif;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 12px 34px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-600);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
             text-decoration: none;
             display: inline-block;
+            letter-spacing: 0.01em;
         }
         .btn-primary {
-            background: #003B5C;
-            color: white;
-            border: none;
+            background: var(--navy-900);
+            border-color: var(--navy-900);
+            color: #fff;
         }
         .btn-primary:hover {
-            background: #002a44;
+            background: var(--navy-800);
+            border-color: var(--navy-800);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
         }
         .btn-secondary {
             background: transparent;
-            color: #003B5C;
-            border: 2px solid #003B5C;
+            border-color: var(--border);
+            color: var(--text-600);
         }
         .btn-secondary:hover {
-            background: #003B5C;
-            color: white;
+            border-color: var(--navy-900);
+            color: var(--navy-900);
+            background: var(--bg);
+        }
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin-bottom: 32px;
         }
         .features {
-            margin-top: 48px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
         }
         .feature {
-            background: white;
-            padding: 20px;
+            text-align: center;
+            padding: 12px 8px;
             border-radius: 8px;
-            border: 1px solid #e9ecef;
+            transition: background 0.2s;
+        }
+        .feature:hover {
+            background: var(--bg);
         }
         .feature-icon {
-            font-size: 32px;
+            font-size: 28px;
             margin-bottom: 8px;
+            display: block;
         }
         .feature-title {
+            font-size: 13px;
             font-weight: 600;
-            color: #003B5C;
-            font-size: 16px;
+            color: var(--navy-900);
+            margin-bottom: 2px;
         }
         .feature-desc {
-            color: #6c757d;
-            font-size: 14px;
-            margin-top: 4px;
+            font-size: 12px;
+            color: var(--text-500);
+        }
+        .wits-badge {
+            display: inline-block;
+            margin-top: 24px;
+            font-size: 11px;
+            color: var(--text-500);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        @media (max-width: 480px) {
+            .card {
+                padding: 32px 20px;
+            }
+            .features {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+            h1 {
+                font-size: 24px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="logo">🏛️</div>
-        <h1>Wits Student Societies</h1>
-        <p class="subtitle">Manage your society events, budgets, and requests</p>
+        <div class="card">
+            <div class="logo">SGO</div>
+            <h1>Wits Student Societies</h1>
+            <p class="subtitle">Manage your society events, budgets, and requests in one place.</p>
 
-        <div class="btn-group">
-            <a href="/login.html" class="btn btn-primary">Sign In</a>
-            <a href="/register.html" class="btn btn-secondary">Register</a>
-        </div>
+            <div class="btn-group">
+                <a href="/login.html" class="btn btn-primary">Sign In</a>
+                <a href="/register.html" class="btn btn-secondary">Register</a>
+            </div>
 
-        <div class="features">
-            <div class="feature">
-                <div class="feature-icon">📋</div>
-                <div class="feature-title">Submit Requests</div>
-                <div class="feature-desc">Budget & event requests</div>
+            <hr class="divider">
+
+            <div class="features">
+                <div class="feature">
+                    <span class="feature-icon">📋</span>
+                    <div class="feature-title">Submit Requests</div>
+                    <div class="feature-desc">Budget &amp; event requests</div>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">📊</span>
+                    <div class="feature-title">Track Status</div>
+                    <div class="feature-desc">Real-time updates</div>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">📢</span>
+                    <div class="feature-title">Announcements</div>
+                    <div class="feature-desc">Stay informed</div>
+                </div>
             </div>
-            <div class="feature">
-                <div class="feature-icon">📊</div>
-                <div class="feature-title">Track Status</div>
-                <div class="feature-desc">Real-time updates</div>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">📢</div>
-                <div class="feature-title">Announcements</div>
-                <div class="feature-desc">Stay informed</div>
-            </div>
+
+            <div class="wits-badge">University of the Witwatersrand</div>
         </div>
     </div>
 </body>

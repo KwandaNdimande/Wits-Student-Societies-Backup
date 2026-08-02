@@ -4,36 +4,87 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SGO Assistant - Wits Student Societies</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --navy-900: #0B1F3A;
+            --navy-800: #13315C;
+            --navy-700: #1B3E73;
+            --blue-600: #2E6FBA;
+            --blue-500: #3E7CB1;
+            --bg: #F3F6FB;
+            --surface: #FFFFFF;
+            --text-900: #16213E;
+            --text-600: #3D4A63;
+            --text-500: #5A6B87;
+            --border: #E1E7F0;
+            --radius: 12px;
+        }
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
         body {
-            font-family: 'Times New Roman', serif;
-            background: #f8f9fa;
-            padding: 40px;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text-900);
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
         }
         .container {
-            max-width: 800px;
-            margin: 0 auto;
+            max-width: 640px;
+            width: 100%;
         }
-        .header {
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 40px 36px;
+            box-shadow: 0 8px 32px rgba(11, 31, 58, 0.06);
+        }
+        .logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--navy-800), var(--navy-700));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 18px;
+            color: #fff;
+            margin: 0 auto 16px;
+            box-shadow: 0 4px 12px rgba(19, 49, 92, 0.2);
+        }
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--navy-900);
+            text-align: center;
+            margin-bottom: 4px;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: var(--text-500);
+            text-align: center;
             margin-bottom: 24px;
         }
-        .header h1 {
-            color: #003B5C;
-            font-size: 32px;
-            font-weight: bold;
-        }
         .chat-container {
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            background: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
             display: flex;
             flex-direction: column;
-            height: 500px;
+            height: 420px;
+            overflow: hidden;
         }
         .chat-messages {
             flex: 1;
@@ -41,115 +92,149 @@
             padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
+            background: #FAFBFD;
         }
         .message {
-            max-width: 70%;
+            max-width: 80%;
             padding: 10px 16px;
             border-radius: 16px;
             font-size: 14px;
+            line-height: 1.5;
             word-wrap: break-word;
         }
         .message.user {
-            background: #003B5C;
+            background: var(--navy-900);
             color: white;
             align-self: flex-end;
             border-bottom-right-radius: 4px;
         }
         .message.bot {
-            background: #f1f3f5;
-            color: #333;
+            background: var(--bg);
+            color: var(--text-900);
             align-self: flex-start;
             border-bottom-left-radius: 4px;
         }
         .message.typing {
-            background: #f1f3f5;
-            color: #6c757d;
+            background: var(--bg);
+            color: var(--text-500);
             align-self: flex-start;
             border-bottom-left-radius: 4px;
+            font-style: italic;
         }
         .chat-input {
-            border-top: 1px solid #dee2e6;
-            padding: 12px;
+            border-top: 1px solid var(--border);
+            padding: 12px 16px;
             display: flex;
-            gap: 8px;
+            gap: 10px;
+            background: var(--surface);
         }
         .chat-input input {
             flex: 1;
-            padding: 10px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
             font-size: 14px;
-            font-family: Arial, sans-serif;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-900);
+            background: var(--surface);
+            transition: border-color 0.2s;
         }
         .chat-input input:focus {
             outline: none;
-            border-color: #003B5C;
-            box-shadow: 0 0 0 3px rgba(0, 59, 92, 0.1);
+            border-color: var(--navy-900);
+            box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
+        }
+        .chat-input input::placeholder {
+            color: var(--text-500);
         }
         .chat-input button {
-            padding: 10px 20px;
-            background: #003B5C;
-            color: white;
+            padding: 10px 24px;
+            background: var(--navy-900);
+            color: #fff;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 14px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s ease;
         }
         .chat-input button:hover {
-            background: #002a44;
+            background: var(--navy-800);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
         }
         .nav-links {
             margin-top: 24px;
             display: flex;
-            gap: 12px;
+            gap: 10px;
             flex-wrap: wrap;
+            justify-content: center;
         }
         .nav-links a {
-            color: #003B5C;
+            color: var(--navy-900);
             text-decoration: none;
             padding: 8px 16px;
-            border: 1px solid #003B5C;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: all 0.2s;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
         }
         .nav-links a:hover {
-            background: #003B5C;
-            color: white;
+            background: var(--navy-900);
+            color: #fff;
+            border-color: var(--navy-900);
         }
         .nav-links a.active {
-            background: #003B5C;
-            color: white;
+            background: var(--navy-900);
+            color: #fff;
+            border-color: var(--navy-900);
+        }
+        .wits-badge {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 11px;
+            color: var(--text-500);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        @media (max-width: 480px) {
+            .card {
+                padding: 24px 16px;
+            }
+            .chat-container {
+                height: 340px;
+            }
+            .nav-links a {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
+        <div class="card">
+            <div class="logo">SGO</div>
             <h1>SGO Assistant</h1>
-        </div>
+            <p class="subtitle">Ask me anything about submissions, documents, or status</p>
 
-        <!-- Chat Container -->
-        <div class="chat-container">
-            <div class="chat-messages" id="chat-messages">
-                <!-- Messages will be rendered here -->
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input">
+                    <input id="chat-input" type="text" placeholder="Ask a question..." />
+                    <button onclick="sendMessage()">Send</button>
+                </div>
             </div>
-            <div class="chat-input">
-                <input 
-                    id="chat-input" 
-                    type="text" 
-                    placeholder="Ask a question..." 
-                    onkeydown="if(event.key === 'Enter') sendMessage()"
-                />
-                <button onclick="sendMessage()">Send</button>
-            </div>
-        </div>
 
-        <!-- Navigation Links - Will be populated by JavaScript -->
-        <div class="nav-links"></div>
+            <div class="nav-links" id="nav-links"></div>
+
+            <div class="wits-badge">University of the Witwatersrand</div>
+        </div>
     </div>
 
     <!-- Firebase SDK -->
@@ -157,7 +242,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <!-- Custom JS -->
     <script src="/js/chatbot.js"></script>
 </body>
 </html>

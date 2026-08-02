@@ -4,32 +4,205 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>All Requests - Officer Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Times New Roman',serif;background:#f8f9fa;padding:40px}
-        .container{max-width:1400px;margin:0 auto}
-        .header{margin-bottom:24px}
-        .header h1{color:#003B5C;font-size:32px;font-weight:bold}
-        .header p{color:#6c757d;margin-top:4px;font-size:16px}
-        .table-container{border:1px solid #dee2e6;border-radius:8px;overflow-x:auto;background:white}
-        table{width:100%;border-collapse:collapse;font-size:14px;min-width:900px}
-        thead{background:#f1f3f5;border-bottom:1px solid #dee2e6}
-        th{padding:12px 16px;text-align:left;font-weight:500;color:#6c757d}
-        td{padding:12px 16px;border-bottom:1px solid #f1f3f5}
-        tr:hover{background:#f8f9fa}
-        .status-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500}
-        .status-submitted{background:#cfe2ff;color:#004085}
-        .status-under-review{background:#fff3cd;color:#856404}
-        .status-approved{background:#d4edda;color:#155724}
-        .status-rejected{background:#f8d7da;color:#721c24}
-        .status-revision{background:#ffe5d0;color:#853d00}
-        .status-select{padding:4px 8px;border:1px solid #ced4da;border-radius:4px;font-size:12px;font-family:Arial,sans-serif;background:white;cursor:pointer}
-        .status-select:focus{outline:none;border-color:#003B5C;box-shadow:0 0 0 3px rgba(0,59,92,0.1)}
-        .empty-state{text-align:center;padding:40px;color:#6c757d}
-        .nav-links{margin-top:24px;display:flex;gap:12px;flex-wrap:wrap}
-        .nav-links a{color:#003B5C;text-decoration:none;padding:8px 16px;border:1px solid #003B5C;border-radius:6px;font-size:14px;transition:all 0.2s}
-        .nav-links a:hover{background:#003B5C;color:white}
-        .nav-links a.active{background:#003B5C;color:white}
+        :root {
+            --navy-900: #0B1F3A;
+            --navy-800: #13315C;
+            --navy-700: #1B3E73;
+            --blue-600: #2E6FBA;
+            --blue-500: #3E7CB1;
+            --bg: #F3F6FB;
+            --surface: #FFFFFF;
+            --text-900: #16213E;
+            --text-600: #3D4A63;
+            --text-500: #5A6B87;
+            --border: #E1E7F0;
+            --radius: 12px;
+            --success: #1E8E5A;
+            --success-bg: #E5F5EC;
+            --warning: #B9720B;
+            --warning-bg: #FCF1DE;
+            --danger: #C0392B;
+            --danger-bg: #FBEAE8;
+            --info: #2E6FBA;
+            --info-bg: #E7F0FB;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text-900);
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            padding: 40px 24px;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+        .header {
+            margin-bottom: 28px;
+        }
+        .header h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--navy-900);
+        }
+        .header p {
+            font-size: 15px;
+            color: var(--text-500);
+            margin-top: 4px;
+        }
+        .table-container {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow-x: auto;
+            box-shadow: 0 4px 16px rgba(11, 31, 58, 0.04);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 1000px;
+        }
+        thead {
+            background: #FAFBFD;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            padding: 14px 18px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-500);
+        }
+        td {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-600);
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr:hover {
+            background: #FAFBFD;
+        }
+        td.strong {
+            color: var(--text-900);
+            font-weight: 600;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-submitted {
+            background: var(--info-bg);
+            color: var(--info);
+        }
+        .status-under-review {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+        .status-approved {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+        .status-rejected {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+        .status-revision {
+            background: #FFF3E0;
+            color: #E65100;
+        }
+        .status-select {
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+            background: var(--surface);
+            cursor: pointer;
+            color: var(--text-900);
+        }
+        .status-select:focus {
+            outline: none;
+            border-color: var(--navy-900);
+        }
+        .btn-delete {
+            font-size: 12px;
+            color: var(--danger);
+            background: none;
+            border: 1px solid var(--danger);
+            border-radius: 6px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
+        .btn-delete:hover {
+            background: var(--danger);
+            color: #fff;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-500);
+        }
+        .nav-links {
+            margin-top: 28px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .nav-links a {
+            color: var(--navy-900);
+            text-decoration: none;
+            padding: 8px 18px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
+        .nav-links a:hover {
+            background: var(--navy-900);
+            color: #fff;
+            border-color: var(--navy-900);
+        }
+        .nav-links a.active {
+            background: var(--navy-900);
+            color: #fff;
+            border-color: var(--navy-900);
+        }
+        .wits-badge {
+            text-align: center;
+            margin-top: 28px;
+            font-size: 11px;
+            color: var(--text-500);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        @media (max-width: 768px) {
+            body { padding: 20px 16px; }
+            th, td { padding: 10px 12px; font-size: 13px; }
+        }
     </style>
 </head>
 <body>
@@ -38,7 +211,9 @@
             <h1>All Requests</h1>
             <p>View and manage all budget requests</p>
         </div>
+
         <div id="requests-container"></div>
+
         <div class="nav-links">
             <a href="/officer/dashboard.html">Dashboard</a>
             <a href="/officer/announcements.html">Announcements</a>
@@ -49,6 +224,8 @@
             <a href="/officer/documents.html">Documents</a>
             <a href="/login.html">Logout</a>
         </div>
+
+        <div class="wits-badge">University of the Witwatersrand</div>
     </div>
 
     <!-- Firebase SDK -->
@@ -56,7 +233,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <!-- Custom JS -->
     <script src="/js/officer-all-requests.js"></script>
 </body>
 </html>

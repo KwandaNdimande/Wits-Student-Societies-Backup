@@ -1,0 +1,223 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register - Wits Student Societies</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .auth-card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 420px;
+        }
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .auth-header h1 {
+            color: #003B5C;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .auth-header p {
+            color: #6c757d;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 24px;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .tab.active {
+            color: #003B5C;
+            border-bottom-color: #003B5C;
+        }
+        .tab:hover {
+            color: #003B5C;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #003B5C;
+            box-shadow: 0 0 0 3px rgba(0, 59, 92, 0.1);
+        }
+        .name-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        .btn-register {
+            width: 100%;
+            padding: 12px;
+            background: #003B5C;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-register:hover {
+            background: #002a44;
+        }
+        .btn-register:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .signin-link {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        .signin-link a {
+            color: #003B5C;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .signin-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <div class="auth-header">
+            <h1>Wits Student Societies</h1>
+            <p>Create your account</p>
+        </div>
+
+        <div class="tabs">
+            <a href="/login.html" class="tab">Sign In</a>
+            <a href="/register.html" class="tab active">Register</a>
+        </div>
+
+        <form id="register-form">
+            <div class="name-grid">
+                <div class="form-group">
+                    <label for="firstName">First name</label>
+                    <input id="firstName" type="text" placeholder="Jane" />
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last name</label>
+                    <input id="lastName" type="text" placeholder="Doe" />
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="signup-email">Email</label>
+                <input 
+                    id="signup-email" 
+                    type="email" 
+                    placeholder="studentnumber@students.wits.ac.za" 
+                    required
+                />
+            </div>
+            <div class="form-group">
+                <label for="signup-password">Password</label>
+                <input 
+                    id="signup-password" 
+                    type="password" 
+                    placeholder="Create a password" 
+                    required
+                />
+            </div>
+
+            <div id="register-error" class="error-message" style="display: none;"></div>
+
+            <button type="submit" class="btn-register" id="register-btn">
+                Create account
+            </button>
+        </form>
+
+        <div class="signin-link">
+            Already have an account? <a href="/login.html">Sign in</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const errorEl = document.getElementById('register-error');
+            const btn = document.getElementById('register-btn');
+            
+            errorEl.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Creating account...';
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ firstName, lastName, email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    window.location.href = '/dashboard.html';
+                } else {
+                    errorEl.textContent = data.error || 'Unable to create account. Please try again.';
+                    errorEl.style.display = 'block';
+                }
+            } catch (error) {
+                errorEl.textContent = 'Unable to create account. Please try again.';
+                errorEl.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create account';
+            }
+        });
+    </script>
+</body>
+</html>

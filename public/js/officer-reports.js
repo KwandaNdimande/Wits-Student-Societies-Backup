@@ -310,12 +310,247 @@ function renderChart(containerId, data) {
 }
 
 // ============ EXPORT FUNCTIONS ============
+
+// Export CSV
 function exportCSV(panelId) {
-    alert('Export CSV functionality coming soon!');
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    // Find the table in the panel
+    const table = panel.querySelector('table');
+    if (!table) {
+        alert('No data to export.');
+        return;
+    }
+
+    // Get table data
+    const headers = [];
+    const rows = [];
+    
+    // Get headers
+    const thead = table.querySelector('thead');
+    if (thead) {
+        const headerCells = thead.querySelectorAll('th');
+        headerCells.forEach(th => {
+            headers.push(th.textContent.trim());
+        });
+    }
+
+    // Get rows
+    const tbody = table.querySelector('tbody');
+    if (tbody) {
+        const trs = tbody.querySelectorAll('tr');
+        trs.forEach(tr => {
+            const rowData = [];
+            const tds = tr.querySelectorAll('td');
+            tds.forEach(td => {
+                const text = td.textContent.trim();
+                rowData.push(text);
+            });
+            if (rowData.length > 0) {
+                rows.push(rowData);
+            }
+        });
+    }
+
+    if (rows.length === 0) {
+        alert('No data to export.');
+        return;
+    }
+
+    // Build CSV content
+    let csvContent = '';
+    
+    // Add headers
+    if (headers.length > 0) {
+        csvContent += headers.join(',') + '\n';
+    }
+
+    // Add rows
+    rows.forEach(row => {
+        const escapedRow = row.map(cell => {
+            if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n'))) {
+                return `"${cell.replace(/"/g, '""')}"`;
+            }
+            return cell;
+        });
+        csvContent += escapedRow.join(',') + '\n';
+    });
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `report_${panelId}_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast('CSV exported successfully!');
 }
 
+// Export PDF
 function exportPDF(panelId) {
-    alert('Export PDF functionality coming soon!');
+    const panel = document.getElementById(panelId);
+    if (!panel) {
+        alert('No data to export.');
+        return;
+    }
+
+    // Check if jsPDF is loaded
+    if (typeof window.jspdf === 'undefined') {
+        // Load jsPDF dynamically
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = function() {
+            // Load html2canvas
+            const script2 = document.createElement('script');
+            script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+            script2.onload = function() {
+                generatePDF(panel, panelId);
+            };
+            document.head.appendChild(script2);
+        };
+        document.head.appendChild(script);
+        showToast('Loading PDF library...');
+        return;
+    }
+
+    generatePDF(panel, panelId);
+}
+
+function generatePDF(panel, panelId) {
+    const { jsPDF } = window.jspdf;
+    
+    // Create a clone of the panel to render
+    const clone = panel.cloneNode(true);
+    
+    // Remove export buttons from clone
+    const actions = clone.querySelector('.report-actions');
+    if (actions) actions.remove();
+
+    // Style the clone for PDF
+    clone.style.padding = '20px';
+    clone.style.background = '#FFFFFF';
+    clone.style.borderRadius = '0';
+    clone.style.display = 'block';
+    clone.style.maxWidth = '100%';
+    
+    // Append to body temporarily
+    const container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.style.width = '1200px';
+    container.style.background = '#FFFFFF';
+    container.style.padding = '40px';
+    container.appendChild(clone);
+    document.body.appendChild(container);
+
+    // Add title
+    const titleDiv = document.createElement('div');
+    titleDiv.style.textAlign = 'center';
+    titleDiv.style.marginBottom = '20px';
+    titleDiv.style.fontFamily = 'Space Grotesk, sans-serif';
+    titleDiv.style.fontSize = '24px';
+    titleDiv.style.fontWeight = 'bold';
+    titleDiv.style.color = '#0B1F3A';
+    titleDiv.textContent = document.querySelector('.report-head h2')?.textContent || 'Report';
+    clone.prepend(titleDiv);
+
+    // Add date
+    const dateDiv = document.createElement('div');
+    dateDiv.style.textAlign = 'center';
+    dateDiv.style.marginBottom = '20px';
+    dateDiv.style.fontSize = '12px';
+    dateDiv.style.color = '#5A6B87';
+    dateDiv.textContent = `Generated: ${new Date().toLocaleString()}`;
+    clone.prepend(dateDiv);
+
+    // Add Wits branding
+    const brandDiv = document.createElement('div');
+    brandDiv.style.textAlign = 'center';
+    brandDiv.style.marginBottom = '30px';
+    brandDiv.style.fontSize = '14px';
+    brandDiv.style.fontWeight = '600';
+    brandDiv.style.color = '#0B1F3A';
+    brandDiv.style.letterSpacing = '0.06em';
+    brandDiv.style.textTransform = 'uppercase';
+    brandDiv.textContent = 'University of the Witwatersrand - SGO Digital Operations';
+    clone.prepend(brandDiv);
+
+    // Use html2canvas to render
+    html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        width: 1200,
+        backgroundColor: '#FFFFFF'
+    }).then((canvas) => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        let heightLeft = pdfHeight;
+        let position = 0;
+
+        // Add first page
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pdf.internal.pageSize.getHeight();
+
+        // Add more pages if needed
+        while (heightLeft > 0) {
+            position = heightLeft - pdfHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+            heightLeft -= pdf.internal.pageSize.getHeight();
+        }
+
+        pdf.save(`report_${panelId}_${new Date().toISOString().slice(0,10)}.pdf`);
+        
+        // Clean up
+        document.body.removeChild(container);
+        showToast('PDF exported successfully!');
+    }).catch((error) => {
+        console.error('PDF generation error:', error);
+        document.body.removeChild(container);
+        alert('Error generating PDF. Please try again.');
+    });
+}
+
+// ============ TOAST NOTIFICATION ============
+function showToast(message) {
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) existingToast.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.textContent = message;
+    toast.style.position = 'fixed';
+    toast.style.bottom = '30px';
+    toast.style.right = '30px';
+    toast.style.background = '#0B1F3A';
+    toast.style.color = '#fff';
+    toast.style.padding = '14px 24px';
+    toast.style.borderRadius = '8px';
+    toast.style.fontFamily = 'Inter, sans-serif';
+    toast.style.fontSize = '14px';
+    toast.style.fontWeight = '500';
+    toast.style.boxShadow = '0 4px 16px rgba(11, 31, 58, 0.3)';
+    toast.style.zIndex = '9999';
+    toast.style.animation = 'fadeIn 0.3s ease';
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => {
+            if (toast.parentNode) toast.remove();
+        }, 300);
+    }, 3000);
 }
 
 // ============ TAB SWITCHING ============

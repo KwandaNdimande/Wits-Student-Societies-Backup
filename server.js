@@ -17,68 +17,25 @@ try {
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
 
     // Azure production environment
-    console.log("Loading Firebase credentials from Azure environment...");
-    
-    // Get the raw JSON string from environment variable
-    let rawJson = process.env.FIREBASE_SERVICE_ACCOUNT;
-    
-    // Clean up the JSON string - handle escaped characters properly
-    try {
-      // First attempt: direct parse
-      serviceAccount = JSON.parse(rawJson);
-    } catch (parseError) {
-      console.log("Direct parse failed, attempting to clean string...");
-      // If direct parse fails, clean the string
-      rawJson = rawJson.replace(/\\\\n/g, '\\n');
-      rawJson = rawJson.replace(/\\n/g, '\n');
-      serviceAccount = JSON.parse(rawJson);
-    }
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
-    // CRITICAL FIX: Ensure private_key has proper newline formatting
     if (serviceAccount.private_key) {
-      // Remove any extra escaping and ensure proper newline characters
-      serviceAccount.private_key = serviceAccount.private_key
-        .replace(/\\\\n/g, '\n')
-        .replace(/\\n/g, '\n')
-        .replace(/\\r/g, '')
-        .trim();
-      
-      // Verify the key starts with the correct header
-      if (!serviceAccount.private_key.includes('-----BEGIN PRIVATE KEY-----')) {
-        console.warn('Warning: Private key may be malformed. Attempting to fix...');
-        // Sometimes the key gets double-encoded, try to decode it
-        try {
-          const decoded = Buffer.from(serviceAccount.private_key, 'base64').toString('utf8');
-          if (decoded.includes('-----BEGIN PRIVATE KEY-----')) {
-            serviceAccount.private_key = decoded;
-          }
-        } catch (e) {
-          console.warn('Could not decode private key, continuing with original...');
-        }
-      }
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }
 
-    console.log("✅ Firebase credentials loaded from Azure environment");
+    console.log("Using Firebase credentials from Azure environment");
 
   } else {
 
     // Local development environment
-    console.log("Loading local Firebase credentials file...");
-    
-    try {
-      const rawData = fs.readFileSync('./serviceAccountKey.json', 'utf8');
-      serviceAccount = JSON.parse(rawData);
+    const rawData = fs.readFileSync('./serviceAccountKey.json', 'utf8');
+    serviceAccount = JSON.parse(rawData);
 
-      if (serviceAccount.private_key) {
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-      }
-      
-      console.log("✅ Local Firebase credentials loaded");
-    } catch (fileError) {
-      console.error('Error reading local credentials file:', fileError.message);
-      throw fileError;
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }
 
+    console.log("Using local Firebase credentials file");
   }
 
 
@@ -91,15 +48,9 @@ try {
 
 
 // Initialize Firebase
-try {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-  console.log("✅ Firebase Admin SDK initialized successfully");
-} catch (error) {
-  console.error('Error initializing Firebase:', error.message);
-  process.exit(1);
-}
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
 
 
 const db = admin.firestore();
@@ -128,13 +79,13 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Email sender function
+// Email sender function with SGO branding
 async function sendVerificationEmail(toEmail, code, name = "") {
   const html = `
   <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
     <div style="background:#0B1F3A;padding:24px 32px;text-align:center">
-      <h1 style="color:#fff;margin:0;font-size:22px">Wits Student Societies</h1>
-      <p style="color:#8FA6CC;margin:4px 0 0;font-size:14px">SGO Digital Operations</p>
+      <h1 style="color:#fff;margin:0;font-size:22px;letter-spacing:0.5px;">🏛️ SGO Digital Operations</h1>
+      <p style="color:#8FA6CC;margin:4px 0 0;font-size:14px">Student Governance Office • University of the Witwatersrand</p>
     </div>
     <div style="padding:32px">
       <h2 style="color:#0B1F3A;margin-top:0">Welcome${name ? ' ' + name : ''}!</h2>
@@ -150,13 +101,14 @@ async function sendVerificationEmail(toEmail, code, name = "") {
       <p style="color:#6b7280;font-size:14px;margin-top:4px">If you didn't create an account, you can safely ignore this email.</p>
     </div>
     <div style="background:#f3f4f6;padding:16px 32px;text-align:center">
-      <p style="color:#9ca3af;font-size:12px;margin:0">Wits Student Societies - Student Governance Office</p>
-      <p style="color:#9ca3af;font-size:11px;margin:4px 0 0">University of the Witwatersrand</p>
+      <p style="color:#9ca3af;font-size:12px;margin:0">Student Governance Office (SGO)</p>
+      <p style="color:#9ca3af;font-size:11px;margin:4px 0 0">University of the Witwatersrand, Johannesburg</p>
+      <p style="color:#9ca3af;font-size:10px;margin:4px 0 0;font-style:italic;">This is an automated message, please do not reply.</p>
     </div>
   </div>`;
 
   await transporter.sendMail({
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    from: `"SGO Digital Operations" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
     to: toEmail,
     subject: "Verify Your Email - Wits Student Societies",
     html,
@@ -199,11 +151,10 @@ app.post('/api/send-verification-email', async (req, res) => {
   
   try {
     await sendVerificationEmail(email, code, name);
-    console.log(`✅ Verification email sent to ${email}`);
     res.json({ success: true, message: 'Verification email sent' });
   } catch (error) {
     console.error('Email sending error:', error);
-    res.status(500).json({ error: 'Failed to send email: ' + error.message });
+    res.status(500).json({ error: 'Failed to send email' });
   }
 });
 

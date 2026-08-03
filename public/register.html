@@ -275,9 +275,11 @@
             btn.textContent = 'Creating account...';
 
             try {
+                // Step 1: Create user in Firebase Auth
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
+                // Step 2: Save user to Firestore
                 await db.collection('users').doc(user.uid).set({
                     uid: user.uid,
                     email: email,
@@ -288,11 +290,30 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
+                // Step 3: Create society document (if it doesn't already exist)
+                const existingSociety = await db.collection('societies')
+                    .where('name', '==', societyName)
+                    .get();
+
+                if (existingSociety.empty) {
+                    await db.collection('societies').add({
+                        name: societyName,
+                        category: 'General',
+                        email: email,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log(`✅ Society created: ${societyName}`);
+                } else {
+                    console.log(`ℹ️ Society already exists: ${societyName}`);
+                }
+
+                // Step 4: Store in localStorage
                 localStorage.setItem('userRole', 'leader');
                 localStorage.setItem('userUid', user.uid);
                 localStorage.setItem('userName', firstName + ' ' + lastName);
                 localStorage.setItem('userSociety', societyName);
 
+                // Step 5: Redirect to dashboard
                 window.location.href = '/dashboard.html';
 
             } catch (error) {

@@ -43,7 +43,7 @@
             padding: 40px 24px;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1300px;
             margin: 0 auto;
         }
         .header {
@@ -60,58 +60,198 @@
             color: var(--text-500);
             margin-top: 4px;
         }
-        .controls {
+        .header .updated {
+            font-size: 12px;
+            color: var(--text-500);
+            margin-top: 4px;
+        }
+        .switcher {
             display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 24px;
+            gap: 8px;
             flex-wrap: wrap;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
         }
-        .controls select {
-            padding: 10px 16px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
+        .pill {
             font-family: 'Inter', sans-serif;
-            background: var(--surface);
-            color: var(--text-900);
-            min-width: 220px;
-            cursor: pointer;
-            transition: border-color 0.2s;
-        }
-        .controls select:focus {
-            outline: none;
-            border-color: var(--navy-900);
-            box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
-        }
-        .btn-export {
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            padding: 10px 24px;
+            padding: 10px 20px;
+            border-radius: 999px;
             border: 1px solid var(--border);
-            border-radius: 8px;
             background: var(--surface);
             color: var(--text-600);
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .btn-export:hover {
-            border-color: var(--navy-900);
+        .pill:hover {
+            border-color: var(--blue-500);
             color: var(--navy-900);
-            background: var(--bg);
         }
-        .btn-export:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .pill.active {
+            background: var(--navy-900);
+            border-color: var(--navy-900);
+            color: #fff;
         }
-        .no-report {
-            color: var(--text-500);
+        .panel {
+            display: none;
+            animation: fade 0.25s ease;
+        }
+        .panel.active {
+            display: block;
+        }
+        @keyframes fade {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: none; }
+        }
+        .report-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .report-head h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--navy-900);
+            margin-bottom: 4px;
+        }
+        .report-head .sub {
             font-size: 14px;
-            text-align: center;
-            padding: 40px 0;
+            color: var(--text-500);
+            max-width: 560px;
         }
-        .table-container {
+        .report-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-600);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:hover {
+            border-color: var(--blue-500);
+            color: var(--navy-900);
+        }
+        .btn-primary {
+            background: var(--blue-600);
+            border-color: var(--blue-600);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--navy-700);
+            border-color: var(--navy-700);
+            color: #fff;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .stat {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            box-shadow: 0 4px 16px rgba(11, 31, 58, 0.04);
+        }
+        .stat .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-500);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .stat .value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 26px;
+            font-weight: 600;
+            color: var(--navy-900);
+        }
+        .stat .delta {
+            font-size: 12px;
+            color: var(--text-500);
+            margin-top: 4px;
+        }
+        .stat .delta.good {
+            color: var(--success);
+        }
+        .stat .delta.bad {
+            color: var(--danger);
+        }
+        .chart-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 16px rgba(11, 31, 58, 0.04);
+        }
+        .chart-card h3 {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--text-500);
+            margin-bottom: 16px;
+        }
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .bar-row:last-child {
+            margin-bottom: 0;
+        }
+        .bar-label {
+            width: 200px;
+            flex-shrink: 0;
+            font-size: 13px;
+            color: var(--text-600);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .bar-track {
+            flex: 1;
+            background: #EEF2F8;
+            border-radius: 6px;
+            height: 18px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.6s ease;
+        }
+        .bar-value {
+            width: 60px;
+            flex-shrink: 0;
+            text-align: right;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--navy-900);
+        }
+        .table-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
@@ -121,62 +261,120 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
+            font-size: 13px;
         }
-        thead {
-            background: #FAFBFD;
-            border-bottom: 1px solid var(--border);
-        }
-        th {
-            padding: 14px 18px;
+        thead th {
             text-align: left;
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.04em;
             color: var(--text-500);
+            background: #FAFBFD;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
         }
-        td {
-            padding: 14px 18px;
+        tbody td {
+            padding: 12px 16px;
             border-bottom: 1px solid var(--border);
             color: var(--text-600);
         }
-        tr:last-child td {
+        tbody tr:last-child td {
             border-bottom: none;
         }
-        tr:hover {
+        tbody tr:hover {
             background: #FAFBFD;
         }
         td.strong {
             color: var(--text-900);
             font-weight: 600;
         }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 14px;
-            border-radius: 20px;
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
             font-size: 12px;
             font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 999px;
         }
-        .status-submitted {
-            background: var(--info-bg);
-            color: var(--info);
+        .badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
         }
-        .status-under-review {
-            background: var(--warning-bg);
-            color: var(--warning);
-        }
-        .status-approved {
+        .badge.approved {
             background: var(--success-bg);
             color: var(--success);
         }
-        .status-rejected {
+        .badge.approved .dot {
+            background: var(--success);
+        }
+        .badge.pending {
+            background: var(--info-bg);
+            color: var(--info);
+        }
+        .badge.pending .dot {
+            background: var(--info);
+        }
+        .badge.rejected {
             background: var(--danger-bg);
             color: var(--danger);
         }
-        .status-revision {
-            background: #FFF3E0;
-            color: #E65100;
+        .badge.rejected .dot {
+            background: var(--danger);
+        }
+        .badge.active {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+        .badge.active .dot {
+            background: var(--success);
+        }
+        .badge.dormant {
+            background: #F1F1F5;
+            color: #6B6B7A;
+        }
+        .badge.dormant .dot {
+            background: #9A9AA8;
+        }
+        .badge.full {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+        .badge.full .dot {
+            background: var(--success);
+        }
+        .badge.partial {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+        .badge.partial .dot {
+            background: var(--warning);
+        }
+        .badge.await {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+        .badge.await .dot {
+            background: var(--warning);
+        }
+        .badge.resolved {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+        .badge.resolved .dot {
+            background: var(--success);
+        }
+        .table-foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            font-size: 12px;
+            color: var(--text-500);
+            border-top: 1px solid var(--border);
+            background: #FAFBFD;
         }
         .nav-links {
             margin-top: 28px;
@@ -214,12 +412,42 @@
             text-transform: uppercase;
             font-weight: 500;
         }
+        .loading-spinner {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-500);
+        }
         @media (max-width: 768px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .bar-label {
+                width: 120px;
+            }
             body { padding: 20px 16px; }
-            .controls { flex-direction: column; align-items: stretch; }
-            .controls select { width: 100%; }
-            .btn-export { width: 100%; text-align: center; }
-            th, td { padding: 10px 12px; font-size: 13px; }
+        }
+        @media (max-width: 480px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            .bar-label {
+                width: 80px;
+                font-size: 12px;
+            }
+            .switcher {
+                flex-direction: column;
+            }
+            .pill {
+                text-align: center;
+            }
+            .report-actions {
+                width: 100%;
+            }
+            .report-actions .btn {
+                flex: 1;
+                text-align: center;
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -227,21 +455,160 @@
     <div class="container">
         <div class="header">
             <h1>Reports</h1>
-            <p>View and export data reports</p>
+            <p>Consolidated reporting across budget requests, society activity, financial allocation and submission quality.</p>
+            <div class="updated" id="last-updated">Data as of loading...</div>
         </div>
 
-        <div class="controls">
-            <select id="report-select">
-                <option value="">Select report type...</option>
-                <option value="Budget Request Summary">Budget Request Summary</option>
-                <option value="Society Activity Report">Society Activity Report</option>
-            </select>
-            <button class="btn-export" id="export-btn" disabled onclick="exportReport()">Export</button>
+        <div class="switcher" id="report-switcher">
+            <button class="pill active" data-target="p1">Budget Request Status</button>
+            <button class="pill" data-target="p2">Society Activity</button>
+            <button class="pill" data-target="p3">Financial Allocation</button>
+            <button class="pill" data-target="p4">Incorrect Submission</button>
         </div>
 
-        <div id="report-container">
-            <p class="no-report">Select a report type to view data.</p>
-        </div>
+        <!-- ============ REPORT 1: BUDGET REQUEST STATUS ============ -->
+        <section class="panel active" id="p1">
+            <div class="report-head">
+                <div>
+                    <h2>Budget Request Status Report</h2>
+                    <div class="sub">Live status of every budget request submitted across all registered societies, covering the current semester's Event and Regalia requests.</div>
+                </div>
+                <div class="report-actions">
+                    <button class="btn" onclick="exportCSV('p1')">Export CSV</button>
+                    <button class="btn btn-primary" onclick="exportPDF('p1')">Export PDF</button>
+                </div>
+            </div>
+
+            <div class="stats" id="p1-stats">
+                <div class="stat"><div class="label">Total Requests</div><div class="value" id="p1-total">-</div><div class="delta">All time</div></div>
+                <div class="stat"><div class="label">Approved</div><div class="value" id="p1-approved">-</div><div class="delta good" id="p1-approval-rate">-</div></div>
+                <div class="stat"><div class="label">Under Review</div><div class="value" id="p1-review">-</div><div class="delta" id="p1-avg-pending">-</div></div>
+                <div class="stat"><div class="label">Rejected</div><div class="value" id="p1-rejected">-</div><div class="delta bad" id="p1-rejection-rate">-</div></div>
+            </div>
+
+            <div class="chart-card">
+                <h3>Requests by status</h3>
+                <div id="p1-chart"></div>
+            </div>
+
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr><th>Request ID</th><th>Society</th><th>Type</th><th>Amount</th><th>Submitted</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="p1-table-body"></tbody>
+                </table>
+                <div class="table-foot"><span id="p1-showing">Showing 0 requests</span><span>Sorted by submission date</span></div>
+            </div>
+        </section>
+
+        <!-- ============ REPORT 2: SOCIETY ACTIVITY ============ -->
+        <section class="panel" id="p2">
+            <div class="report-head">
+                <div>
+                    <h2>Society Activity Report</h2>
+                    <div class="sub">Request volume and engagement per society this semester, used to identify inactive societies and anticipate demand.</div>
+                </div>
+                <div class="report-actions">
+                    <button class="btn" onclick="exportCSV('p2')">Export CSV</button>
+                    <button class="btn btn-primary" onclick="exportPDF('p2')">Export PDF</button>
+                </div>
+            </div>
+
+            <div class="stats" id="p2-stats">
+                <div class="stat"><div class="label">Registered Societies</div><div class="value" id="p2-total">-</div><div class="delta">As of today</div></div>
+                <div class="stat"><div class="label">Active This Semester</div><div class="value" id="p2-active">-</div><div class="delta good" id="p2-engagement">-</div></div>
+                <div class="stat"><div class="label">Dormant Societies</div><div class="value" id="p2-dormant">-</div><div class="delta bad" id="p2-dormant-rate">-</div></div>
+                <div class="stat"><div class="label">Event : Regalia Split</div><div class="value" id="p2-split">-</div><div class="delta">Requests this semester</div></div>
+            </div>
+
+            <div class="chart-card">
+                <h3>Most active societies (requests submitted)</h3>
+                <div id="p2-chart"></div>
+            </div>
+
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr><th>Society</th><th>Category</th><th>Event Req.</th><th>Regalia Req.</th><th>Total</th><th>Last Activity</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="p2-table-body"></tbody>
+                </table>
+                <div class="table-foot"><span id="p2-showing">Showing 0 societies</span><span>Sorted by total requests, descending</span></div>
+            </div>
+        </section>
+
+        <!-- ============ REPORT 3: FINANCIAL ALLOCATION ============ -->
+        <section class="panel" id="p3">
+            <div class="report-head">
+                <div>
+                    <h2>Financial Allocation Report</h2>
+                    <div class="sub">Approved budget distribution by spending category and society, supporting oversight, auditing and financial summaries.</div>
+                </div>
+                <div class="report-actions">
+                    <button class="btn" onclick="exportCSV('p3')">Export CSV</button>
+                    <button class="btn btn-primary" onclick="exportPDF('p3')">Export PDF</button>
+                </div>
+            </div>
+
+            <div class="stats" id="p3-stats">
+                <div class="stat"><div class="label">Total Approved</div><div class="value" id="p3-total">-</div><div class="delta">Across approved requests</div></div>
+                <div class="stat"><div class="label">Events</div><div class="value" id="p3-events">-</div><div class="delta" id="p3-events-pct">-</div></div>
+                <div class="stat"><div class="label">Regalia</div><div class="value" id="p3-regalia">-</div><div class="delta" id="p3-regalia-pct">-</div></div>
+                <div class="stat"><div class="label">Equipment &amp; Other</div><div class="value" id="p3-other">-</div><div class="delta" id="p3-other-pct">-</div></div>
+            </div>
+
+            <div class="chart-card">
+                <h3>Spend by category</h3>
+                <div id="p3-chart"></div>
+            </div>
+
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr><th>Society</th><th>Category</th><th>Approved Amount</th><th>% of Society Budget Used</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="p3-table-body"></tbody>
+                </table>
+                <div class="table-foot"><span id="p3-showing">Showing 0 requests</span><span>Sorted by approved amount, descending</span></div>
+            </div>
+        </section>
+
+        <!-- ============ REPORT 4: INCORRECT SUBMISSION ============ -->
+        <section class="panel" id="p4">
+            <div class="report-head">
+                <div>
+                    <h2>Incorrect Submission Report</h2>
+                    <div class="sub">Requests flagged for missing, incorrect, or outdated documentation, used to identify recurring submission errors.</div>
+                </div>
+                <div class="report-actions">
+                    <button class="btn" onclick="exportCSV('p4')">Export CSV</button>
+                    <button class="btn btn-primary" onclick="exportPDF('p4')">Export PDF</button>
+                </div>
+            </div>
+
+            <div class="stats" id="p4-stats">
+                <div class="stat"><div class="label">Flagged Submissions</div><div class="value" id="p4-total">-</div><div class="delta" id="p4-flag-rate">-</div></div>
+                <div class="stat"><div class="label">Most Common Issue</div><div class="value" id="p4-top-issue" style="font-size:18px;">-</div><div class="delta" id="p4-top-count">-</div></div>
+                <div class="stat"><div class="label">Awaiting Resubmission</div><div class="value" id="p4-awaiting">-</div><div class="delta bad" id="p4-avg-open">-</div></div>
+                <div class="stat"><div class="label">Resolved</div><div class="value" id="p4-resolved">-</div><div class="delta good" id="p4-resolved-rate">-</div></div>
+            </div>
+
+            <div class="chart-card">
+                <h3>Flagged submissions by issue type</h3>
+                <div id="p4-chart"></div>
+            </div>
+
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr><th>Request ID</th><th>Society</th><th>Issue Identified</th><th>Flagged</th><th>Action Required</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="p4-table-body"></tbody>
+                </table>
+                <div class="table-foot"><span id="p4-showing">Showing 0 flagged submissions</span><span>Sorted by date flagged, most recent first</span></div>
+            </div>
+        </section>
 
         <div class="nav-links">
             <a href="/officer/dashboard.html">Dashboard</a>
@@ -262,6 +629,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
+    <!-- Custom JS -->
     <script src="/js/officer-reports.js"></script>
 </body>
 </html>

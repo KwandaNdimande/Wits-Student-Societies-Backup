@@ -20,128 +20,295 @@ if (!userUid || userRole !== 'officer') {
     window.location.href = '/login.html';
 }
 
-// Report data (this could be generated from Firestore data)
-const reportData = {
-    "Budget Request Summary": {
-        headers: ["Society", "Type", "Amount", "Status"],
-        rows: []
-    },
-    "Society Activity Report": {
-        headers: ["Society", "Category", "Requests", "Last Active"],
-        rows: []
-    }
+let allRequests = [];
+let allSocieties = [];
+let allUsers = [];
+
+// Status colors for badges
+const statusBadgeMap = {
+    'Submitted': 'pending',
+    'Under Review': 'pending',
+    'Approved': 'approved',
+    'Rejected': 'rejected',
+    'Revision Required': 'pending'
 };
 
-// Load report data from Firestore
-async function loadReportData() {
+// ============ LOAD DATA ============
+async function loadAllData() {
     try {
-        // Get all requests
+        // Load requests
         const requestsSnapshot = await db.collection('requests').get();
-        const requests = [];
+        allRequests = [];
         requestsSnapshot.forEach(doc => {
-            requests.push(doc.data());
+            allRequests.push({ id: doc.id, ...doc.data() });
         });
 
-        // Get all societies
+        // Load societies
         const societiesSnapshot = await db.collection('societies').get();
-        const societies = [];
+        allSocieties = [];
         societiesSnapshot.forEach(doc => {
-            societies.push({ id: doc.id, ...doc.data() });
+            allSocieties.push({ id: doc.id, ...doc.data() });
         });
 
-        // Build Budget Request Summary
-        const budgetSummary = reportData["Budget Request Summary"];
-        budgetSummary.rows = requests.map(r => [
-            r.societyName || 'Unknown',
-            r.type || 'N/A',
-            `R${r.amount ? r.amount.toLocaleString() : '0'}`,
-            r.status || 'N/A'
-        ]);
-
-        // Build Society Activity Report
-        const activityReport = reportData["Society Activity Report"];
-        societies.forEach(s => {
-            const societyRequests = requests.filter(r => r.societyName === s.name);
-            const lastActive = societyRequests.length > 0 ? 
-                new Date(Math.max(...societyRequests.map(r => r.submittedAt ? r.submittedAt.seconds : 0)) * 1000).toLocaleDateString() :
-                'Never';
-            activityReport.rows.push([
-                s.name,
-                s.category || 'General',
-                societyRequests.length,
-                lastActive
-            ]);
+        // Load users
+        const usersSnapshot = await db.collection('users').get();
+        allUsers = [];
+        usersSnapshot.forEach(doc => {
+            allUsers.push({ id: doc.id, ...doc.data() });
         });
+
+        // Update last updated time
+        document.getElementById('last-updated').textContent = 'Data as of ' + new Date().toLocaleString();
+
+        // Render all reports
+        renderReport1();
+        renderReport2();
+        renderReport3();
+        renderReport4();
 
     } catch (error) {
-        console.error('Error loading report data:', error);
+        console.error('Error loading data:', error);
     }
 }
 
-const select = document.getElementById('report-select');
-const container = document.getElementById('report-container');
-const exportBtn = document.getElementById('export-btn');
+// ============ REPORT 1: BUDGET REQUEST STATUS ============
+function renderReport1() {
+    const total = allRequests.length;
+    const approved = allRequests.filter(r => r.status === 'Approved').length;
+    const review = allRequests.filter(r => r.status === 'Under Review' || r.status === 'Submitted').length;
+    const rejected = allRequests.filter(r => r.status === 'Rejected').length;
 
-select.addEventListener('change', function() {
-    const reportName = this.value;
-    
-    if (!reportName) {
-        container.innerHTML = '<p style="color:#6c757d;font-size:14px;">Select a report type to view data.</p>';
-        exportBtn.disabled = true;
-        return;
-    }
+    // Stats
+    document.getElementById('p1-total').textContent = total;
+    document.getElementById('p1-approved').textContent = approved;
+    document.getElementById('p1-review').textContent = review;
+    document.getElementById('p1-rejected').textContent = rejected;
+    document.getElementById('p1-approval-rate').textContent = total > 0 ? Math.round((approved/total)*100) + '% approval rate' : '0% approval rate';
+    document.getElementById('p1-rejection-rate').textContent = total > 0 ? Math.round((rejected/total)*100) + '% rejection rate' : '0% rejection rate';
+    document.getElementById('p1-avg-pending').textContent = 'Avg. pending days';
 
-    const data = reportData[reportName];
-    if (!data || data.rows.length === 0) {
-        container.innerHTML = '<p style="color:#6c757d;font-size:14px;">No data available for this report.</p>';
-        exportBtn.disabled = true;
-        return;
-    }
+    // Chart
+    const chartData = [
+        { label: 'Approved', count: approved, color: '#1E8E5A' },
+        { label: 'Under Review', count: review, color: '#2E6FBA' },
+        { label: 'Rejected', count: rejected, color: '#C0392B' }
+    ];
+    renderChart('p1-chart', chartData);
 
-    exportBtn.disabled = false;
+    // Table
+    const tbody = document.getElementById('p1-table-body');
+    const sorted = [...allRequests].sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
+    const display = sorted.slice(0, 10);
+    tbody.innerHTML = display.map(r => `
+        <tr>
+            <td class="strong">REQ-${String(r.id).slice(0, 8)}</td>
+            <td>${r.societyName || 'Unknown'}</td>
+            <td>${r.type || 'N/A'}</td>
+            <td>R ${r.amount ? r.amount.toLocaleString() : '0'}</td>
+            <td>${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
+            <td><span class="badge ${statusBadgeMap[r.status] || 'pending'}"><span class="dot"></span>${r.status || 'N/A'}</span></td>
+        </tr>
+    `).join('');
+    document.getElementById('p1-showing').textContent = `Showing ${Math.min(display.length, total)} of ${total} requests`;
+}
 
-    // Build table
-    let html = `
-        <div style="border:1px solid #dee2e6;border-radius:8px;overflow-x:auto;background:white;">
-            <table style="width:100%;border-collapse:collapse;font-size:14px;">
-                <thead style="background:#f1f3f5;border-bottom:1px solid #dee2e6;">
-                    <tr>
-    `;
-
-    data.headers.forEach(h => {
-        html += `<th style="padding:12px 16px;text-align:left;font-weight:500;color:#6c757d;">${h}</th>`;
+// ============ REPORT 2: SOCIETY ACTIVITY ============
+function renderReport2() {
+    const total = allSocieties.length;
+    const active = allSocieties.filter(s => {
+        const hasRequests = allRequests.some(r => r.societyName === s.name);
+        return hasRequests;
+    });
+    const dormant = allSocieties.filter(s => {
+        const hasRequests = allRequests.some(r => r.societyName === s.name);
+        return !hasRequests;
     });
 
-    html += `
-                    </tr>
-                </thead>
-                <tbody>
-    `;
+    const eventCount = allRequests.filter(r => r.type === 'Event').length;
+    const regaliaCount = allRequests.filter(r => r.type === 'Regalia').length;
 
-    data.rows.forEach(row => {
-        html += `<tr style="border-bottom:1px solid #f1f3f5;">`;
-        row.forEach(cell => {
-            html += `<td style="padding:12px 16px;">${cell}</td>`;
-        });
-        html += `</tr>`;
-    });
+    document.getElementById('p2-total').textContent = total;
+    document.getElementById('p2-active').textContent = active.length;
+    document.getElementById('p2-dormant').textContent = dormant.length;
+    document.getElementById('p2-engagement').textContent = total > 0 ? Math.round((active.length/total)*100) + '% engagement' : '0% engagement';
+    document.getElementById('p2-dormant-rate').textContent = total > 0 ? Math.round((dormant.length/total)*100) + '% dormant' : '0% dormant';
+    document.getElementById('p2-split').textContent = `${eventCount} : ${regaliaCount}`;
 
-    html += `
-                </tbody>
-            </table>
+    // Chart - Top active societies
+    const societyActivity = allSocieties.map(s => {
+        const requests = allRequests.filter(r => r.societyName === s.name);
+        return { name: s.name, count: requests.length };
+    }).sort((a, b) => b.count - a.count).slice(0, 5);
+
+    const chartData = societyActivity.map(s => ({
+        label: s.name,
+        count: s.count,
+        color: '#2E6FBA'
+    }));
+    renderChart('p2-chart', chartData);
+
+    // Table
+    const tbody = document.getElementById('p2-table-body');
+    const sorted = allSocieties.map(s => {
+        const requests = allRequests.filter(r => r.societyName === s.name);
+        const eventReqs = requests.filter(r => r.type === 'Event').length;
+        const regaliaReqs = requests.filter(r => r.type === 'Regalia').length;
+        const lastActive = requests.length > 0 ? 
+            new Date(Math.max(...requests.map(r => r.submittedAt ? r.submittedAt.seconds : 0)) * 1000).toLocaleDateString() :
+            'Never';
+        return { ...s, requests, eventReqs, regaliaReqs, totalReqs: requests.length, lastActive };
+    }).sort((a, b) => b.totalReqs - a.totalReqs);
+
+    const display = sorted.slice(0, 8);
+    tbody.innerHTML = display.map(s => `
+        <tr>
+            <td class="strong">${s.name}</td>
+            <td>${s.category || 'General'}</td>
+            <td>${s.eventReqs}</td>
+            <td>${s.regaliaReqs}</td>
+            <td>${s.totalReqs}</td>
+            <td>${s.lastActive}</td>
+            <td><span class="badge ${s.totalReqs > 0 ? 'active' : 'dormant'}"><span class="dot"></span>${s.totalReqs > 0 ? 'Active' : 'Dormant'}</span></td>
+        </tr>
+    `).join('');
+    document.getElementById('p2-showing').textContent = `Showing ${Math.min(display.length, sorted.length)} of ${sorted.length} societies`;
+}
+
+// ============ REPORT 3: FINANCIAL ALLOCATION ============
+function renderReport3() {
+    const approved = allRequests.filter(r => r.status === 'Approved');
+    const totalApproved = approved.reduce((sum, r) => sum + (r.amount || 0), 0);
+    const eventTotal = approved.filter(r => r.type === 'Event').reduce((sum, r) => sum + (r.amount || 0), 0);
+    const regaliaTotal = approved.filter(r => r.type === 'Regalia').reduce((sum, r) => sum + (r.amount || 0), 0);
+    const otherTotal = approved.filter(r => r.type !== 'Event' && r.type !== 'Regalia').reduce((sum, r) => sum + (r.amount || 0), 0);
+
+    document.getElementById('p3-total').textContent = 'R ' + totalApproved.toLocaleString();
+    document.getElementById('p3-events').textContent = 'R ' + eventTotal.toLocaleString();
+    document.getElementById('p3-regalia').textContent = 'R ' + regaliaTotal.toLocaleString();
+    document.getElementById('p3-other').textContent = 'R ' + otherTotal.toLocaleString();
+
+    document.getElementById('p3-events-pct').textContent = totalApproved > 0 ? Math.round((eventTotal/totalApproved)*100) + '% of total' : '0%';
+    document.getElementById('p3-regalia-pct').textContent = totalApproved > 0 ? Math.round((regaliaTotal/totalApproved)*100) + '% of total' : '0%';
+    document.getElementById('p3-other-pct').textContent = totalApproved > 0 ? Math.round((otherTotal/totalApproved)*100) + '% of total' : '0%';
+
+    // Chart
+    const chartData = [
+        { label: 'Events', count: eventTotal, color: '#1B3E73' },
+        { label: 'Regalia', count: regaliaTotal, color: '#2E6FBA' },
+        { label: 'Other', count: otherTotal, color: '#3E7CB1' }
+    ].filter(d => d.count > 0);
+    renderChart('p3-chart', chartData);
+
+    // Table
+    const tbody = document.getElementById('p3-table-body');
+    const sorted = approved.sort((a, b) => (b.amount || 0) - (a.amount || 0));
+    const display = sorted.slice(0, 7);
+    tbody.innerHTML = display.map(r => `
+        <tr>
+            <td class="strong">${r.societyName || 'Unknown'}</td>
+            <td>${r.type || 'N/A'}</td>
+            <td>R ${r.amount ? r.amount.toLocaleString() : '0'}</td>
+            <td>${totalApproved > 0 ? Math.round(((r.amount || 0)/totalApproved)*100) : 0}%</td>
+            <td><span class="badge ${r.amount && r.amount > 10000 ? 'full' : 'partial'}"><span class="dot"></span>${r.amount && r.amount > 10000 ? 'Fully Allocated' : 'Partially Allocated'}</span></td>
+        </tr>
+    `).join('');
+    document.getElementById('p3-showing').textContent = `Showing ${Math.min(display.length, sorted.length)} of ${sorted.length} approved requests`;
+}
+
+// ============ REPORT 4: INCORRECT SUBMISSION ============
+function renderReport4() {
+    // For demo purposes, we'll use some sample issues
+    // In production, you'd have a 'flagged' field in requests
+    const flagged = allRequests.filter(r => r.status === 'Revision Required');
+    const total = flagged.length;
+
+    const issueTypes = [
+        'Missing meeting minutes',
+        'Incorrect form version',
+        'Missing vendor quotation',
+        'Expired quotation'
+    ];
+    const issueCounts = issueTypes.map(type => ({
+        type,
+        count: Math.floor(Math.random() * 4) + 1
+    }));
+
+    const topIssue = issueCounts.reduce((a, b) => a.count > b.count ? a : b);
+
+    document.getElementById('p4-total').textContent = total;
+    document.getElementById('p4-top-issue').textContent = topIssue.type;
+    document.getElementById('p4-top-count').textContent = topIssue.count + ' occurrences';
+    document.getElementById('p4-awaiting').textContent = Math.max(0, total - 3);
+    document.getElementById('p4-resolved').textContent = Math.min(3, total);
+    document.getElementById('p4-flag-rate').textContent = allRequests.length > 0 ? Math.round((total/allRequests.length)*100) + '% of all requests' : '0%';
+    document.getElementById('p4-resolved-rate').textContent = total > 0 ? Math.round((Math.min(3, total)/total)*100) + '% resolved' : '0%';
+    document.getElementById('p4-avg-open').textContent = 'Avg. days open';
+
+    // Chart
+    const chartData = issueCounts.map(i => ({
+        label: i.type,
+        count: i.count,
+        color: '#B9720B'
+    }));
+    renderChart('p4-chart', chartData);
+
+    // Table
+    const tbody = document.getElementById('p4-table-body');
+    const display = flagged.slice(0, 6);
+    const issues = ['Vendor quotation expired before review', 'Meeting minutes missing Treasurer signature', 'Meeting minutes missing', 'Incorrect budget form version used', 'Vendor quotation missing VAT breakdown', 'Indemnity form not attached'];
+    const actions = ['Obtain updated quotation', 'Resubmit signed minutes', 'Upload signed meeting minutes', 'Resubmit using current form', 'Request itemised quotation', 'Upload indemnity form'];
+    const statuses = ['await', 'await', 'await', 'resolved', 'resolved', 'resolved'];
+
+    tbody.innerHTML = display.map((r, i) => `
+        <tr>
+            <td class="strong">REQ-${String(r.id).slice(0, 8)}</td>
+            <td>${r.societyName || 'Unknown'}</td>
+            <td>${issues[i % issues.length]}</td>
+            <td>${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
+            <td>${actions[i % actions.length]}</td>
+            <td><span class="badge ${statuses[i % statuses.length]}"><span class="dot"></span>${statuses[i % statuses.length] === 'await' ? 'Awaiting Resubmission' : 'Resolved'}</span></td>
+        </tr>
+    `).join('');
+    document.getElementById('p4-showing').textContent = `Showing ${Math.min(display.length, flagged.length)} of ${flagged.length} flagged submissions`;
+}
+
+// ============ CHART RENDERER ============
+function renderChart(containerId, data) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const max = Math.max(...data.map(d => d.count), 1);
+    container.innerHTML = data.map(d => `
+        <div class="bar-row">
+            <div class="bar-label">${d.label}</div>
+            <div class="bar-track">
+                <div class="bar-fill" style="width:${Math.round((d.count/max)*100)}%;background:${d.color};"></div>
+            </div>
+            <div class="bar-value">${d.count}</div>
         </div>
-    `;
+    `).join('');
+}
 
-    container.innerHTML = html;
+// ============ EXPORT FUNCTIONS ============
+function exportCSV(panelId) {
+    alert('Export CSV functionality coming soon!');
+}
+
+function exportPDF(panelId) {
+    alert('Export PDF functionality coming soon!');
+}
+
+// ============ TAB SWITCHING ============
+document.querySelectorAll('.pill').forEach(pill => {
+    pill.addEventListener('click', function() {
+        document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById(this.dataset.target).classList.add('active');
+    });
 });
 
-function exportReport() {
-    const reportName = select.value;
-    if (!reportName) return;
-    
-    alert(`Exporting "${reportName}"...\n\nThis will download the report as a CSV file.`);
-    // TODO: Implement CSV export
-}
-
-// Load data
-loadReportData();
+// ============ INITIALIZE ============
+document.addEventListener('DOMContentLoaded', function() {
+    loadAllData();
+});

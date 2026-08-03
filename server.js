@@ -17,25 +17,68 @@ try {
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
 
     // Azure production environment
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-
-    if (serviceAccount.private_key) {
-      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    console.log("Loading Firebase credentials from Azure environment...");
+    
+    // Get the raw JSON string from environment variable
+    let rawJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+    
+    // Clean up the JSON string - handle escaped characters properly
+    try {
+      // First attempt: direct parse
+      serviceAccount = JSON.parse(rawJson);
+    } catch (parseError) {
+      console.log("Direct parse failed, attempting to clean string...");
+      // If direct parse fails, clean the string
+      rawJson = rawJson.replace(/\\\\n/g, '\\n');
+      rawJson = rawJson.replace(/\\n/g, '\n');
+      serviceAccount = JSON.parse(rawJson);
     }
 
-    console.log("Using Firebase credentials from Azure environment");
+    // CRITICAL FIX: Ensure private_key has proper newline formatting
+    if (serviceAccount.private_key) {
+      // Remove any extra escaping and ensure proper newline characters
+      serviceAccount.private_key = serviceAccount.private_key
+        .replace(/\\\\n/g, '\n')
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '')
+        .trim();
+      
+      // Verify the key starts with the correct header
+      if (!serviceAccount.private_key.includes('-----BEGIN PRIVATE KEY-----')) {
+        console.warn('Warning: Private key may be malformed. Attempting to fix...');
+        // Sometimes the key gets double-encoded, try to decode it
+        try {
+          const decoded = Buffer.from(serviceAccount.private_key, 'base64').toString('utf8');
+          if (decoded.includes('-----BEGIN PRIVATE KEY-----')) {
+            serviceAccount.private_key = decoded;
+          }
+        } catch (e) {
+          console.warn('Could not decode private key, continuing with original...');
+        }
+      }
+    }
+
+    console.log("✅ Firebase credentials loaded from Azure environment");
 
   } else {
 
     // Local development environment
-    const rawData = fs.readFileSync('./serviceAccountKey.json', 'utf8');
-    serviceAccount = JSON.parse(rawData);
+    console.log("Loading local Firebase credentials file...");
+    
+    try {
+      const rawData = fs.readFileSync('./serviceAccountKey.json', 'utf8');
+      serviceAccount = JSON.parse(rawData);
 
-    if (serviceAccount.private_key) {
-      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      if (serviceAccount.private_key) {
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      }
+      
+      console.log("✅ Local Firebase credentials loaded");
+    } catch (fileError) {
+      console.error('Error reading local credentials file:', fileError.message);
+      throw fileError;
     }
 
-    console.log("Using local Firebase credentials file");
   }
 
 
@@ -48,9 +91,15 @@ try {
 
 
 // Initialize Firebase
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+try {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+  console.log("✅ Firebase Admin SDK initialized successfully");
+} catch (error) {
+  console.error('Error initializing Firebase:', error.message);
+  process.exit(1);
+}
 
 
 const db = admin.firestore();
@@ -150,10 +199,11 @@ app.post('/api/send-verification-email', async (req, res) => {
   
   try {
     await sendVerificationEmail(email, code, name);
+    console.log(`✅ Verification email sent to ${email}`);
     res.json({ success: true, message: 'Verification email sent' });
   } catch (error) {
     console.error('Email sending error:', error);
-    res.status(500).json({ error: 'Failed to send email' });
+    res.status(500).json({ error: 'Failed to send email: ' + error.message });
   }
 });
 

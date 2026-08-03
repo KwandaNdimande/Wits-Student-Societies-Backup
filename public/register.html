@@ -193,12 +193,16 @@
                 <div class="name-grid">
                     <div class="form-group">
                         <label for="firstName">First name</label>
-                        <input id="firstName" type="text" placeholder="Jane" />
+                        <input id="firstName" type="text" placeholder="Jane" required />
                     </div>
                     <div class="form-group">
                         <label for="lastName">Last name</label>
-                        <input id="lastName" type="text" placeholder="Doe" />
+                        <input id="lastName" type="text" placeholder="Doe" required />
                     </div>
+                </div>
+                <div class="form-group">
+                    <label for="society-name">Society Name</label>
+                    <input id="society-name" type="text" placeholder="e.g. Wits Debate Society" required />
                 </div>
                 <div class="form-group">
                     <label for="signup-email">Email</label>
@@ -206,7 +210,7 @@
                 </div>
                 <div class="form-group">
                     <label for="signup-password">Password</label>
-                    <input id="signup-password" type="password" placeholder="Create a password" required />
+                    <input id="signup-password" type="password" placeholder="Create a password (min 6 characters)" required />
                 </div>
 
                 <div id="register-error" class="error-message"></div>
@@ -244,12 +248,24 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        function getFriendlyErrorMessage(errorCode) {
+            const messages = {
+                'auth/email-already-in-use': 'This email is already registered. Please sign in instead.',
+                'auth/invalid-email': 'The email address is not valid. Please check and try again.',
+                'auth/weak-password': 'Password is too weak. Please use at least 6 characters.',
+                'auth/network-request-failed': 'Network error. Please check your internet connection.',
+                'auth/internal-error': 'Something went wrong. Please try again.'
+            };
+            return messages[errorCode] || 'Unable to create account. Please try again.';
+        }
+
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const firstName = document.getElementById('firstName').value;
-            const lastName = document.getElementById('lastName').value;
-            const email = document.getElementById('signup-email').value;
+            const firstName = document.getElementById('firstName').value.trim();
+            const lastName = document.getElementById('lastName').value.trim();
+            const societyName = document.getElementById('society-name').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
             const password = document.getElementById('signup-password').value;
             const errorEl = document.getElementById('register-error');
             const btn = document.getElementById('register-btn');
@@ -267,6 +283,7 @@
                     email: email,
                     firstName: firstName,
                     lastName: lastName,
+                    societyName: societyName,
                     role: 'leader',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
@@ -274,12 +291,14 @@
                 localStorage.setItem('userRole', 'leader');
                 localStorage.setItem('userUid', user.uid);
                 localStorage.setItem('userName', firstName + ' ' + lastName);
+                localStorage.setItem('userSociety', societyName);
 
                 window.location.href = '/dashboard.html';
 
             } catch (error) {
                 console.error('Registration error:', error);
-                errorEl.textContent = error.message;
+                const friendlyMessage = getFriendlyErrorMessage(error.code);
+                errorEl.textContent = friendlyMessage;
                 errorEl.style.display = 'block';
             } finally {
                 btn.disabled = false;

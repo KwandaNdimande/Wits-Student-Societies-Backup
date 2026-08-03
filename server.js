@@ -7,6 +7,7 @@ const cors = require('cors');
 const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
+const nodemailer = require('nodemailer');
 
 // Initialize Firebase Admin SDK
 let serviceAccount;
@@ -67,6 +68,53 @@ app.use(express.json());
 app.use(express.static('public'));
 
 
+// ============ EMAIL TRANSPORTER ============
+
+// Create nodemailer transporter
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// Email sender function
+async function sendVerificationEmail(toEmail, code, name = "") {
+  const html = `
+  <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+    <div style="background:#0B1F3A;padding:24px 32px;text-align:center">
+      <h1 style="color:#fff;margin:0;font-size:22px">Wits Student Societies</h1>
+      <p style="color:#8FA6CC;margin:4px 0 0;font-size:14px">SGO Digital Operations</p>
+    </div>
+    <div style="padding:32px">
+      <h2 style="color:#0B1F3A;margin-top:0">Welcome${name ? ' ' + name : ''}!</h2>
+      <p style="color:#374151;font-size:15px;line-height:1.6">Thank you for registering for the Wits Student Societies platform. Please use the verification code below to complete your registration:</p>
+      
+      <div style="text-align:center;padding:20px;margin:20px 0">
+        <div style="font-size:36px;letter-spacing:10px;font-weight:bold;background:#f0f4f8;padding:15px;border-radius:8px;font-family:monospace;display:inline-block;color:#0B1F3A">
+          ${code}
+        </div>
+      </div>
+      
+      <p style="color:#6b7280;font-size:14px">This code will expire in <strong>15 minutes</strong>.</p>
+      <p style="color:#6b7280;font-size:14px;margin-top:4px">If you didn't create an account, you can safely ignore this email.</p>
+    </div>
+    <div style="background:#f3f4f6;padding:16px 32px;text-align:center">
+      <p style="color:#9ca3af;font-size:12px;margin:0">Wits Student Societies - Student Governance Office</p>
+      <p style="color:#9ca3af;font-size:11px;margin:4px 0 0">University of the Witwatersrand</p>
+    </div>
+  </div>`;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    to: toEmail,
+    subject: "Verify Your Email - Wits Student Societies",
+    html,
+  });
+}
+
+
 // ============ ROOT ROUTE ============
 
 // Serve index.html at root
@@ -87,6 +135,26 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 
+});
+
+
+// ============ EMAIL VERIFICATION ENDPOINT ============
+
+// Send verification email
+app.post('/api/send-verification-email', async (req, res) => {
+  const { email, code, name } = req.body;
+  
+  if (!email || !code) {
+    return res.status(400).json({ error: 'Email and code are required' });
+  }
+  
+  try {
+    await sendVerificationEmail(email, code, name);
+    res.json({ success: true, message: 'Verification email sent' });
+  } catch (error) {
+    console.error('Email sending error:', error);
+    res.status(500).json({ error: 'Failed to send email' });
+  }
 });
 
 

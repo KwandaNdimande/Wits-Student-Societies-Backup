@@ -248,6 +248,8 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        let isRegistering = false;
+
         function getFriendlyErrorMessage(errorCode) {
             const messages = {
                 'auth/email-already-in-use': 'This email is already registered. Please sign in instead.',
@@ -261,6 +263,7 @@
 
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            isRegistering = true;
 
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
@@ -279,7 +282,22 @@
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                // Step 2: Save user to Firestore
+                // Step 2: Generate OTP
+                const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+                const expiresAt = new Date();
+                expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+
+                // Step 3: Save OTP to emailVerifications collection
+                await db.collection('emailVerifications').doc(user.uid).set({
+                    userId: user.uid,
+                    email: email,
+                    code: otpCode,
+                    expiresAt: expiresAt,
+                    createdAt: new Date(),
+                    verified: false
+                });
+
+                // Step 4: Save user data to Firestore (UNVERIFIED)
                 await db.collection('users').doc(user.uid).set({
                     uid: user.uid,
                     email: email,
@@ -287,10 +305,11 @@
                     lastName: lastName,
                     societyName: societyName,
                     role: 'leader',
+                    isEmailVerified: false,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                // Step 3: Create society document (if it doesn't already exist)
+                // Step 5: Check if society exists, if not create it
                 const existingSociety = await db.collection('societies')
                     .where('name', '==', societyName)
                     .get();
@@ -302,28 +321,64 @@
                         email: email,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                    console.log(`✅ Society created: ${societyName}`);
-                } else {
-                    console.log(`ℹ️ Society already exists: ${societyName}`);
+                    console.log('✅ Society created:', societyName);
                 }
 
-                // Step 4: Store in localStorage
-                localStorage.setItem('userRole', 'leader');
-                localStorage.setItem('userUid', user.uid);
-                localStorage.setItem('userName', firstName + ' ' + lastName);
-                localStorage.setItem('userSociety', societyName);
+                // Step 6: Store pending info in localStorage
+                localStorage.setItem('pendingUserId', user.uid);
+                localStorage.setItem('pendingUserEmail', email);
+                localStorage.setItem('pendingUserName', firstName + ' ' + lastName);
 
-                // Step 5: Redirect to dashboard
-                window.location.href = '/dashboard.html';
+                // Step 7: Log OTP for testing
+                console.log('=========================================');
+                console.log('VERIFICATION CODE FOR:', email);
+                console.log('CODE:', otpCode);
+                console.log('Expires at:', expiresAt.toLocaleTimeString());
+                console.log('=========================================');
 
-            } catch (error) {
-                console.error('Registration error:', error);
-                const friendlyMessage = getFriendlyErrorMessage(error.code);
+                // Step 8: Send email via backend
+                try {
+                    const emailResponse = await fetch('/api/send-verification-email', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            code: otpCode,
+                            name: firstName + ' ' + lastName
+                        }),
+                    });
+
+                    if (emailResponse.ok) {
+                        console.log('Verification email sent successfully');
+                    } else {
+                        console.error('Failed to send verification email');
+                    }
+                } catch (emailError) {
+                    console.error('Email sending error:', emailError);
+                }
+
+                // Step 9: Sign out user
+                await auth.signOut();
+
+                // Step 10: Redirect to verification page
+                errorEl.style.display = 'none';
+                btn.textContent = '✅ Check your email!';
+                btn.style.background = '#28a745';
+
+                setTimeout(() => {
+                    window.location.href = '/verify-otp.html';
+                }, 1500);
+
+            } catch (err) {
+                console.error('Registration error:', err);
+                const friendlyMessage = getFriendlyErrorMessage(err.code);
                 errorEl.textContent = friendlyMessage;
                 errorEl.style.display = 'block';
-            } finally {
                 btn.disabled = false;
                 btn.textContent = 'Create account';
+                isRegistering = false;
             }
         });
     </script>

@@ -71,7 +71,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
-            min-width: 1100px;
+            min-width: 1200px;
         }
         thead {
             background: #FAFBFD;
@@ -164,6 +164,22 @@
         }
         .btn-view:hover {
             background: var(--info);
+            color: #fff;
+        }
+        .btn-flag {
+            font-size: 12px;
+            color: var(--warning);
+            background: none;
+            border: 1px solid var(--warning);
+            border-radius: 6px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
+        .btn-flag:hover {
+            background: var(--warning);
             color: #fff;
         }
         .btn-delete {
@@ -274,6 +290,72 @@
         .modal-close:hover {
             color: var(--text-900);
         }
+        .modal-body {
+            padding: 8px 0;
+        }
+        .modal-body label {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-600);
+            display: block;
+            margin-bottom: 4px;
+        }
+        .modal-body textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            resize: vertical;
+            min-height: 80px;
+        }
+        .modal-body textarea:focus {
+            outline: none;
+            border-color: var(--navy-900);
+        }
+        .modal-footer {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+        }
+        .btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-primary {
+            background: var(--navy-900);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--navy-800);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text-600);
+        }
+        .btn-secondary:hover {
+            background: #d0d7e0;
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #a93226;
+        }
         .doc-item {
             padding: 12px 0;
             border-bottom: 1px solid var(--border);
@@ -339,6 +421,24 @@
             </div>
             <div id="modalBody">
                 <div class="no-docs">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flag Modal -->
+    <div class="modal-overlay" id="flagModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="flagModalTitle">Flag for Revision</h2>
+                <button class="modal-close" onclick="closeFlagModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <label for="flagComment">Reason for Revision</label>
+                <textarea id="flagComment" placeholder="Please provide details on what needs to be corrected..."></textarea>
+                <div class="modal-footer">
+                    <button class="btn btn-danger" onclick="submitFlag()">Flag Request</button>
+                    <button class="btn btn-secondary" onclick="closeFlagModal()">Cancel</button>
+                </div>
             </div>
         </div>
     </div>

@@ -20,6 +20,8 @@ if (!userUid || userRole !== 'officer') {
     window.location.href = '/login.html';
 }
 
+let currentFlagRequestId = null;
+
 // Status colors
 const statusColors = {
     "Submitted": "status-submitted",
@@ -58,8 +60,7 @@ async function loadRequests() {
                             <th>Date</th>
                             <th>Status</th>
                             <th>Documents</th>
-                            <th>Update Status</th>
-                            <th>Action</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -74,12 +75,14 @@ async function loadRequests() {
             const statusClass = statusColors[r.status] || 'status-submitted';
             const isLocked = r.status === 'Approved' || r.status === 'Rejected';
             const isRevisionLocked = r.status === 'Revision Required';
+            const isResubmitted = r.status === 'Resubmitted';
             
             const optionsHTML = statusOptions.map(s => 
                 `<option value="${s}" ${s === r.status ? 'selected' : ''}>${s}</option>`
             ).join('');
 
             const hasDocs = r.documents && Object.keys(r.documents).length > 0;
+            const hasOfficerComment = r.officerComment && r.officerComment !== '';
 
             html += `
                 <tr>
@@ -90,6 +93,7 @@ async function loadRequests() {
                     <td style="color:#6c757d;">${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
                     <td>
                         <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
+                        ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">📝 ${r.officerComment}</span>` : ''}
                     </td>
                     <td>
                         <button class="btn-view" onclick="viewDocuments('${r.id}')">
@@ -98,13 +102,13 @@ async function loadRequests() {
                     </td>
                     <td>
                         ${isRevisionLocked ? 
-                            `<span style="color:#E65100;font-weight:600;font-size:12px;"> Awaiting Resubmission</span>` :
+                            `<span class="waiting-text">⏳ Awaiting Resubmission</span>` :
                             `<select class="status-select" onchange="updateStatus('${r.id}', this.value)" ${isLocked ? 'disabled' : ''}>
                                 ${optionsHTML}
                             </select>`
                         }
-                    </td>
-                    <td>
+                        ${!isLocked && !isRevisionLocked ? `<button class="btn-flag" onclick="openFlagModal('${r.id}')">🚩 Flag</button>` : ''}
+                        ${isResubmitted ? `<button class="btn-view" onclick="viewUpdatedDocuments('${r.id}')">📂 Compare</button>` : ''}
                         <button class="btn-delete" onclick="deleteRequest('${r.id}')">Delete</button>
                     </td>
                 </tr>
@@ -176,6 +180,160 @@ async function viewDocuments(requestId) {
     } catch (error) {
         console.error('Error viewing documents:', error);
         alert('Error loading documents: ' + error.message);
+    }
+}
+
+// ============ VIEW UPDATED DOCUMENTS (COMPARE) ============
+
+async function viewUpdatedDocuments(requestId) {
+    try {
+        const docRef = await db.collection('requests').doc(requestId).get();
+        if (!docRef.exists) {
+            showModal('Request not found', '<p>No documents found for this request.</p>');
+            return;
+        }
+
+        const data = docRef.data();
+        const documents = data.documents || {};
+        const itemName = data.itemName || 'Request';
+        const officerComment = data.officerComment || '';
+        const leaderComment = data.leaderComment || '';
+
+        let modalBody = `
+            <div style="margin-bottom:16px;padding:12px;background:#FFF3E0;border-radius:8px;">
+                <strong style="color:#E65100;">📝 Revision Requested:</strong>
+                <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${officerComment || 'No comment provided'}</p>
+            </div>
+        `;
+
+        if (leaderComment) {
+            modalBody += `
+                <div style="margin-bottom:16px;padding:12px;background:#E3F2FD;border-radius:8px;">
+                    <strong style="color:#0D47A1;">📤 Leader's Note:</strong>
+                    <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${leaderComment}</p>
+                </div>
+            `;
+        }
+
+        if (Object.keys(documents).length === 0) {
+            modalBody += '<p class="no-docs">No documents uploaded for this request.</p>';
+        } else {
+            const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
+            const docLabels = {
+                'budgetForm': 'Budget Form',
+                'meetingMinutes': 'Meeting Minutes',
+                'vendorQuotation': 'Vendor Quotation'
+            };
+
+            modalBody += '<h3 style="margin-top:12px;font-size:16px;color:var(--navy-900);">Updated Documents</h3>';
+            
+            modalBody += docOrder.map(key => {
+                const doc = documents[key];
+                if (!doc) {
+                    return `
+                        <div class="doc-item">
+                            <div class="doc-name">${docLabels[key] || key}</div>
+                            <div class="doc-detail">No file uploaded</div>
+                        </div>
+                    `;
+                }
+                const fileName = doc.fileName || 'No file';
+                const version = doc.version || 1;
+                const uploadedAt = doc.uploadedAt ? new Date(doc.uploadedAt.seconds * 1000).toLocaleString() : 'N/A';
+                return `
+                    <div class="doc-item">
+                        <div class="doc-name">${docLabels[key] || key}</div>
+                        <div class="doc-detail">File: ${fileName}</div>
+                        <div class="doc-detail">Version: ${version} • Uploaded: ${uploadedAt}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        showModal(`Updated Documents - ${itemName}`, modalBody);
+
+    } catch (error) {
+        console.error('Error viewing updated documents:', error);
+        alert('Error loading documents: ' + error.message);
+    }
+}
+
+// ============ FLAG MODAL FUNCTIONS ============
+
+function openFlagModal(requestId) {
+    currentFlagRequestId = requestId;
+    document.getElementById('flagComment').value = '';
+    document.getElementById('flagModal').classList.add('active');
+}
+
+function closeFlagModal() {
+    document.getElementById('flagModal').classList.remove('active');
+    currentFlagRequestId = null;
+}
+
+// Close flag modal on overlay click
+document.getElementById('flagModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeFlagModal();
+    }
+});
+
+// ============ SUBMIT FLAG ============
+
+async function submitFlag() {
+    if (!currentFlagRequestId) return;
+
+    const comment = document.getElementById('flagComment').value.trim();
+    const btn = document.querySelector('#flagModal .btn-danger');
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    try {
+        // Update request status and add comment
+        await db.collection('requests').doc(currentFlagRequestId).update({
+            status: 'Revision Required',
+            officerComment: comment || 'Revision required',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Get request data for email
+        const requestDoc = await db.collection('requests').doc(currentFlagRequestId).get();
+        const requestData = requestDoc.data();
+
+        // Send email to leader
+        if (requestData.submittedBy) {
+            try {
+                const userDoc = await db.collection('users').doc(requestData.submittedBy).get();
+                const userData = userDoc.data();
+                
+                if (userData && userData.email) {
+                    await fetch('/api/send-status-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: userData.email,
+                            requestName: requestData.itemName || 'Your Request',
+                            status: 'Revision Required',
+                            officerComment: comment || 'Revision required'
+                        })
+                    });
+                    console.log('Revision email sent to leader');
+                }
+            } catch (emailError) {
+                console.error('Email error:', emailError);
+            }
+        }
+
+        closeFlagModal();
+        loadRequests();
+        alert('✅ Request flagged for revision. Leader has been notified.');
+
+    } catch (error) {
+        console.error('Error flagging request:', error);
+        alert('Error flagging request: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Flag Request';
     }
 }
 

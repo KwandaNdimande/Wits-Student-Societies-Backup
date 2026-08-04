@@ -83,7 +83,8 @@ async function loadRequests() {
             ).join('');
 
             const hasDocs = r.documents && Object.keys(r.documents).length > 0;
-            const hasOfficerComment = r.officerComment && r.officerComment !== '';
+            // Only show officer comment when status is Revision Required
+            const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
 
             html += `
                 <tr>

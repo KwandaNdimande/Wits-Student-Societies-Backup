@@ -98,7 +98,7 @@ async function loadRequests() {
                     </td>
                     <td>
                         ${isRevisionLocked ? 
-                            `<span style="color:#E65100;font-weight:600;font-size:12px;">🔒 Waiting for Leader</span>` :
+                            `<span style="color:#E65100;font-weight:600;font-size:12px;"> Awaiting Resubmission</span>` :
                             `<select class="status-select" onchange="updateStatus('${r.id}', this.value)" ${isLocked ? 'disabled' : ''}>
                                 ${optionsHTML}
                             </select>`

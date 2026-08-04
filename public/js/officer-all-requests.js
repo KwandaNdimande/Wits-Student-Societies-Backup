@@ -32,7 +32,8 @@ const statusColors = {
     "Resubmitted": "status-resubmitted"
 };
 
-const statusOptions = ["Submitted", "Under Review", "Approved", "Rejected", "Revision Required"];
+// Remove "Revision Required" from dropdown options
+const statusOptions = ["Submitted", "Under Review", "Approved", "Rejected"];
 
 // Load all requests
 async function loadRequests() {

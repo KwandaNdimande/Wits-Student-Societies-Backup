@@ -73,6 +73,7 @@ async function loadRequests() {
         requests.forEach(r => {
             const statusClass = statusColors[r.status] || 'status-submitted';
             const isLocked = r.status === 'Approved' || r.status === 'Rejected';
+            const isRevisionLocked = r.status === 'Revision Required';
             
             const optionsHTML = statusOptions.map(s => 
                 `<option value="${s}" ${s === r.status ? 'selected' : ''}>${s}</option>`
@@ -96,9 +97,12 @@ async function loadRequests() {
                         </button>
                     </td>
                     <td>
-                        <select class="status-select" onchange="updateStatus('${r.id}', this.value)" ${isLocked ? 'disabled' : ''}>
-                            ${optionsHTML}
-                        </select>
+                        ${isRevisionLocked ? 
+                            `<span style="color:#E65100;font-weight:600;font-size:12px;">🔒 Waiting for Leader</span>` :
+                            `<select class="status-select" onchange="updateStatus('${r.id}', this.value)" ${isLocked ? 'disabled' : ''}>
+                                ${optionsHTML}
+                            </select>`
+                        }
                     </td>
                     <td>
                         <button class="btn-delete" onclick="deleteRequest('${r.id}')">Delete</button>
@@ -206,8 +210,16 @@ async function updateStatus(requestId, newStatus) {
             return;
         }
 
+        // Check if status is locked
         if (requestData.status === 'Approved' || requestData.status === 'Rejected') {
             alert('This request is locked. Cannot change status.');
+            loadRequests();
+            return;
+        }
+
+        // Prevent changing status if it's Revision Required
+        if (requestData.status === 'Revision Required') {
+            alert('This request is waiting for leader to update documents. Cannot change status until resubmitted.');
             loadRequests();
             return;
         }

@@ -32,13 +32,6 @@ const statusColors = {
 
 const statusOptions = ["Submitted", "Under Review", "Approved", "Rejected", "Revision Required"];
 
-// Document type labels
-const docLabels = {
-    'budgetForm': 'Budget Form',
-    'meetingMinutes': 'Meeting Minutes',
-    'vendorQuotation': 'Vendor Quotation'
-};
-
 // Load all requests
 async function loadRequests() {
     try {
@@ -85,7 +78,6 @@ async function loadRequests() {
                 `<option value="${s}" ${s === r.status ? 'selected' : ''}>${s}</option>`
             ).join('');
 
-            // Check if documents exist
             const hasDocs = r.documents && Object.keys(r.documents).length > 0;
 
             html += `
@@ -107,7 +99,6 @@ async function loadRequests() {
                         <select class="status-select" onchange="updateStatus('${r.id}', this.value)" ${isLocked ? 'disabled' : ''}>
                             ${optionsHTML}
                         </select>
-                        ${isLocked ? '<span style="font-size:11px;color:#6c757d;display:block;">🔒 Locked</span>' : ''}
                     </td>
                     <td>
                         <button class="btn-delete" onclick="deleteRequest('${r.id}')">Delete</button>
@@ -149,20 +140,28 @@ async function viewDocuments(requestId) {
         if (Object.keys(documents).length === 0) {
             modalBody = '<p class="no-docs">No documents uploaded for this request.</p>';
         } else {
-            modalBody = Object.entries(documents).map(([key, doc]) => {
-                const label = docLabels[key] || key;
-                const fileName = doc.fileName || 'No file';
-                const uploadedAt = doc.uploadedAt ? new Date(doc.uploadedAt.seconds * 1000).toLocaleString() : 'N/A';
-                const version = doc.version || 1;
-                const isCurrent = doc.isCurrent !== false;
+            const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
+            const docLabels = {
+                'budgetForm': 'Budget Form',
+                'meetingMinutes': 'Meeting Minutes',
+                'vendorQuotation': 'Vendor Quotation'
+            };
 
+            modalBody = docOrder.map(key => {
+                const doc = documents[key];
+                if (!doc) {
+                    return `
+                        <div class="doc-item">
+                            <div class="doc-name">${docLabels[key] || key}</div>
+                            <div class="doc-detail">No file uploaded</div>
+                        </div>
+                    `;
+                }
+                const fileName = doc.fileName || 'No file';
                 return `
                     <div class="doc-item">
-                        <div class="doc-name">📄 ${label}</div>
-                        <div class="doc-detail">File: ${fileName}</div>
-                        <div class="doc-detail">Uploaded: ${uploadedAt}</div>
-                        <div class="doc-version">Version: ${version}</div>
-                        <span class="doc-status ${isCurrent ? 'current' : 'old'}">${isCurrent ? '✅ Current' : '📌 Old Version'}</span>
+                        <div class="doc-name">${docLabels[key] || key}</div>
+                        <div class="doc-detail">${fileName}</div>
                     </div>
                 `;
             }).join('');
@@ -199,7 +198,6 @@ document.getElementById('docModal').addEventListener('click', function(e) {
 
 async function updateStatus(requestId, newStatus) {
     try {
-        // Get request data first
         const requestDoc = await db.collection('requests').doc(requestId).get();
         const requestData = requestDoc.data();
         
@@ -208,14 +206,12 @@ async function updateStatus(requestId, newStatus) {
             return;
         }
 
-        // Check if status is locked
         if (requestData.status === 'Approved' || requestData.status === 'Rejected') {
             alert('This request is locked. Cannot change status.');
             loadRequests();
             return;
         }
 
-        // Update status
         await db.collection('requests').doc(requestId).update({
             status: newStatus,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -242,7 +238,6 @@ async function updateStatus(requestId, newStatus) {
                 }
             } catch (emailError) {
                 console.error('Email error:', emailError);
-                // Don't block the status update if email fails
             }
         }
 

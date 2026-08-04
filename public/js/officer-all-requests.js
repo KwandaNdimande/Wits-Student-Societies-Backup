@@ -26,10 +26,18 @@ const statusColors = {
     "Under Review": "status-under-review",
     "Approved": "status-approved",
     "Rejected": "status-rejected",
-    "Revision Required": "status-revision"
+    "Revision Required": "status-revision",
+    "Resubmitted": "status-resubmitted"
 };
 
 const statusOptions = ["Submitted", "Under Review", "Approved", "Rejected", "Revision Required"];
+
+// Document type labels
+const docLabels = {
+    'budgetForm': 'Budget Form',
+    'meetingMinutes': 'Meeting Minutes',
+    'vendorQuotation': 'Vendor Quotation'
+};
 
 // Load all requests
 async function loadRequests() {
@@ -41,22 +49,24 @@ async function loadRequests() {
         const container = document.getElementById('requests-container');
         
         if (requestsSnapshot.empty) {
-            container.innerHTML = '<div style="text-align:center;padding:40px;color:#6c757d;">No requests found.</div>';
+            container.innerHTML = '<div class="empty-state">No requests found.</div>';
             return;
         }
 
         let html = `
-            <div style="border:1px solid #dee2e6;border-radius:8px;overflow-x:auto;background:white;">
-                <table style="width:100%;border-collapse:collapse;font-size:14px;min-width:900px;">
-                    <thead style="background:#f1f3f5;border-bottom:1px solid #dee2e6;">
+            <div class="table-container">
+                <table>
+                    <thead>
                         <tr>
-                            <th style="padding:12px 16px;text-align:left;font-weight:500;color:#6c757d;">Society</th>
-                            <th style="padding:12px 16px;text-align:left;font-weight:500;color:#6c757d;">Request</th>
-                            <th style="padding:12px 16px;text-align:left;font-weight:500;color:#6c757d;">Type</th>
-                            <th style="padding:12px 16px;text-align:left;font-weight:500;color:#6c757d;">Amount</th>
-                            <th style="padding:12px 16px;text-align:left;font-weight:500;color:#6c757d;">Date</th>
-                            <th style="padding:12px 16px;text-align:left;font-weight:500;color:#6c757d;">Status</th>
-                            <th style="padding:12px 16px;text-align:left;font-weight:500;color:#6c757d;">Update Status</th>
+                            <th>Society</th>
+                            <th>Request</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Documents</th>
+                            <th>Update Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -69,24 +79,38 @@ async function loadRequests() {
 
         requests.forEach(r => {
             const statusClass = statusColors[r.status] || 'status-submitted';
+            const isLocked = r.status === 'Approved' || r.status === 'Rejected';
+            
             const optionsHTML = statusOptions.map(s => 
                 `<option value="${s}" ${s === r.status ? 'selected' : ''}>${s}</option>`
             ).join('');
 
+            // Check if documents exist
+            const hasDocs = r.documents && Object.keys(r.documents).length > 0;
+
             html += `
-                <tr style="border-bottom:1px solid #f1f3f5;">
-                    <td style="padding:12px 16px;font-weight:500;">${r.societyName || 'Unknown'}</td>
-                    <td style="padding:12px 16px;">${r.itemName}</td>
-                    <td style="padding:12px 16px;color:#6c757d;">${r.type}</td>
-                    <td style="padding:12px 16px;">R${r.amount.toLocaleString()}</td>
-                    <td style="padding:12px 16px;color:#6c757d;">${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
-                    <td style="padding:12px 16px;">
-                        <span style="display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;background:#cfe2ff;color:#004085;" class="${statusClass}">${r.status}</span>
+                <tr>
+                    <td class="strong">${r.societyName || 'Unknown'}</td>
+                    <td>${r.itemName}</td>
+                    <td style="color:#6c757d;">${r.type}</td>
+                    <td>R${r.amount ? r.amount.toLocaleString() : '0'}</td>
+                    <td style="color:#6c757d;">${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
+                    <td>
+                        <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
                     </td>
-                    <td style="padding:12px 16px;">
-                        <select style="padding:4px 8px;border:1px solid #ced4da;border-radius:4px;font-size:12px;font-family:Arial,sans-serif;background:white;cursor:pointer;" onchange="updateStatus('${r.id}', this.value)">
+                    <td>
+                        <button class="btn-view" onclick="viewDocuments('${r.id}')">
+                            ${hasDocs ? '📄 View' : 'No Docs'}
+                        </button>
+                    </td>
+                    <td>
+                        <select class="status-select" onchange="updateStatus('${r.id}', this.value)" ${isLocked ? 'disabled' : ''}>
                             ${optionsHTML}
                         </select>
+                        ${isLocked ? '<span style="font-size:11px;color:#6c757d;display:block;">🔒 Locked</span>' : ''}
+                    </td>
+                    <td>
+                        <button class="btn-delete" onclick="deleteRequest('${r.id}')">Delete</button>
                     </td>
                 </tr>
             `;
@@ -106,20 +130,144 @@ async function loadRequests() {
     }
 }
 
-// Update request status
+// ============ VIEW DOCUMENTS ============
+
+async function viewDocuments(requestId) {
+    try {
+        const docRef = await db.collection('requests').doc(requestId).get();
+        if (!docRef.exists) {
+            showModal('Request not found', '<p>No documents found for this request.</p>');
+            return;
+        }
+
+        const data = docRef.data();
+        const documents = data.documents || {};
+        const itemName = data.itemName || 'Request';
+
+        let modalBody = '';
+
+        if (Object.keys(documents).length === 0) {
+            modalBody = '<p class="no-docs">No documents uploaded for this request.</p>';
+        } else {
+            modalBody = Object.entries(documents).map(([key, doc]) => {
+                const label = docLabels[key] || key;
+                const fileName = doc.fileName || 'No file';
+                const uploadedAt = doc.uploadedAt ? new Date(doc.uploadedAt.seconds * 1000).toLocaleString() : 'N/A';
+                const version = doc.version || 1;
+                const isCurrent = doc.isCurrent !== false;
+
+                return `
+                    <div class="doc-item">
+                        <div class="doc-name">📄 ${label}</div>
+                        <div class="doc-detail">File: ${fileName}</div>
+                        <div class="doc-detail">Uploaded: ${uploadedAt}</div>
+                        <div class="doc-version">Version: ${version}</div>
+                        <span class="doc-status ${isCurrent ? 'current' : 'old'}">${isCurrent ? '✅ Current' : '📌 Old Version'}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        showModal(`Documents - ${itemName}`, modalBody);
+
+    } catch (error) {
+        console.error('Error viewing documents:', error);
+        alert('Error loading documents: ' + error.message);
+    }
+}
+
+// ============ MODAL FUNCTIONS ============
+
+function showModal(title, bodyHTML) {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = bodyHTML;
+    document.getElementById('docModal').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('docModal').classList.remove('active');
+}
+
+// Close modal on overlay click
+document.getElementById('docModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+
+// ============ UPDATE STATUS ============
+
 async function updateStatus(requestId, newStatus) {
     try {
+        // Get request data first
+        const requestDoc = await db.collection('requests').doc(requestId).get();
+        const requestData = requestDoc.data();
+        
+        if (!requestData) {
+            alert('Request not found.');
+            return;
+        }
+
+        // Check if status is locked
+        if (requestData.status === 'Approved' || requestData.status === 'Rejected') {
+            alert('This request is locked. Cannot change status.');
+            loadRequests();
+            return;
+        }
+
+        // Update status
         await db.collection('requests').doc(requestId).update({
             status: newStatus,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        // Reload the table
+
+        // Send email notification to leader
+        if (requestData.submittedBy) {
+            try {
+                const userDoc = await db.collection('users').doc(requestData.submittedBy).get();
+                const userData = userDoc.data();
+                
+                if (userData && userData.email) {
+                    await fetch('/api/send-status-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: userData.email,
+                            requestName: requestData.itemName || 'Your Request',
+                            status: newStatus,
+                            officerComment: ''
+                        })
+                    });
+                    console.log('Status email sent to leader');
+                }
+            } catch (emailError) {
+                console.error('Email error:', emailError);
+                // Don't block the status update if email fails
+            }
+        }
+
         loadRequests();
+
     } catch (error) {
         console.error('Error updating status:', error);
         alert('Error updating status: ' + error.message);
     }
 }
 
-// Load data
+// ============ DELETE REQUEST ============
+
+async function deleteRequest(requestId) {
+    if (!confirm('Are you sure you want to delete this request? This cannot be undone.')) return;
+
+    try {
+        await db.collection('requests').doc(requestId).delete();
+        loadRequests();
+    } catch (error) {
+        console.error('Error deleting request:', error);
+        alert('Error deleting request: ' + error.message);
+    }
+}
+
+// ============ LOAD DATA ============
+
 loadRequests();

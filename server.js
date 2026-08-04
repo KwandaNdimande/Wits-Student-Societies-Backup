@@ -79,6 +79,8 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// ============ OTP VERIFICATION EMAIL ============
+
 // Email sender function with SGO branding
 async function sendVerificationEmail(toEmail, code, name = "") {
   const html = `
@@ -115,6 +117,89 @@ async function sendVerificationEmail(toEmail, code, name = "") {
   });
 }
 
+// ============ STATUS UPDATE EMAIL ============
+
+// Send status update email to leader
+async function sendStatusEmail(toEmail, requestName, status, officerComment = "") {
+  const statusColors = {
+    'Approved': '#1E8E5A',
+    'Rejected': '#C0392B',
+    'Revision Required': '#B9720B',
+    'Resubmitted': '#2E6FBA',
+    'Submitted': '#2E6FBA',
+    'Under Review': '#2E6FBA'
+  };
+  
+  const color = statusColors[status] || '#2E6FBA';
+  const statusEmoji = status === 'Approved' ? '✅' : 
+                      status === 'Rejected' ? '❌' : 
+                      status === 'Revision Required' ? '📝' : '📋';
+  
+  const html = `
+  <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+    <div style="background:#0B1F3A;padding:24px 32px;text-align:center">
+      <h1 style="color:#fff;margin:0;font-size:22px;letter-spacing:0.5px;">🏛️ SGO Digital Operations</h1>
+      <p style="color:#8FA6CC;margin:4px 0 0;font-size:14px">Student Governance Office • University of the Witwatersrand</p>
+    </div>
+    <div style="padding:32px">
+      <h2 style="color:#0B1F3A;margin-top:0">Request Status Update</h2>
+      <p style="color:#374151;font-size:15px;line-height:1.6">Your request <strong>"${requestName}"</strong> has been updated:</p>
+      
+      <div style="text-align:center;padding:20px;margin:20px 0;background:#f8f9fa;border-radius:8px">
+        <div style="font-size:42px;margin-bottom:8px">${statusEmoji}</div>
+        <div style="font-size:24px;font-weight:bold;color:${color}">${status}</div>
+      </div>
+      
+      ${officerComment ? `
+      <div style="background:#f0f4f8;padding:16px;border-radius:8px;margin:16px 0">
+        <p style="color:#374151;font-size:14px;margin:0"><strong>Officer Comment:</strong></p>
+        <p style="color:#5A6B87;font-size:14px;margin:4px 0 0">${officerComment}</p>
+      </div>
+      ` : ''}
+      
+      ${status === 'Revision Required' ? `
+      <div style="background:#fff3cd;padding:16px;border-radius:8px;margin:16px 0">
+        <p style="color:#856404;font-size:14px;margin:0"><strong>⚠️ Action Required</strong></p>
+        <p style="color:#856404;font-size:14px;margin:4px 0 0">Please update your documents and resubmit.</p>
+      </div>
+      ` : ''}
+      
+      ${status === 'Approved' ? `
+      <div style="background:#d4edda;padding:16px;border-radius:8px;margin:16px 0">
+        <p style="color:#155724;font-size:14px;margin:0"><strong>✅ Congratulations!</strong></p>
+        <p style="color:#155724;font-size:14px;margin:4px 0 0">Your request has been approved.</p>
+      </div>
+      ` : ''}
+      
+      ${status === 'Rejected' ? `
+      <div style="background:#f8d7da;padding:16px;border-radius:8px;margin:16px 0">
+        <p style="color:#721c24;font-size:14px;margin:0"><strong>❌ Request Rejected</strong></p>
+        <p style="color:#721c24;font-size:14px;margin:4px 0 0">Please contact the SGO office for more information.</p>
+      </div>
+      ` : ''}
+      
+      ${status === 'Resubmitted' ? `
+      <div style="background:#E3F2FD;padding:16px;border-radius:8px;margin:16px 0">
+        <p style="color:#0D47A1;font-size:14px;margin:0"><strong>📤 Resubmitted</strong></p>
+        <p style="color:#0D47A1;font-size:14px;margin:4px 0 0">Your updated documents have been submitted for review.</p>
+      </div>
+      ` : ''}
+    </div>
+    <div style="background:#f3f4f6;padding:16px 32px;text-align:center">
+      <p style="color:#9ca3af;font-size:12px;margin:0">Student Governance Office (SGO)</p>
+      <p style="color:#9ca3af;font-size:11px;margin:4px 0 0">University of the Witwatersrand, Johannesburg</p>
+      <p style="color:#9ca3af;font-size:10px;margin:4px 0 0;font-style:italic;">This is an automated message, please do not reply.</p>
+    </div>
+  </div>`;
+
+  await transporter.sendMail({
+    from: `"SGO Digital Operations" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: `Request ${status} - ${requestName}`,
+    html,
+  });
+}
+
 
 // ============ ROOT ROUTE ============
 
@@ -139,7 +224,7 @@ app.get('/api/health', (req, res) => {
 });
 
 
-// ============ EMAIL VERIFICATION ENDPOINT ============
+// ============ OTP VERIFICATION ENDPOINT ============
 
 // Send verification email
 app.post('/api/send-verification-email', async (req, res) => {
@@ -152,6 +237,26 @@ app.post('/api/send-verification-email', async (req, res) => {
   try {
     await sendVerificationEmail(email, code, name);
     res.json({ success: true, message: 'Verification email sent' });
+  } catch (error) {
+    console.error('Email sending error:', error);
+    res.status(500).json({ error: 'Failed to send email' });
+  }
+});
+
+
+// ============ STATUS EMAIL ENDPOINT ============
+
+// Send status update email
+app.post('/api/send-status-email', async (req, res) => {
+  const { email, requestName, status, officerComment } = req.body;
+  
+  if (!email || !requestName || !status) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+  
+  try {
+    await sendStatusEmail(email, requestName, status, officerComment);
+    res.json({ success: true, message: 'Status email sent' });
   } catch (error) {
     console.error('Email sending error:', error);
     res.status(500).json({ error: 'Failed to send email' });

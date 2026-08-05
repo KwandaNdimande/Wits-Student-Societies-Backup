@@ -65,7 +65,7 @@ async function loadDashboard() {
                 const requestName = r.itemName || r.name || r.title || r.requestName || 'Untitled Request';
                 html += `
                     <div style="border-bottom:1px solid #eee;padding:12px 0;">
-                        <strong>${requestName}</strong>
+                        <span style="color:#000000;font-weight:600;font-size:15px;">${requestName}</span>
                         <span style="color:#6c757d;font-size:14px;margin-left:8px;">- ${r.societyName || 'Unknown'}</span>
                         <span style="float:right;color:#6c757d;font-size:14px;">${r.status}</span>
                     </div>

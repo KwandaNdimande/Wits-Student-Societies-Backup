@@ -20,6 +20,11 @@ if (!userUid || userRole !== 'officer') {
     window.location.href = '/login.html';
 }
 
+let allSocieties = [];
+let filteredSocieties = [];
+let currentPage = 1;
+const pageSize = 5;
+
 // Load societies
 async function loadSocieties() {
     try {
@@ -27,33 +32,141 @@ async function loadSocieties() {
             .orderBy('name', 'asc')
             .get();
 
-        const container = document.getElementById('societies-container');
-        
-        if (societiesSnapshot.empty) {
-            container.innerHTML = '<div style="text-align:center;padding:40px;color:#6c757d;grid-column:1/-1;">No societies registered yet.</div>';
-            return;
-        }
-
-        let html = '';
+        allSocieties = [];
         societiesSnapshot.forEach(doc => {
-            const s = doc.data();
-            html += `
-                <div style="border:1px solid #dee2e6;border-radius:8px;padding:16px 20px;background:white;">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                        <h3 style="font-weight:600;color:#003B5C;font-size:18px;">${s.name}</h3>
-                        <button style="font-size:12px;color:#dc3545;background:none;border:none;cursor:pointer;" onclick="deleteSociety('${doc.id}')">Delete</button>
-                    </div>
-                    <p style="font-size:14px;color:#6c757d;">${s.category || 'General'}</p>
-                    <p style="font-size:14px;color:#6c757d;">${s.email || 'No email'}</p>
-                </div>
-            `;
+            allSocieties.push({ id: doc.id, ...doc.data() });
         });
 
-        container.innerHTML = html;
+        filteredSocieties = [...allSocieties];
+        currentPage = 1;
+        renderTable();
 
     } catch (error) {
         console.error('Error loading societies:', error);
+        document.getElementById('societies-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading societies. Please try again.</p>';
     }
+}
+
+// Search function
+function searchSocieties() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+    
+    if (searchTerm === '') {
+        filteredSocieties = [...allSocieties];
+    } else {
+        filteredSocieties = allSocieties.filter(s => 
+            s.name.toLowerCase().includes(searchTerm) ||
+            s.category.toLowerCase().includes(searchTerm) ||
+            s.email.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    currentPage = 1;
+    renderTable();
+}
+
+// Render table with pagination
+function renderTable() {
+    const container = document.getElementById('societies-container');
+    const totalItems = filteredSocieties.length;
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    
+    // Ensure current page is valid
+    if (currentPage > totalPages) currentPage = totalPages;
+    
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalItems);
+    const pageItems = filteredSocieties.slice(startIndex, endIndex);
+
+    // Update results count
+    document.getElementById('resultsCount').textContent = `Showing ${totalItems > 0 ? startIndex + 1 : 0}-${endIndex} of ${totalItems} societies`;
+
+    if (totalItems === 0) {
+        container.innerHTML = `
+            <div class="table-container">
+                <div class="empty-state">No societies found.</div>
+            </div>
+        `;
+        return;
+    }
+
+    let html = `
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Society Name</th>
+                        <th>Category</th>
+                        <th>Contact Email</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    pageItems.forEach((s, index) => {
+        const num = startIndex + index + 1;
+        html += `
+            <tr>
+                <td style="color:#6c757d;font-weight:500;">${num}</td>
+                <td class="strong">${s.name}</td>
+                <td style="color:#6c757d;">${s.category || 'General'}</td>
+                <td style="color:#6c757d;">${s.email || 'No email'}</td>
+                <td>
+                    <button class="btn-delete" onclick="deleteSociety('${s.id}')">Delete</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+            <div class="pagination">
+                <span class="info">Showing ${startIndex + 1}-${endIndex} of ${totalItems} societies</span>
+                <div class="pages">
+                    <button onclick="changePage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>‹</button>
+    `;
+
+    // Generate page numbers
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) {
+        html += `<button onclick="changePage(1)">1</button>`;
+        if (startPage > 2) html += `<span class="ellipsis">…</span>`;
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<span class="ellipsis">…</span>`;
+        html += `<button onclick="changePage(${totalPages})">${totalPages}</button>`;
+    }
+
+    html += `
+                    <button onclick="changePage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>›</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+// Change page
+function changePage(page) {
+    const totalPages = Math.ceil(filteredSocieties.length / pageSize) || 1;
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    renderTable();
 }
 
 // Add new society
@@ -80,12 +193,10 @@ async function addSociety() {
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Clear inputs
         document.getElementById('society-name').value = '';
         document.getElementById('society-category').value = '';
         document.getElementById('society-email').value = '';
 
-        // Reload societies
         loadSocieties();
 
     } catch (error) {

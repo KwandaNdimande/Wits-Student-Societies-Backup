@@ -36,7 +36,7 @@
             padding: 40px 24px;
         }
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
         }
         .header {
@@ -52,6 +52,42 @@
             font-size: 15px;
             color: var(--text-500);
             margin-top: 4px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .controls .search-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .controls .search-box input {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-900);
+            background: var(--surface);
+            min-width: 250px;
+            transition: border-color 0.2s;
+        }
+        .controls .search-box input:focus {
+            outline: none;
+            border-color: var(--navy-900);
+            box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
+        }
+        .controls .search-box input::placeholder {
+            color: var(--text-500);
+        }
+        .controls .results-count {
+            font-size: 13px;
+            color: var(--text-500);
         }
         .add-section {
             background: var(--surface);
@@ -114,57 +150,113 @@
             cursor: not-allowed;
             transform: none;
         }
-        .societies-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
-        }
-        .society-card {
+        .table-container {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 18px 22px;
+            overflow: hidden;
             box-shadow: 0 4px 16px rgba(11, 31, 58, 0.04);
         }
-        .society-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
         }
-        .society-name {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 17px;
+        thead {
+            background: #FAFBFD;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            padding: 14px 18px;
+            text-align: left;
+            font-size: 12px;
             font-weight: 600;
-            color: var(--navy-900);
-        }
-        .society-category {
-            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
             color: var(--text-500);
-            margin-top: 2px;
         }
-        .society-email {
-            font-size: 13px;
-            color: var(--text-500);
-            margin-top: 2px;
+        td {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-600);
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr:hover {
+            background: #FAFBFD;
+        }
+        td.strong {
+            color: var(--text-900);
+            font-weight: 600;
         }
         .btn-delete {
             font-size: 12px;
             color: var(--danger);
             background: none;
-            border: none;
+            border: 1px solid var(--danger);
+            border-radius: 6px;
+            padding: 4px 12px;
             cursor: pointer;
             font-weight: 600;
             font-family: 'Inter', sans-serif;
-            transition: color 0.2s;
+            transition: all 0.2s ease;
         }
         .btn-delete:hover {
-            color: #a71d2a;
+            background: var(--danger);
+            color: #fff;
         }
         .empty-state {
             text-align: center;
-            padding: 40px 20px;
+            padding: 50px 20px;
             color: var(--text-500);
-            grid-column: 1 / -1;
+        }
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 18px;
+            border-top: 1px solid var(--border);
+            background: #FAFBFD;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .pagination .info {
+            font-size: 13px;
+            color: var(--text-500);
+        }
+        .pagination .pages {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .pagination .pages button {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+            color: var(--text-600);
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+        .pagination .pages button:hover:not(:disabled) {
+            border-color: var(--navy-900);
+            color: var(--navy-900);
+        }
+        .pagination .pages button.active {
+            background: var(--navy-900);
+            color: #fff;
+            border-color: var(--navy-900);
+        }
+        .pagination .pages button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .pagination .pages .ellipsis {
+            color: var(--text-500);
+            padding: 0 4px;
         }
         .nav-links {
             margin-top: 28px;
@@ -210,12 +302,25 @@
                 grid-column: 1 / -1;
                 width: 100%;
             }
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .controls .search-box input {
+                min-width: auto;
+                width: 100%;
+            }
+            .pagination {
+                flex-direction: column;
+                text-align: center;
+            }
         }
         @media (max-width: 480px) {
             body { padding: 20px 16px; }
             .add-form { grid-template-columns: 1fr; }
             .add-section { padding: 18px 16px; }
-            .societies-grid { grid-template-columns: 1fr; }
+            .table-container { overflow-x: auto; }
+            th, td { padding: 10px 12px; font-size: 13px; }
         }
     </style>
 </head>
@@ -243,7 +348,14 @@
             </div>
         </div>
 
-        <div id="societies-container" class="societies-grid"></div>
+        <div class="controls">
+            <div class="search-box">
+                <input id="searchInput" type="text" placeholder="🔍 Search societies..." oninput="searchSocieties()" />
+            </div>
+            <div class="results-count" id="resultsCount">Showing 0 of 0 societies</div>
+        </div>
+
+        <div id="societies-container"></div>
 
         <div class="nav-links">
             <a href="/officer/dashboard.html">Dashboard</a>

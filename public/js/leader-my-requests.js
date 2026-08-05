@@ -20,6 +20,10 @@ if (!userUid) {
 }
 
 let currentRequestId = null;
+let allRequests = [];
+let filteredRequests = [];
+let currentPage = 1;
+const pageSize = 5;
 
 // Status colors
 const statusColors = {
@@ -46,67 +50,163 @@ async function loadRequests() {
             .orderBy('submittedAt', 'desc')
             .get();
 
-        const container = document.getElementById('requests-container');
-        
-        if (requestsSnapshot.empty) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <p>No requests yet.</p>
-                    <a href="/leader/new-request.html">Submit Your First Request</a>
-                </div>
-            `;
-            return;
-        }
-
-        let html = `
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Request</th>
-                            <th>Type</th>
-                            <th>Amount</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-
+        allRequests = [];
         requestsSnapshot.forEach(doc => {
-            const r = doc.data();
-            const statusClass = statusColors[r.status] || 'status-submitted';
-            const isRevision = r.status === 'Revision Required';
-            
-            html += `
-                <tr>
-                    <td class="strong">${r.itemName}</td>
-                    <td style="color:#6c757d;">${r.type}</td>
-                    <td>R${r.amount ? r.amount.toLocaleString() : '0'}</td>
-                    <td style="color:#6c757d;">${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
-                    <td>
-                        <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
-                    </td>
-                    <td>
-                        ${isRevision ? `<button class="btn-update" onclick="openUpdateModal('${doc.id}')">Update Documents</button>` : '—'}
-                    </td>
-                </tr>
-            `;
+            allRequests.push({ id: doc.id, ...doc.data() });
         });
 
-        html += `
-                    </tbody>
-                </table>
-            </div>
-        `;
-
-        container.innerHTML = html;
+        filteredRequests = [...allRequests];
+        currentPage = 1;
+        renderTable();
 
     } catch (error) {
         console.error('Error loading requests:', error);
-        document.getElementById('requests-container').innerHTML = '<p style="color:#dc3545;">Error loading requests. Please try again.</p>';
+        document.getElementById('requests-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading requests. Please try again.</p>';
     }
+}
+
+// Search function
+function searchRequests() {
+    const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase().trim() || '';
+    
+    if (searchTerm === '') {
+        filteredRequests = [...allRequests];
+    } else {
+        filteredRequests = allRequests.filter(r => 
+            (r.itemName && r.itemName.toLowerCase().includes(searchTerm)) ||
+            (r.type && r.type.toLowerCase().includes(searchTerm)) ||
+            (r.status && r.status.toLowerCase().includes(searchTerm)) ||
+            (r.societyName && r.societyName.toLowerCase().includes(searchTerm))
+        );
+    }
+    
+    currentPage = 1;
+    renderTable();
+}
+
+// Render table with pagination
+function renderTable() {
+    const container = document.getElementById('requests-container');
+    const totalItems = filteredRequests.length;
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    
+    if (currentPage > totalPages) currentPage = totalPages;
+    
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalItems);
+    const pageItems = filteredRequests.slice(startIndex, endIndex);
+
+    // Update results count
+    const resultsCount = document.getElementById('resultsCount');
+    if (resultsCount) {
+        resultsCount.textContent = `Showing ${totalItems > 0 ? startIndex + 1 : 0}-${endIndex} of ${totalItems} requests`;
+    }
+
+    if (totalItems === 0) {
+        container.innerHTML = `
+            <div class="table-container">
+                <div class="empty-state">
+                    <p>No requests found.</p>
+                    <a href="/leader/new-request.html">Submit Your First Request</a>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    let html = `
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Request</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Officer Comment</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    pageItems.forEach((r, index) => {
+        const num = startIndex + index + 1;
+        const statusClass = statusColors[r.status] || 'status-submitted';
+        const isRevision = r.status === 'Revision Required';
+        const hasOfficerComment = r.officerComment && r.officerComment !== '';
+        
+        html += `
+            <tr>
+                <td style="color:#6c757d;font-weight:500;">${num}</td>
+                <td class="strong">${r.itemName || r.name || 'Untitled'}</td>
+                <td style="color:#6c757d;">${r.type || 'N/A'}</td>
+                <td>R${r.amount ? r.amount.toLocaleString() : '0'}</td>
+                <td style="color:#6c757d;">${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
+                <td>
+                    <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
+                </td>
+                <td>
+                    ${hasOfficerComment ? 
+                        `<span class="officer-comment">📝 ${r.officerComment}</span>` : 
+                        '<span style="color:#6c757d;font-size:13px;">—</span>'
+                    }
+                </td>
+                <td>
+                    ${isRevision ? `<button class="btn-update" onclick="openUpdateModal('${r.id}')">Update Documents</button>` : '—'}
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+            <div class="pagination">
+                <span class="info">Showing ${startIndex + 1}-${endIndex} of ${totalItems} requests</span>
+                <div class="pages">
+                    <button onclick="changePage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>‹</button>
+    `;
+
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) {
+        html += `<button onclick="changePage(1)">1</button>`;
+        if (startPage > 2) html += `<span class="ellipsis">…</span>`;
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<span class="ellipsis">…</span>`;
+        html += `<button onclick="changePage(${totalPages})">${totalPages}</button>`;
+    }
+
+    html += `
+                    <button onclick="changePage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>›</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+// Change page
+function changePage(page) {
+    const totalPages = Math.ceil(filteredRequests.length / pageSize) || 1;
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    renderTable();
 }
 
 // ============ UPDATE DOCUMENTS MODAL ============
@@ -124,11 +224,24 @@ async function openUpdateModal(requestId) {
         const data = docRef.data();
         const documents = data.documents || {};
         const itemName = data.itemName || 'Request';
+        const officerComment = data.officerComment || '';
 
         let modalBody = `
             <p style="color:#6c757d;font-size:14px;margin-bottom:16px;">
                 <strong>Request:</strong> ${itemName}
             </p>
+        `;
+
+        if (officerComment) {
+            modalBody += `
+                <div style="background:#FFF3E0;padding:12px;border-radius:8px;margin-bottom:16px;">
+                    <strong style="color:#E65100;">📝 Officer's Feedback:</strong>
+                    <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${officerComment}</p>
+                </div>
+            `;
+        }
+
+        modalBody += `
             <p style="color:#E65100;font-size:14px;margin-bottom:16px;background:#FFF3E0;padding:10px;border-radius:6px;">
                 ⚠️ Please upload corrected documents below.
             </p>
@@ -189,7 +302,6 @@ async function submitUpdate() {
         const currentDocs = data.documents || {};
         const updatedDocs = { ...currentDocs };
 
-        // Check each file input
         const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
         let hasUpdate = false;
 
@@ -218,21 +330,13 @@ async function submitUpdate() {
             return;
         }
 
-        // Get comment
         const comment = document.getElementById('updateComment')?.value || '';
 
-        // Update request
         await db.collection('requests').doc(currentRequestId).update({
             documents: updatedDocs,
             status: 'Resubmitted',
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            leaderComment: comment,
-            revisionHistory: firebase.firestore.FieldValue.arrayUnion({
-                action: 'Resubmitted',
-                comment: comment,
-                timestamp: new Date().toISOString(),
-                by: 'leader'
-            })
+            leaderComment: comment
         });
 
         closeUpdateModal();
@@ -261,6 +365,9 @@ document.getElementById('updateModal').addEventListener('click', function(e) {
         closeUpdateModal();
     }
 });
+
+// Make search function global
+window.searchRequests = searchRequests;
 
 // ============ LOAD DATA ============
 

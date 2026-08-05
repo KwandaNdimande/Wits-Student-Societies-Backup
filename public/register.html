@@ -13,9 +13,9 @@
             --navy-700: #1B3E73;
             --blue-600: #2E6FBA;
             --blue-500: #3E7CB1;
-            --bg: #F3F6FB;
+            --bg: #0B1F3A;
             --surface: #FFFFFF;
-            --text-900: #16213E;
+            --text-900: #0B1F3A;
             --text-600: #3D4A63;
             --text-500: #5A6B87;
             --border: #E1E7F0;
@@ -30,7 +30,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background: var(--bg);
-            color: var(--text-900);
+            color: #fff;
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
             display: flex;
@@ -47,13 +47,13 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 40px 36px;
-            box-shadow: 0 8px 32px rgba(11, 31, 58, 0.06);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
         }
         .logo {
             width: 48px;
             height: 48px;
             border-radius: 12px;
-            background: linear-gradient(135deg, var(--navy-800), var(--navy-700));
+            background: linear-gradient(135deg, var(--blue-500), var(--blue-600));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -62,7 +62,7 @@
             font-size: 18px;
             color: #fff;
             margin: 0 auto 16px;
-            box-shadow: 0 4px 12px rgba(19, 49, 92, 0.2);
+            box-shadow: 0 4px 12px rgba(46, 111, 186, 0.3);
         }
         h1 {
             font-family: 'Space Grotesk', sans-serif;
@@ -248,8 +248,6 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        let isRegistering = false;
-
         function getFriendlyErrorMessage(errorCode) {
             const messages = {
                 'auth/email-already-in-use': 'This email is already registered. Please sign in instead.',
@@ -260,6 +258,8 @@
             };
             return messages[errorCode] || 'Unable to create account. Please try again.';
         }
+
+        let isRegistering = false;
 
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -278,16 +278,13 @@
             btn.textContent = 'Creating account...';
 
             try {
-                // Step 1: Create user in Firebase Auth
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                // Step 2: Generate OTP
                 const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
                 const expiresAt = new Date();
                 expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
-                // Step 3: Save OTP to emailVerifications collection
                 await db.collection('emailVerifications').doc(user.uid).set({
                     userId: user.uid,
                     email: email,
@@ -297,7 +294,6 @@
                     verified: false
                 });
 
-                // Step 4: Save user data to Firestore (UNVERIFIED)
                 await db.collection('users').doc(user.uid).set({
                     uid: user.uid,
                     email: email,
@@ -309,7 +305,6 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                // Step 5: Check if society exists, if not create it
                 const existingSociety = await db.collection('societies')
                     .where('name', '==', societyName)
                     .get();
@@ -324,25 +319,20 @@
                     console.log('✅ Society created:', societyName);
                 }
 
-                // Step 6: Store pending info in localStorage
                 localStorage.setItem('pendingUserId', user.uid);
                 localStorage.setItem('pendingUserEmail', email);
                 localStorage.setItem('pendingUserName', firstName + ' ' + lastName);
 
-                // Step 7: Log OTP for testing
                 console.log('=========================================');
                 console.log('VERIFICATION CODE FOR:', email);
                 console.log('CODE:', otpCode);
                 console.log('Expires at:', expiresAt.toLocaleTimeString());
                 console.log('=========================================');
 
-                // Step 8: Send email via backend
                 try {
                     const emailResponse = await fetch('/api/send-verification-email', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             email: email,
                             code: otpCode,
@@ -359,10 +349,8 @@
                     console.error('Email sending error:', emailError);
                 }
 
-                // Step 9: Sign out user
                 await auth.signOut();
 
-                // Step 10: Redirect to verification page
                 errorEl.style.display = 'none';
                 btn.textContent = '✅ Check your email!';
                 btn.style.background = '#28a745';

@@ -13,9 +13,9 @@
             --navy-700: #1B3E73;
             --blue-600: #2E6FBA;
             --blue-500: #3E7CB1;
-            --bg: #F3F6FB;
+            --bg: #0B1F3A;
             --surface: #FFFFFF;
-            --text-900: #16213E;
+            --text-900: #0B1F3A;
             --text-600: #3D4A63;
             --text-500: #5A6B87;
             --border: #E1E7F0;
@@ -37,7 +37,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background: var(--bg);
-            color: var(--text-900);
+            color: #fff;
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
             padding: 40px 24px;
@@ -53,16 +53,16 @@
             font-family: 'Space Grotesk', sans-serif;
             font-size: 28px;
             font-weight: 600;
-            color: var(--navy-900);
+            color: #fff;
         }
         .header p {
             font-size: 15px;
-            color: var(--text-500);
+            color: #8FA6CC;
             margin-top: 4px;
         }
         .header .updated {
             font-size: 12px;
-            color: var(--text-500);
+            color: #8FA6CC;
             margin-top: 4px;
         }
         .switcher {
@@ -70,7 +70,7 @@
             gap: 8px;
             flex-wrap: wrap;
             margin-bottom: 24px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid rgba(255,255,255,0.12);
             padding-bottom: 16px;
         }
         .pill {
@@ -79,20 +79,20 @@
             font-weight: 600;
             padding: 10px 20px;
             border-radius: 999px;
-            border: 1px solid var(--border);
-            background: var(--surface);
-            color: var(--text-600);
+            border: 1px solid rgba(255,255,255,0.15);
+            background: transparent;
+            color: #8FA6CC;
             cursor: pointer;
             transition: all 0.2s ease;
         }
         .pill:hover {
             border-color: var(--blue-500);
-            color: var(--navy-900);
+            color: #fff;
         }
         .pill.active {
-            background: var(--navy-900);
-            border-color: var(--navy-900);
-            color: #fff;
+            background: #fff;
+            border-color: #fff;
+            color: var(--navy-900);
         }
         .panel {
             display: none;
@@ -104,13 +104,6 @@
         @keyframes fade {
             from { opacity: 0; transform: translateY(4px); }
             to { opacity: 1; transform: none; }
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .toast-notification {
-            animation: fadeIn 0.3s ease;
         }
         .report-head {
             display: flex;
@@ -124,12 +117,12 @@
             font-family: 'Space Grotesk', sans-serif;
             font-size: 20px;
             font-weight: 600;
-            color: var(--navy-900);
+            color: #fff;
             margin-bottom: 4px;
         }
         .report-head .sub {
             font-size: 14px;
-            color: var(--text-500);
+            color: #8FA6CC;
             max-width: 560px;
         }
         .report-actions {
@@ -143,9 +136,9 @@
             font-weight: 600;
             padding: 8px 16px;
             border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--surface);
-            color: var(--text-600);
+            border: 1px solid rgba(255,255,255,0.2);
+            background: transparent;
+            color: #8FA6CC;
             cursor: pointer;
             transition: all 0.2s ease;
             display: inline-flex;
@@ -153,18 +146,18 @@
             gap: 6px;
         }
         .btn:hover {
-            border-color: var(--blue-500);
-            color: var(--navy-900);
+            border-color: #fff;
+            color: #fff;
         }
         .btn-primary {
-            background: var(--blue-600);
-            border-color: var(--blue-600);
-            color: #fff;
+            background: #fff;
+            border-color: #fff;
+            color: var(--navy-900);
         }
         .btn-primary:hover {
-            background: var(--navy-700);
-            border-color: var(--navy-700);
-            color: #fff;
+            background: #e0e0e0;
+            border-color: #e0e0e0;
+            color: var(--navy-900);
         }
         .stats {
             display: grid;
@@ -177,7 +170,7 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 16px 20px;
-            box-shadow: 0 4px 16px rgba(11, 31, 58, 0.04);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
         .stat .label {
             font-size: 11px;
@@ -210,7 +203,7 @@
             border-radius: var(--radius);
             padding: 20px 24px;
             margin-bottom: 24px;
-            box-shadow: 0 4px 16px rgba(11, 31, 58, 0.04);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
         .chart-card h3 {
             font-size: 13px;
@@ -263,7 +256,7 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             overflow-x: auto;
-            box-shadow: 0 4px 16px rgba(11, 31, 58, 0.04);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
         table {
             width: 100%;
@@ -390,10 +383,10 @@
             flex-wrap: wrap;
         }
         .nav-links a {
-            color: var(--navy-900);
+            color: #8FA6CC;
             text-decoration: none;
             padding: 8px 18px;
-            border: 1px solid var(--border);
+            border: 1px solid rgba(255,255,255,0.12);
             border-radius: 8px;
             font-size: 13px;
             font-weight: 500;
@@ -401,28 +394,23 @@
             transition: all 0.2s ease;
         }
         .nav-links a:hover {
-            background: var(--navy-900);
+            background: rgba(255,255,255,0.08);
             color: #fff;
-            border-color: var(--navy-900);
+            border-color: rgba(255,255,255,0.3);
         }
         .nav-links a.active {
-            background: var(--navy-900);
-            color: #fff;
-            border-color: var(--navy-900);
+            background: #fff;
+            color: var(--navy-900);
+            border-color: #fff;
         }
         .wits-badge {
             text-align: center;
             margin-top: 28px;
             font-size: 11px;
-            color: var(--text-500);
+            color: #8FA6CC;
             letter-spacing: 0.06em;
             text-transform: uppercase;
             font-weight: 500;
-        }
-        .loading-spinner {
-            text-align: center;
-            padding: 40px 0;
-            color: var(--text-500);
         }
         @media (max-width: 768px) {
             .stats {

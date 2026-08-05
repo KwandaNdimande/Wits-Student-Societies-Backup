@@ -13,9 +13,9 @@
             --navy-700: #1B3E73;
             --blue-600: #2E6FBA;
             --blue-500: #3E7CB1;
-            --bg: #F3F6FB;
+            --bg: #0B1F3A;
             --surface: #FFFFFF;
-            --text-900: #16213E;
+            --text-900: #0B1F3A;
             --text-600: #3D4A63;
             --text-500: #5A6B87;
             --border: #E1E7F0;
@@ -29,7 +29,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background: var(--bg);
-            color: var(--text-900);
+            color: #fff;
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
             display: flex;
@@ -45,14 +45,14 @@
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 40px 36px;
-            box-shadow: 0 8px 32px rgba(11, 31, 58, 0.06);
+            padding: 36px 32px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
         }
         .logo {
             width: 48px;
             height: 48px;
             border-radius: 12px;
-            background: linear-gradient(135deg, var(--navy-800), var(--navy-700));
+            background: linear-gradient(135deg, var(--blue-500), var(--blue-600));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -61,7 +61,7 @@
             font-size: 18px;
             color: #fff;
             margin: 0 auto 16px;
-            box-shadow: 0 4px 12px rgba(19, 49, 92, 0.2);
+            box-shadow: 0 4px 12px rgba(46, 111, 186, 0.3);
         }
         h1 {
             font-family: 'Space Grotesk', sans-serif;
@@ -75,12 +75,12 @@
             font-size: 14px;
             color: var(--text-500);
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
         .chat-container {
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            background: var(--surface);
+            background: #FAFBFD;
             display: flex;
             flex-direction: column;
             height: 420px;
@@ -93,7 +93,6 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            background: #FAFBFD;
         }
         .message {
             max-width: 80%;
@@ -111,13 +110,13 @@
         }
         .message.bot {
             background: var(--bg);
-            color: var(--text-900);
+            color: white;
             align-self: flex-start;
             border-bottom-left-radius: 4px;
         }
         .message.typing {
             background: var(--bg);
-            color: var(--text-500);
+            color: #8FA6CC;
             align-self: flex-start;
             border-bottom-left-radius: 4px;
             font-style: italic;
@@ -166,52 +165,52 @@
             box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
         }
         .nav-links {
-            margin-top: 24px;
+            margin-top: 20px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
             justify-content: center;
         }
         .nav-links a {
-            color: var(--navy-900);
+            color: #8FA6CC;
             text-decoration: none;
-            padding: 8px 16px;
-            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border: 1px solid rgba(255,255,255,0.12);
             border-radius: 8px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
             font-family: 'Inter', sans-serif;
             transition: all 0.2s ease;
         }
         .nav-links a:hover {
-            background: var(--navy-900);
+            background: rgba(255,255,255,0.08);
             color: #fff;
-            border-color: var(--navy-900);
+            border-color: rgba(255,255,255,0.3);
         }
         .nav-links a.active {
-            background: var(--navy-900);
-            color: #fff;
-            border-color: var(--navy-900);
+            background: #fff;
+            color: var(--navy-900);
+            border-color: #fff;
         }
         .wits-badge {
             text-align: center;
             margin-top: 20px;
             font-size: 11px;
-            color: var(--text-500);
+            color: #8FA6CC;
             letter-spacing: 0.06em;
             text-transform: uppercase;
             font-weight: 500;
         }
         @media (max-width: 480px) {
             .card {
-                padding: 24px 16px;
+                padding: 20px 16px;
             }
             .chat-container {
                 height: 340px;
             }
             .nav-links a {
-                font-size: 12px;
-                padding: 6px 12px;
+                font-size: 11px;
+                padding: 5px 10px;
             }
         }
     </style>

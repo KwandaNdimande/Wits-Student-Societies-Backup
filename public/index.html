@@ -13,10 +13,9 @@
             --navy-700: #1B3E73;
             --blue-600: #2E6FBA;
             --blue-500: #3E7CB1;
-            --blue-100: #E7F0FB;
-            --bg: #F3F6FB;
+            --bg: #0B1F3A;
             --surface: #FFFFFF;
-            --text-900: #16213E;
+            --text-900: #0B1F3A;
             --text-600: #3D4A63;
             --text-500: #5A6B87;
             --border: #E1E7F0;
@@ -30,197 +29,269 @@
         body {
             font-family: 'Inter', sans-serif;
             background: var(--bg);
-            color: var(--text-900);
+            color: #fff;
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 24px;
+            padding: 24px 24px 0;
         }
         .container {
-            max-width: 680px;
+            max-width: 1200px;
             width: 100%;
+            margin: 0 auto;
         }
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 52px 44px 40px;
-            box-shadow: 0 8px 32px rgba(11, 31, 58, 0.06);
-            text-align: center;
+
+        /* ===== TOP BAR ===== */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+            flex-wrap: wrap;
+            gap: 12px;
         }
-        .logo {
-            width: 64px;
-            height: 64px;
-            border-radius: 16px;
-            background: linear-gradient(135deg, var(--navy-800), var(--navy-700));
+        .top-bar .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .top-bar .brand .logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--blue-500), var(--blue-600));
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 700;
-            font-size: 24px;
+            font-size: 12px;
             color: #fff;
-            margin: 0 auto 20px;
-            box-shadow: 0 4px 12px rgba(19, 49, 92, 0.25);
+            flex-shrink: 0;
         }
-        h1 {
+        .top-bar .brand .name {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 30px;
             font-weight: 600;
-            color: var(--navy-900);
-            margin-bottom: 6px;
-            letter-spacing: -0.01em;
-        }
-        .subtitle {
             font-size: 16px;
-            color: var(--text-500);
-            margin-bottom: 34px;
-            line-height: 1.5;
+            color: #fff;
+        }
+        .top-bar .brand .name span {
+            color: #8FA6CC;
             font-weight: 400;
         }
-        .btn-group {
+
+        /* ===== HERO ===== */
+        .hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 50px 0 40px;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        .hero .content {
+            flex: 1 1 500px;
+        }
+        .hero .content .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.1);
+            color: #8FA6CC;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 14px;
+            border-radius: 20px;
+            margin-bottom: 14px;
+            letter-spacing: 0.03em;
+        }
+        .hero .content h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 42px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.1;
+            margin-bottom: 12px;
+        }
+        .hero .content h1 span {
+            color: var(--blue-500);
+        }
+        .hero .content p {
+            font-size: 18px;
+            color: #8FA6CC;
+            line-height: 1.6;
+            max-width: 500px;
+            margin-bottom: 28px;
+        }
+        .hero .content .btn-group {
             display: flex;
             gap: 12px;
-            justify-content: center;
             flex-wrap: wrap;
-            margin-bottom: 42px;
         }
-        .btn {
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
+        .hero .content .btn-group .btn {
+            font-size: 15px;
             font-weight: 600;
-            padding: 12px 34px;
+            padding: 12px 32px;
             border-radius: 8px;
-            border: 1px solid var(--border);
-            background: var(--surface);
-            color: var(--text-600);
+            border: 1px solid rgba(255,255,255,0.2);
+            background: transparent;
+            color: #fff;
             cursor: pointer;
             transition: all 0.2s ease;
             text-decoration: none;
             display: inline-block;
-            letter-spacing: 0.01em;
         }
-        .btn-primary {
-            background: var(--navy-900);
-            border-color: var(--navy-900);
-            color: #fff;
-        }
-        .btn-primary:hover {
-            background: var(--navy-800);
-            border-color: var(--navy-800);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
-        }
-        .btn-secondary {
-            background: transparent;
-            border-color: var(--border);
-            color: var(--text-600);
-        }
-        .btn-secondary:hover {
-            border-color: var(--navy-900);
+        .hero .content .btn-group .btn-primary {
+            background: #fff;
+            border-color: #fff;
             color: var(--navy-900);
-            background: var(--bg);
         }
-        .divider {
-            border: none;
-            border-top: 1px solid var(--border);
-            margin-bottom: 32px;
+        .hero .content .btn-group .btn-primary:hover {
+            background: #e0e0e0;
+            border-color: #e0e0e0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255,255,255,0.15);
         }
+        .hero .content .btn-group .btn-secondary:hover {
+            border-color: #fff;
+            background: rgba(255,255,255,0.05);
+        }
+        .hero .illustration {
+            flex: 1 1 280px;
+            text-align: center;
+        }
+        .hero .illustration .icon-box {
+            font-size: 100px;
+            line-height: 1;
+            color: #8FA6CC;
+            opacity: 0.3;
+        }
+
+        /* ===== FEATURES ===== */
         .features {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 20px;
+            padding: 30px 0 20px;
         }
-        .feature {
-            text-align: center;
-            padding: 12px 8px;
-            border-radius: 8px;
-            transition: background 0.2s;
+        .feature-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px 22px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            transition: transform 0.2s, box-shadow 0.2s;
+            color: var(--text-900);
         }
-        .feature:hover {
-            background: var(--bg);
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
         }
-        .feature-icon {
+        .feature-card .icon {
             font-size: 28px;
-            margin-bottom: 8px;
-            display: block;
+            margin-bottom: 10px;
         }
-        .feature-title {
-            font-size: 13px;
+        .feature-card h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 17px;
             font-weight: 600;
             color: var(--navy-900);
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
-        .feature-desc {
+        .feature-card p {
+            font-size: 14px;
+            color: var(--text-500);
+            line-height: 1.5;
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            border-top: 1px solid rgba(255,255,255,0.12);
+            padding: 20px 0 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .footer .copy {
             font-size: 12px;
-            color: var(--text-500);
+            color: #8FA6CC;
         }
-        .wits-badge {
-            display: inline-block;
-            margin-top: 24px;
-            font-size: 11px;
-            color: var(--text-500);
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            font-weight: 500;
-        }
-        @media (max-width: 480px) {
-            .card {
-                padding: 32px 20px;
+
+        @media (max-width: 768px) {
+            .hero .content h1 {
+                font-size: 30px;
+            }
+            .hero .content p {
+                font-size: 16px;
             }
             .features {
                 grid-template-columns: 1fr;
-                gap: 8px;
             }
-            .btn {
-                width: 100%;
-                text-align: center;
+            .top-bar .brand .name {
+                font-size: 14px;
             }
-            .btn-group {
+            .footer {
                 flex-direction: column;
-            }
-            h1 {
-                font-size: 24px;
+                text-align: center;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="card">
-            <div class="logo">SGO</div>
-            <h1>Wits Student Societies</h1>
-            <p class="subtitle">Manage your society events, budgets, and requests in one place.</p>
 
-            <div class="btn-group">
-                <a href="/login.html" class="btn btn-primary">Sign In</a>
-                <a href="/register.html" class="btn btn-secondary">Register</a>
+        <!-- ===== TOP BAR ===== -->
+        <div class="top-bar">
+            <div class="brand">
+                <div class="logo">SGO</div>
+                <div class="name">Wits<span>StudentSocieties</span></div>
             </div>
-
-            <hr class="divider">
-
-            <div class="features">
-                <div class="feature">
-                    <span class="feature-icon">📋</span>
-                    <div class="feature-title">Submit Requests</div>
-                    <div class="feature-desc">Budget &amp; event requests</div>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">📊</span>
-                    <div class="feature-title">Track Status</div>
-                    <div class="feature-desc">Real-time updates</div>
-                </div>
-                <div class="feature">
-                    <span class="feature-icon">📢</span>
-                    <div class="feature-title">Announcements</div>
-                    <div class="feature-desc">Stay informed</div>
-                </div>
-            </div>
-
-            <div class="wits-badge">University of the Witwatersrand</div>
         </div>
+
+        <!-- ===== HERO ===== -->
+        <div class="hero">
+            <div class="content">
+                <span class="badge">Student Governance Office</span>
+                <h1>Manage your society <span>events, budgets</span> and requests in one place.</h1>
+                <p>Everything you need to run your society, powered by the Student Governance Office.</p>
+                <div class="btn-group">
+                    <a href="/register.html" class="btn btn-primary">Get Started</a>
+                    <a href="/login.html" class="btn btn-secondary">Sign In</a>
+                </div>
+            </div>
+            <div class="illustration">
+                <div class="icon-box">🏛️</div>
+            </div>
+        </div>
+
+        <!-- ===== FEATURES ===== -->
+        <div class="features">
+            <div class="feature-card">
+                <div class="icon">📋</div>
+                <h3>Submit Requests</h3>
+                <p>Easily submit budget requests, event proposals and required documents.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📊</div>
+                <h3>Track Status</h3>
+                <p>Monitor approvals, reviews and progress in real-time from your dashboard.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📢</div>
+                <h3>Announcements</h3>
+                <p>Stay informed with the latest notices, deadlines and important updates.</p>
+            </div>
+        </div>
+
+        <!-- ===== FOOTER ===== -->
+        <div class="footer">
+            <div class="copy">University of the Witwatersrand</div>
+        </div>
+
     </div>
 </body>
 </html>

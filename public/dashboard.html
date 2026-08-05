@@ -13,9 +13,9 @@
             --navy-700: #1B3E73;
             --blue-600: #2E6FBA;
             --blue-500: #3E7CB1;
-            --bg: #F3F6FB;
+            --bg: #0B1F3A;
             --surface: #FFFFFF;
-            --text-900: #16213E;
+            --text-900: #0B1F3A;
             --text-600: #3D4A63;
             --text-500: #5A6B87;
             --border: #E1E7F0;
@@ -29,7 +29,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background: var(--bg);
-            color: var(--text-900);
+            color: #fff;
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
             display: flex;
@@ -46,14 +46,14 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 48px 40px;
-            box-shadow: 0 8px 32px rgba(11, 31, 58, 0.06);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
             text-align: center;
         }
         .logo {
             width: 64px;
             height: 64px;
             border-radius: 16px;
-            background: linear-gradient(135deg, var(--navy-800), var(--navy-700));
+            background: linear-gradient(135deg, var(--blue-500), var(--blue-600));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -62,7 +62,7 @@
             font-size: 24px;
             color: #fff;
             margin: 0 auto 20px;
-            box-shadow: 0 4px 12px rgba(19, 49, 92, 0.2);
+            box-shadow: 0 4px 12px rgba(46, 111, 186, 0.3);
         }
         h1 {
             font-family: 'Space Grotesk', sans-serif;
@@ -97,23 +97,24 @@
             font-weight: 600;
             padding: 12px 34px;
             border-radius: 8px;
-            border: 1px solid var(--border);
+            border: 1px solid rgba(255,255,255,0.2);
+            background: transparent;
+            color: #fff;
             cursor: pointer;
             transition: all 0.2s ease;
             text-decoration: none;
             display: inline-block;
-            letter-spacing: 0.01em;
         }
         .btn-primary {
-            background: var(--navy-900);
-            border-color: var(--navy-900);
-            color: #fff;
+            background: #fff;
+            border-color: #fff;
+            color: var(--navy-900);
         }
         .btn-primary:hover {
-            background: var(--navy-800);
-            border-color: var(--navy-800);
+            background: #e0e0e0;
+            border-color: #e0e0e0;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
+            box-shadow: 0 4px 12px rgba(255,255,255,0.15);
         }
         .wits-badge {
             text-align: center;
@@ -123,6 +124,11 @@
             letter-spacing: 0.06em;
             text-transform: uppercase;
             font-weight: 500;
+        }
+        @media (max-width: 480px) {
+            .card {
+                padding: 32px 20px;
+            }
         }
     </style>
 </head>
@@ -159,7 +165,6 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Check authentication
         const userUid = localStorage.getItem('userUid');
         const userRole = localStorage.getItem('userRole');
 
@@ -167,7 +172,6 @@
             window.location.href = '/login.html';
         }
 
-        // Redirect based on role
         setTimeout(() => {
             if (userRole === 'officer') {
                 window.location.href = '/officer/dashboard.html';

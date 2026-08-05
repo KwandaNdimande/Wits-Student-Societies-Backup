@@ -32,21 +32,18 @@
             color: #fff;
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
+            padding: 40px 24px;
         }
         .container {
             max-width: 640px;
-            width: 100%;
+            margin: 0 auto;
         }
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 36px 32px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
         .logo {
             width: 48px;
@@ -165,19 +162,18 @@
             box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
         }
         .nav-links {
-            margin-top: 20px;
+            margin-top: 28px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-            justify-content: center;
         }
         .nav-links a {
             color: #8FA6CC;
             text-decoration: none;
-            padding: 6px 14px;
+            padding: 8px 18px;
             border: 1px solid rgba(255,255,255,0.12);
             border-radius: 8px;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             font-family: 'Inter', sans-serif;
             transition: all 0.2s ease;
@@ -194,7 +190,7 @@
         }
         .wits-badge {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 28px;
             font-size: 11px;
             color: #8FA6CC;
             letter-spacing: 0.06em;
@@ -217,6 +213,7 @@
 </head>
 <body>
     <div class="container">
+        <!-- Chat Card -->
         <div class="card">
             <div class="logo">SGO</div>
             <h1>SGO Assistant</h1>
@@ -229,11 +226,14 @@
                     <button onclick="sendMessage()">Send</button>
                 </div>
             </div>
-
-            <div class="nav-links" id="nav-links"></div>
-
-            <div class="wits-badge">University of the Witwatersrand</div>
         </div>
+
+        <!-- Navigation outside the white frame -->
+        <div class="nav-links" id="nav-links">
+            <!-- Populated by JavaScript -->
+        </div>
+
+        <div class="wits-badge">University of the Witwatersrand</div>
     </div>
 
     <!-- Firebase SDK -->

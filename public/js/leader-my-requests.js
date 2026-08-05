@@ -134,7 +134,8 @@ function renderTable() {
         const num = startIndex + index + 1;
         const statusClass = statusColors[r.status] || 'status-submitted';
         const isRevision = r.status === 'Revision Required';
-        const hasOfficerComment = r.officerComment && r.officerComment !== '';
+        // Only show officer comment when status is Revision Required
+        const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
         
         html += `
             <tr>

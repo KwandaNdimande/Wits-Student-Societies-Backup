@@ -75,8 +75,7 @@ function searchRequests() {
         filteredRequests = allRequests.filter(r => 
             (r.itemName && r.itemName.toLowerCase().includes(searchTerm)) ||
             (r.type && r.type.toLowerCase().includes(searchTerm)) ||
-            (r.status && r.status.toLowerCase().includes(searchTerm)) ||
-            (r.societyName && r.societyName.toLowerCase().includes(searchTerm))
+            (r.status && r.status.toLowerCase().includes(searchTerm))
         );
     }
     
@@ -125,7 +124,6 @@ function renderTable() {
                         <th>Amount</th>
                         <th>Date</th>
                         <th>Status</th>
-                        <th>Officer Comment</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -147,12 +145,7 @@ function renderTable() {
                 <td style="color:#6c757d;">${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
                 <td>
                     <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
-                </td>
-                <td>
-                    ${hasOfficerComment ? 
-                        `<span class="officer-comment">📝 ${r.officerComment}</span>` : 
-                        '<span style="color:#6c757d;font-size:13px;">—</span>'
-                    }
+                    ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">📝 ${r.officerComment}</span>` : ''}
                 </td>
                 <td>
                     ${isRevision ? `<button class="btn-update" onclick="openUpdateModal('${r.id}')">Update Documents</button>` : '—'}

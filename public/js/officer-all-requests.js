@@ -20,7 +20,10 @@ if (!userUid || userRole !== 'officer') {
     window.location.href = '/login.html';
 }
 
-let currentFlagRequestId = null;
+let allRequests = [];
+let filteredRequests = [];
+let currentPage = 1;
+const pageSize = 5;
 
 // Status colors
 const statusColors = {
@@ -32,8 +35,9 @@ const statusColors = {
     "Resubmitted": "status-resubmitted"
 };
 
-// Remove "Revision Required" from dropdown options
 const statusOptions = ["Submitted", "Under Review", "Approved", "Rejected"];
+
+let currentFlagRequestId = null;
 
 // Load all requests
 async function loadRequests() {
@@ -42,93 +46,181 @@ async function loadRequests() {
             .orderBy('submittedAt', 'desc')
             .get();
 
-        const container = document.getElementById('requests-container');
-        
-        if (requestsSnapshot.empty) {
-            container.innerHTML = '<div class="empty-state">No requests found.</div>';
-            return;
-        }
-
-        let html = `
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Society</th>
-                            <th>Request</th>
-                            <th>Type</th>
-                            <th>Amount</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Documents</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-
-        const requests = [];
+        allRequests = [];
         requestsSnapshot.forEach(doc => {
-            requests.push({ id: doc.id, ...doc.data() });
+            allRequests.push({ id: doc.id, ...doc.data() });
         });
 
-        requests.forEach(r => {
-            const statusClass = statusColors[r.status] || 'status-submitted';
-            const isLocked = r.status === 'Approved' || r.status === 'Rejected';
-            const isRevisionLocked = r.status === 'Revision Required';
-            const isResubmitted = r.status === 'Resubmitted';
-            
-            const optionsHTML = statusOptions.map(s => 
-                `<option value="${s}" ${s === r.status ? 'selected' : ''}>${s}</option>`
-            ).join('');
-
-            const hasDocs = r.documents && Object.keys(r.documents).length > 0;
-            // Only show officer comment when status is Revision Required
-            const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
-
-            html += `
-                <tr>
-                    <td class="strong">${r.societyName || 'Unknown'}</td>
-                    <td>${r.itemName}</td>
-                    <td style="color:#6c757d;">${r.type}</td>
-                    <td>R${r.amount ? r.amount.toLocaleString() : '0'}</td>
-                    <td style="color:#6c757d;">${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
-                    <td>
-                        <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
-                        ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">📝 ${r.officerComment}</span>` : ''}
-                    </td>
-                    <td>
-                        <button class="btn-view" onclick="viewDocuments('${r.id}')">
-                            ${hasDocs ? '📄 View' : 'No Docs'}
-                        </button>
-                    </td>
-                    <td>
-                        ${isRevisionLocked ? 
-                            `<span class="waiting-text">⏳ Awaiting Resubmission</span>` :
-                            `<select class="status-select" onchange="updateStatus('${r.id}', this.value)" ${isLocked ? 'disabled' : ''}>
-                                ${optionsHTML}
-                            </select>`
-                        }
-                        ${!isLocked && !isRevisionLocked ? `<button class="btn-flag" onclick="openFlagModal('${r.id}')">🚩 Flag</button>` : ''}
-                        ${isResubmitted ? `<button class="btn-view" onclick="viewUpdatedDocuments('${r.id}')">📂 Compare</button>` : ''}
-                        <button class="btn-delete" onclick="deleteRequest('${r.id}')">Delete</button>
-                    </td>
-                </tr>
-            `;
-        });
-
-        html += `
-                    </tbody>
-                </table>
-            </div>
-        `;
-
-        container.innerHTML = html;
+        filteredRequests = [...allRequests];
+        currentPage = 1;
+        renderTable();
 
     } catch (error) {
         console.error('Error loading requests:', error);
-        document.getElementById('requests-container').innerHTML = '<p style="color:#dc3545;">Error loading requests. Please try again.</p>';
+        document.getElementById('requests-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading requests. Please try again.</p>';
     }
+}
+
+// Search function
+function searchRequests() {
+    const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase().trim() || '';
+    
+    if (searchTerm === '') {
+        filteredRequests = [...allRequests];
+    } else {
+        filteredRequests = allRequests.filter(r => 
+            (r.societyName && r.societyName.toLowerCase().includes(searchTerm)) ||
+            (r.itemName && r.itemName.toLowerCase().includes(searchTerm)) ||
+            (r.type && r.type.toLowerCase().includes(searchTerm)) ||
+            (r.status && r.status.toLowerCase().includes(searchTerm))
+        );
+    }
+    
+    currentPage = 1;
+    renderTable();
+}
+
+// Render table with pagination
+function renderTable() {
+    const container = document.getElementById('requests-container');
+    const totalItems = filteredRequests.length;
+    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    
+    if (currentPage > totalPages) currentPage = totalPages;
+    
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalItems);
+    const pageItems = filteredRequests.slice(startIndex, endIndex);
+
+    // Update results count
+    const resultsCount = document.getElementById('resultsCount');
+    if (resultsCount) {
+        resultsCount.textContent = `Showing ${totalItems > 0 ? startIndex + 1 : 0}-${endIndex} of ${totalItems} requests`;
+    }
+
+    if (totalItems === 0) {
+        container.innerHTML = `
+            <div class="table-container">
+                <div class="empty-state">No requests found.</div>
+            </div>
+        `;
+        return;
+    }
+
+    let html = `
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Society</th>
+                        <th>Request</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Documents</th>
+                        <th>Update Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    pageItems.forEach((r, index) => {
+        const num = startIndex + index + 1;
+        const statusClass = statusColors[r.status] || 'status-submitted';
+        const isLocked = r.status === 'Approved' || r.status === 'Rejected';
+        const isRevisionLocked = r.status === 'Revision Required';
+        const isResubmitted = r.status === 'Resubmitted';
+        
+        const optionsHTML = statusOptions.map(s => 
+            `<option value="${s}" ${s === r.status ? 'selected' : ''}>${s}</option>`
+        ).join('');
+
+        const hasDocs = r.documents && Object.keys(r.documents).length > 0;
+        const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
+
+        html += `
+            <tr>
+                <td style="color:#6c757d;font-weight:500;">${num}</td>
+                <td class="strong">${r.societyName || 'Unknown'}</td>
+                <td>${r.itemName || r.name || 'Untitled'}</td>
+                <td style="color:#6c757d;">${r.type || 'N/A'}</td>
+                <td>R${r.amount ? r.amount.toLocaleString() : '0'}</td>
+                <td style="color:#6c757d;">${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
+                <td>
+                    <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
+                    ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">📝 ${r.officerComment}</span>` : ''}
+                </td>
+                <td>
+                    <button class="btn-view" onclick="viewDocuments('${r.id}')">
+                        ${hasDocs ? '📄 View' : 'No Docs'}
+                    </button>
+                </td>
+                <td>
+                    ${isRevisionLocked ? 
+                        `<span class="waiting-text">⏳ Awaiting Resubmission</span>` :
+                        `<select class="status-select" onchange="updateStatus('${r.id}', this.value)" ${isLocked ? 'disabled' : ''}>
+                            ${optionsHTML}
+                        </select>`
+                    }
+                    ${!isLocked && !isRevisionLocked ? `<button class="btn-flag" onclick="openFlagModal('${r.id}')">🚩 Flag</button>` : ''}
+                    ${isResubmitted ? `<button class="btn-view" onclick="viewUpdatedDocuments('${r.id}')">📂 Compare</button>` : ''}
+                </td>
+                <td>
+                    <button class="btn-delete" onclick="deleteRequest('${r.id}')">Delete</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+            <div class="pagination">
+                <span class="info">Showing ${startIndex + 1}-${endIndex} of ${totalItems} requests</span>
+                <div class="pages">
+                    <button onclick="changePage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>‹</button>
+    `;
+
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) {
+        html += `<button onclick="changePage(1)">1</button>`;
+        if (startPage > 2) html += `<span class="ellipsis">…</span>`;
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<span class="ellipsis">…</span>`;
+        html += `<button onclick="changePage(${totalPages})">${totalPages}</button>`;
+    }
+
+    html += `
+                    <button onclick="changePage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>›</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+// Change page
+function changePage(page) {
+    const totalPages = Math.ceil(filteredRequests.length / pageSize) || 1;
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    renderTable();
 }
 
 // ============ VIEW DOCUMENTS ============
@@ -291,18 +383,15 @@ async function submitFlag() {
     btn.textContent = 'Submitting...';
 
     try {
-        // Update request status and add comment
         await db.collection('requests').doc(currentFlagRequestId).update({
             status: 'Revision Required',
             officerComment: comment || 'Revision required',
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Get request data for email
         const requestDoc = await db.collection('requests').doc(currentFlagRequestId).get();
         const requestData = requestDoc.data();
 
-        // Send email to leader
         if (requestData.submittedBy) {
             try {
                 const userDoc = await db.collection('users').doc(requestData.submittedBy).get();
@@ -370,14 +459,12 @@ async function updateStatus(requestId, newStatus) {
             return;
         }
 
-        // Check if status is locked
         if (requestData.status === 'Approved' || requestData.status === 'Rejected') {
             alert('This request is locked. Cannot change status.');
             loadRequests();
             return;
         }
 
-        // Prevent changing status if it's Revision Required
         if (requestData.status === 'Revision Required') {
             alert('This request is waiting for leader to update documents. Cannot change status until resubmitted.');
             loadRequests();
@@ -389,7 +476,6 @@ async function updateStatus(requestId, newStatus) {
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // Send email notification to leader
         if (requestData.submittedBy) {
             try {
                 const userDoc = await db.collection('users').doc(requestData.submittedBy).get();
@@ -438,3 +524,6 @@ async function deleteRequest(requestId) {
 // ============ LOAD DATA ============
 
 loadRequests();
+
+// Make search function global for HTML
+window.searchRequests = searchRequests;

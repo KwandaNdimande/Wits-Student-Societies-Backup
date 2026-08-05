@@ -69,10 +69,11 @@ async function loadDashboard() {
             const recent = recentRequests.slice(0, 5);
             let html = '<h2>Recent Requests</h2>';
             recent.forEach(r => {
+                const requestName = r.itemName || r.name || r.title || r.requestName || 'Untitled Request';
                 html += `
                     <div style="border-bottom:1px solid #eee;padding:12px 0;">
-                        <strong>${r.itemName}</strong>
-                        <span style="color:#6c757d;font-size:14px;"> - R${r.amount}</span>
+                        <strong>${requestName}</strong>
+                        <span style="color:#6c757d;font-size:14px;"> - R${r.amount ? r.amount.toLocaleString() : '0'}</span>
                         <span style="float:right;color:#6c757d;font-size:14px;">${r.status}</span>
                     </div>
                 `;

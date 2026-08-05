@@ -20,10 +20,8 @@ if (!userUid || userRole !== 'officer') {
     window.location.href = '/login.html';
 }
 
-// Load dashboard data
 async function loadDashboard() {
     try {
-        // Get all requests
         const requestsSnapshot = await db.collection('requests').get();
 
         let stats = {
@@ -38,7 +36,6 @@ async function loadDashboard() {
             const data = doc.data();
             recentRequests.push({ id: doc.id, ...data });
 
-            // Update stats
             switch(data.status) {
                 case 'Submitted':
                     stats.submitted++;
@@ -55,13 +52,11 @@ async function loadDashboard() {
             }
         });
 
-        // Update stats cards
         document.querySelector('.stat-card.blue .stat-number').textContent = stats.submitted;
         document.querySelector('.stat-card.yellow .stat-number').textContent = stats.underReview;
         document.querySelector('.stat-card.green .stat-number').textContent = stats.approved;
         document.querySelector('.stat-card.red .stat-number').textContent = stats.rejected;
 
-        // Update recent requests
         const recentContainer = document.querySelector('.recent-section');
         if (recentRequests.length > 0) {
             const recent = recentRequests.slice(0, 5);
@@ -71,7 +66,7 @@ async function loadDashboard() {
                 html += `
                     <div style="border-bottom:1px solid #eee;padding:12px 0;">
                         <strong>${requestName}</strong>
-                        <span style="color:#6c757d;font-size:14px;"> - R${r.amount ? r.amount.toLocaleString() : '0'}</span>
+                        <span style="color:#6c757d;font-size:14px;margin-left:8px;">- ${r.societyName || 'Unknown'}</span>
                         <span style="float:right;color:#6c757d;font-size:14px;">${r.status}</span>
                     </div>
                 `;
@@ -86,5 +81,4 @@ async function loadDashboard() {
     }
 }
 
-// Load data
 loadDashboard();

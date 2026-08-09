@@ -58,10 +58,130 @@ async function loadRequests() {
         filteredRequests = [...allRequests];
         currentPage = 1;
         renderTable();
+        renderLeaderNotifications();
+        openLeaderNotificationFromUrl();
 
     } catch (error) {
-        console.error('Error loading requests:', error);
+            console.error('Error loading requests:', error);
         document.getElementById('requests-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading requests. Please try again.</p>';
+    }
+}
+
+// Notification helpers
+function getTimestampMs(timestamp) {
+    if (!timestamp) return 0;
+    if (typeof timestamp === 'number') return timestamp;
+    if (typeof timestamp.toMillis === 'function') return timestamp.toMillis();
+    if (timestamp.seconds) return timestamp.seconds * 1000 + Math.round((timestamp.nanoseconds || 0) / 1e6);
+    return Date.parse(timestamp) || 0;
+}
+
+function initLeaderNotificationBell() {
+    const navLinks = document.querySelector('.nav-links');
+    if (!navLinks || navLinks.querySelector('.nav-bell')) return;
+
+    const bell = document.createElement('div');
+    bell.className = 'nav-bell';
+    bell.innerHTML = `
+        <button id="notificationBell" class="nav-bell-btn" type="button" aria-haspopup="true" aria-expanded="false">
+            🔔 <span id="notificationCount" class="notification-badge hidden">0</span>
+        </button>
+        <div id="notificationDropdown" class="notification-dropdown"></div>
+    `;
+    navLinks.prepend(bell);
+
+    document.getElementById('notificationBell').addEventListener('click', function(event) {
+        event.stopPropagation();
+        toggleLeaderDropdown();
+    });
+
+    document.addEventListener('click', function(event) {
+        const dropdown = document.getElementById('notificationDropdown');
+        const bell = document.getElementById('notificationBell');
+        if (!dropdown || !dropdown.classList.contains('active')) return;
+        if (bell.contains(event.target) || dropdown.contains(event.target)) return;
+        closeLeaderDropdown();
+    });
+}
+
+function renderLeaderNotifications() {
+    initLeaderNotificationBell();
+
+    const lastSeen = parseInt(localStorage.getItem('leaderNotificationsLastSeen') || '0', 10);
+    const events = [];
+
+    allRequests.forEach(request => {
+        const history = request.statusHistory || [];
+        history.forEach(entry => {
+            if (entry.actorRole !== 'officer') return;
+            const ts = getTimestampMs(entry.timestamp);
+            if (ts <= lastSeen) return;
+            events.push({ request, entry, ts });
+        });
+    });
+
+    events.sort((a, b) => b.ts - a.ts);
+
+    const badge = document.getElementById('notificationCount');
+    if (badge) {
+        if (events.length > 0) {
+            badge.textContent = events.length;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    const dropdown = document.getElementById('notificationDropdown');
+    if (!dropdown) return;
+
+    if (events.length === 0) {
+        dropdown.innerHTML = '<div class="notification-item empty">No new request updates.</div>';
+        return;
+    }
+
+    dropdown.innerHTML = events.slice(0, 5).map(item => {
+        const request = item.request;
+        const entry = item.entry;
+        const when = new Date(item.ts).toLocaleString();
+        const title = request.itemName || request.name || 'Request';
+        return `
+            <div class="notification-item" onclick="openLeaderNotification('${request.id}')">
+                <div class="title">${title} — ${entry.status || 'Updated'}</div>
+                <div class="meta">${request.societyName || ''} · ${when}</div>
+                ${entry.note ? `<div class="note">${entry.note}</div>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+function toggleLeaderDropdown() {
+    const dropdown = document.getElementById('notificationDropdown');
+    if (!dropdown) return;
+    const isActive = dropdown.classList.toggle('active');
+    if (isActive) {
+        localStorage.setItem('leaderNotificationsLastSeen', Date.now().toString());
+        renderLeaderNotifications();
+    }
+}
+
+function closeLeaderDropdown() {
+    const dropdown = document.getElementById('notificationDropdown');
+    if (dropdown) {
+        dropdown.classList.remove('active');
+    }
+}
+
+function openLeaderNotification(requestId) {
+    closeLeaderDropdown();
+    window.location.href = `/leader/my-requests.html?openRequest=${encodeURIComponent(requestId)}`;
+}
+
+function openLeaderNotificationFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const requestId = params.get('openRequest');
+    if (requestId) {
+        openDetailView(requestId);
     }
 }
 
@@ -138,7 +258,7 @@ function renderTable() {
         const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
         
         html += `
-            <tr>
+            <tr class="clickable-row" onclick="openDetailView('${r.id}')">
                 <td style="color:#6c757d;font-weight:500;">${num}</td>
                 <td class="strong">${r.itemName || r.name || 'Untitled'}</td>
                 <td style="color:#6c757d;">${r.type || 'N/A'}</td>
@@ -149,7 +269,7 @@ function renderTable() {
                     ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">📝 ${r.officerComment}</span>` : ''}
                 </td>
                 <td>
-                    ${isRevision ? `<button class="btn-update" onclick="openUpdateModal('${r.id}')">Update Documents</button>` : '—'}
+                    ${isRevision ? `<button class="btn-update" onclick="event.stopPropagation(); openUpdateModal('${r.id}')">Update Documents</button>` : '—'}
                 </td>
             </tr>
         `;
@@ -201,6 +321,51 @@ function changePage(page) {
     if (page < 1 || page > totalPages) return;
     currentPage = page;
     renderTable();
+}
+
+function openDetailView(requestId) {
+    const request = allRequests.find(r => r.id === requestId);
+    if (!request) return;
+
+    document.getElementById('controls').classList.add('hidden');
+    document.getElementById('requests-container').classList.add('hidden');
+    document.getElementById('request-detail-view').classList.remove('hidden');
+
+    document.getElementById('detail-title').textContent = request.itemName || 'Request Details';
+    const statusEl = document.getElementById('detail-status');
+    statusEl.textContent = request.status || 'N/A';
+    statusEl.className = `status-badge ${statusColors[request.status] || 'status-submitted'}`;
+
+    const amountText = request.amount ? `R${request.amount.toLocaleString()}` : 'N/A';
+    const submittedDate = request.submittedAt ? new Date(request.submittedAt.seconds * 1000).toLocaleString() : 'N/A';
+    const description = request.description || 'No description provided.';
+    const documents = request.documents || {};
+    const officerComment = request.officerComment ? `<div class="officer-comment"><strong>Officer Feedback:</strong> ${request.officerComment}</div>` : '';
+    const leaderComment = request.leaderComment ? `<div style="margin-top:12px;color:#2E6FBA;font-size:14px;"><strong>Your comment:</strong> ${request.leaderComment}</div>` : '';
+
+    const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
+    const docsHtml = docOrder.map(key => {
+        const label = docLabels[key] || key;
+        const file = documents[key];
+        const fileName = file?.fileName || file?.name || 'No file uploaded';
+        return `<div class="doc-item"><strong>${label}</strong><div>${fileName}</div></div>`;
+    }).join('');
+
+    document.getElementById('detailBody').innerHTML = `
+        <div class="detail-row"><div class="detail-label">Request Type</div><div class="detail-value">${request.type || 'N/A'}</div></div>
+        <div class="detail-row"><div class="detail-label">Amount</div><div class="detail-value">${amountText}</div></div>
+        <div class="detail-row"><div class="detail-label">Submitted</div><div class="detail-value">${submittedDate}</div></div>
+        <div class="detail-row"><div class="detail-label">Description</div><div class="detail-value">${description}</div></div>
+        ${officerComment}
+        ${leaderComment}
+        <div class="detail-docs"><h3 style="font-size:15px;color:var(--text-600);margin-bottom:10px;">Documents</h3>${docsHtml}</div>
+    `;
+}
+
+function closeDetailView() {
+    document.getElementById('request-detail-view').classList.add('hidden');
+    document.getElementById('requests-container').classList.remove('hidden');
+    document.getElementById('controls').classList.remove('hidden');
 }
 
 // ============ UPDATE DOCUMENTS MODAL ============
@@ -277,7 +442,7 @@ async function openUpdateModal(requestId) {
 
     } catch (error) {
         console.error('Error loading documents:', error);
-        alert('Error loading documents: ' + error.message);
+        alert('Error loading documents. ' + error.message);
     }
 }
 
@@ -335,11 +500,11 @@ async function submitUpdate() {
 
         closeUpdateModal();
         loadRequests();
-        alert('✅ Documents updated successfully! Your request has been resubmitted for review.');
+        alert('Documents updated successfully. Your request has been resubmitted for review.');
 
     } catch (error) {
         console.error('Error updating documents:', error);
-        alert('Error updating documents: ' + error.message);
+        alert('Error updating documents. ' + error.message);
     } finally {
         btn.disabled = false;
         btn.textContent = 'Resubmit';

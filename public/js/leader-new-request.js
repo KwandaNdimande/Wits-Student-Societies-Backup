@@ -39,40 +39,185 @@ auth.onAuthStateChanged(async (user) => {
 });
 
 // Submit request
+function setFieldError(fieldGroupId, message) {
+    const group = document.getElementById(fieldGroupId);
+    if (!group) return;
+    const error = group.querySelector('.form-error');
+    if (message) {
+        group.classList.add('field-invalid');
+        if (error) error.textContent = message;
+    } else {
+        group.classList.remove('field-invalid');
+        if (error) error.textContent = '';
+    }
+}
+
+function clearAllErrors() {
+    ['request-type', 'item-name', 'amount', 'description', 'budget-form', 'meeting-minutes', 'vendor-quotation'].forEach((id) => {
+        const group = document.getElementById('group-' + id);
+        if (group) group.classList.remove('field-invalid');
+        const error = group ? group.querySelector('.form-error') : null;
+        if (error) error.textContent = '';
+    });
+    const summary = document.getElementById('form-error');
+    if (summary) summary.textContent = '';
+}
+
+function isValidPdf(file) {
+    return file && /\.pdf$/i.test(file.name);
+}
+
+function isValidExcel(file) {
+    return file && /\.(xlsx|xls)$/i.test(file.name);
+}
+
+function getFileErrorText(inputId) {
+    if (inputId === 'budget-form') return 'Budget Form is required.';
+    if (inputId === 'meeting-minutes') return 'Meeting Minutes are required.';
+    if (inputId === 'vendor-quotation') return 'Vendor Quotation is required.';
+    return 'File is required.';
+}
+
+function validateField() {
+    clearAllErrors();
+    let valid = true;
+
+    const type = document.getElementById('request-type').value.trim();
+    if (!type) {
+        setFieldError('group-request-type', 'Request type is required.');
+        valid = false;
+    }
+
+    const itemName = document.getElementById('item-name').value.trim();
+    if (!itemName) {
+        setFieldError('group-item-name', 'Event or item name is required.');
+        valid = false;
+    }
+
+    const amountValue = document.getElementById('amount').value.trim();
+    const amount = parseFloat(amountValue);
+    if (!amountValue) {
+        setFieldError('group-amount', 'Amount requested is required.');
+        valid = false;
+    } else if (isNaN(amount) || amount <= 0) {
+        setFieldError('group-amount', 'Enter a valid amount greater than zero.');
+        valid = false;
+    }
+
+    const description = document.getElementById('description').value.trim();
+    if (!description) {
+        setFieldError('group-description', 'Description is required.');
+        valid = false;
+    }
+
+    const budgetForm = document.getElementById('budget-form').files[0];
+    if (!budgetForm) {
+        setFieldError('group-budget-form', getFileErrorText('budget-form'));
+        valid = false;
+    } else if (!isValidExcel(budgetForm)) {
+        setFieldError('group-budget-form', 'Budget Form must be an Excel file (.xlsx or .xls).');
+        valid = false;
+    }
+
+    const meetingMinutes = document.getElementById('meeting-minutes').files[0];
+    if (!meetingMinutes) {
+        setFieldError('group-meeting-minutes', getFileErrorText('meeting-minutes'));
+        valid = false;
+    } else if (!isValidPdf(meetingMinutes)) {
+        setFieldError('group-meeting-minutes', 'Meeting Minutes must be a PDF file.');
+        valid = false;
+    }
+
+    const vendorQuotation = document.getElementById('vendor-quotation').files[0];
+    if (!vendorQuotation) {
+        setFieldError('group-vendor-quotation', getFileErrorText('vendor-quotation'));
+        valid = false;
+    } else if (!isValidPdf(vendorQuotation)) {
+        setFieldError('group-vendor-quotation', 'Vendor Quotation must be a PDF file.');
+        valid = false;
+    }
+
+    document.getElementById('submit-request').disabled = !valid;
+    return valid;
+}
+
+function handleFileInput(event) {
+    const input = event.target;
+    const file = input.files[0];
+    const groupId = 'group-' + input.id;
+
+    if (!file) {
+        setFieldError(groupId, getFileErrorText(input.id));
+    } else if (input.id === 'budget-form' && !isValidExcel(file)) {
+        setFieldError(groupId, 'File must be an Excel document (.xlsx or .xls).');
+    } else if (input.id !== 'budget-form' && !isValidPdf(file)) {
+        setFieldError(groupId, 'File must be a PDF file.');
+    } else {
+        setFieldError(groupId, '');
+    }
+
+    validateField();
+}
+
+function resetForm() {
+    document.getElementById('request-type').value = '';
+    document.getElementById('item-name').value = '';
+    document.getElementById('amount').value = '';
+    document.getElementById('description').value = '';
+    document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
+    clearAllErrors();
+    document.getElementById('form-section').classList.remove('hidden');
+    document.getElementById('success-section').classList.add('hidden');
+    document.getElementById('submit-request').disabled = true;
+}
+
+function confirmCancel() {
+    if (confirm('Are you sure you want to discard this request?')) {
+        resetForm();
+    }
+}
+
+document.getElementById('request-type').addEventListener('change', validateField);
+document.getElementById('item-name').addEventListener('input', validateField);
+document.getElementById('amount').addEventListener('input', validateField);
+document.getElementById('description').addEventListener('input', validateField);
+document.getElementById('budget-form').addEventListener('change', handleFileInput);
+document.getElementById('meeting-minutes').addEventListener('change', handleFileInput);
+document.getElementById('vendor-quotation').addEventListener('change', handleFileInput);
+document.getElementById('cancel-request').addEventListener('click', function (e) {
+    e.preventDefault();
+    confirmCancel();
+});
+document.getElementById('submit-another').addEventListener('click', function () {
+    resetForm();
+});
+
 document.getElementById('submit-request').addEventListener('click', async (e) => {
     e.preventDefault();
-    
-    const type = document.getElementById('request-type').value;
-    const itemName = document.getElementById('item-name').value;
-    const amount = document.getElementById('amount').value;
-    const description = document.getElementById('description').value;
+    if (!validateField()) {
+        const summary = document.getElementById('form-error');
+        if (summary) summary.textContent = 'Please fix the highlighted fields before submitting.';
+        return;
+    }
+
+    const type = document.getElementById('request-type').value.trim();
+    const itemName = document.getElementById('item-name').value.trim();
+    const amount = parseFloat(document.getElementById('amount').value.trim());
+    const description = document.getElementById('description').value.trim();
     const budgetForm = document.getElementById('budget-form').files[0];
     const meetingMinutes = document.getElementById('meeting-minutes').files[0];
     const vendorQuotation = document.getElementById('vendor-quotation').files[0];
-    
-    // Validation
-    if (!type || !itemName || !amount || !description) {
-        alert('Please fill in all fields.');
-        return;
-    }
-    
-    if (!budgetForm || !meetingMinutes || !vendorQuotation) {
-        alert('Please upload all required documents.');
-        return;
-    }
-    
+
     try {
-        // Show loading state
         const btn = document.getElementById('submit-request');
         btn.disabled = true;
         btn.textContent = 'Submitting...';
-        
-        // Create request object
+
         const requestData = {
-            type: type,
-            itemName: itemName,
-            amount: parseFloat(amount),
-            description: description,
+            type,
+            itemName,
+            amount,
+            description,
             status: 'Submitted',
             submittedBy: userUid,
             submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -83,17 +228,14 @@ document.getElementById('submit-request').addEventListener('click', async (e) =>
                 vendorQuotation: vendorQuotation.name
             }
         };
-        
-        // Save to Firestore
-        const docRef = await db.collection('requests').add(requestData);
-        
-        // Show success
+
+        await db.collection('requests').add(requestData);
         document.getElementById('form-section').classList.add('hidden');
         document.getElementById('success-section').classList.remove('hidden');
-        
     } catch (error) {
         console.error('Error submitting request:', error);
-        alert('Error submitting request: ' + error.message);
+        const summary = document.getElementById('form-error');
+        if (summary) summary.textContent = 'Error submitting request: ' + error.message;
     } finally {
         const btn = document.getElementById('submit-request');
         btn.disabled = false;
@@ -101,14 +243,4 @@ document.getElementById('submit-request').addEventListener('click', async (e) =>
     }
 });
 
-// Reset form
-function resetForm() {
-    document.getElementById('request-type').value = '';
-    document.getElementById('item-name').value = '';
-    document.getElementById('amount').value = '';
-    document.getElementById('description').value = '';
-    document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
-    
-    document.getElementById('form-section').classList.remove('hidden');
-    document.getElementById('success-section').classList.add('hidden');
-}
+validateField();

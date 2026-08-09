@@ -55,9 +55,16 @@ function searchSocieties() {
         filteredSocieties = [...allSocieties];
     } else {
         filteredSocieties = allSocieties.filter(s => 
-            s.name.toLowerCase().includes(searchTerm) ||
-            s.category.toLowerCase().includes(searchTerm) ||
-            s.email.toLowerCase().includes(searchTerm)
+            (s.name && s.name.toLowerCase().includes(searchTerm)) ||
+            (s.category && s.category.toLowerCase().includes(searchTerm)) ||
+            (s.email && s.email.toLowerCase().includes(searchTerm)) ||
+            (s.description && s.description.toLowerCase().includes(searchTerm)) ||
+            (s.execCommittee && (
+                (s.execCommittee.president && (s.execCommittee.president.name || '').toLowerCase().includes(searchTerm)) ||
+                (s.execCommittee.president && (s.execCommittee.president.email || '').toLowerCase().includes(searchTerm)) ||
+                (s.execCommittee.vicePresident && (s.execCommittee.vicePresident.name || '').toLowerCase().includes(searchTerm)) ||
+                (s.execCommittee.vicePresident && (s.execCommittee.vicePresident.email || '').toLowerCase().includes(searchTerm))
+            ))
         );
     }
     
@@ -98,8 +105,8 @@ function renderTable() {
                         <th>#</th>
                         <th>Society Name</th>
                         <th>Category</th>
-                        <th>Contact Email</th>
-                        <th>Action</th>
+                                <th>Contact Email</th>
+                                <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -114,7 +121,9 @@ function renderTable() {
                 <td style="color:#6c757d;">${s.category || 'General'}</td>
                 <td style="color:#6c757d;">${s.email || 'No email'}</td>
                 <td>
-                    <button class="btn-delete" onclick="deleteSociety('${s.id}')">Delete</button>
+                    <button class="btn-view" onclick="viewSociety('${s.id}')">View</button>
+                    <button class="btn-view" style="margin-left:8px;" onclick="openEditSociety('${s.id}')">Edit</button>
+                    <button class="btn-delete" style="margin-left:8px;" onclick="deleteSociety('${s.id}')">Delete</button>
                 </td>
             </tr>
         `;
@@ -174,6 +183,25 @@ async function addSociety() {
     const name = document.getElementById('society-name').value.trim();
     const category = document.getElementById('society-category').value;
     const email = document.getElementById('society-email').value.trim();
+    const description = document.getElementById('society-description')?.value.trim() || '';
+    const execCommittee = {
+        president: {
+            name: document.getElementById('president-name')?.value.trim() || '',
+            email: document.getElementById('president-email')?.value.trim() || ''
+        },
+        vicePresident: {
+            name: document.getElementById('vp-name')?.value.trim() || '',
+            email: document.getElementById('vp-email')?.value.trim() || ''
+        },
+        treasurer: {
+            name: document.getElementById('treasurer-name')?.value.trim() || '',
+            email: document.getElementById('treasurer-email')?.value.trim() || ''
+        },
+        secretary: {
+            name: document.getElementById('secretary-name')?.value.trim() || '',
+            email: document.getElementById('secretary-email')?.value.trim() || ''
+        }
+    };
 
     if (!name || !category || !email) {
         alert('Please fill in all fields.');
@@ -189,6 +217,8 @@ async function addSociety() {
             name: name,
             category: category,
             email: email,
+            description: description,
+            execCommittee: execCommittee,
             createdBy: userUid,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -201,12 +231,155 @@ async function addSociety() {
 
     } catch (error) {
         console.error('Error adding society:', error);
-        alert('Error adding society: ' + error.message);
+        alert('Error adding society. ' + error.message);
     } finally {
         const btn = document.querySelector('.btn-add');
         btn.disabled = false;
         btn.textContent = 'Add Society';
     }
+}
+
+// Modal helpers for viewing and editing societies
+function closeSocietyModal() {
+    const overlay = document.getElementById('societyModal');
+    if (overlay) overlay.style.display = 'none';
+    document.getElementById('societyModalBody').innerHTML = '';
+    document.getElementById('societySaveBtn').style.display = 'none';
+    delete document.getElementById('societyModal')?.dataset.editingId;
+}
+
+async function viewSociety(societyId) {
+    try {
+        const doc = await db.collection('societies').doc(societyId).get();
+        if (!doc.exists) {
+            alert('Society not found.');
+            return;
+        }
+        const s = doc.data();
+        const exec = s.execCommittee || {};
+        const html = `
+            <div style="margin-bottom:12px;"><strong style="font-size:16px;color:var(--navy-900);">${s.name}</strong><div style="color:var(--text-500);">${s.category || ''}</div></div>
+            <div style="margin-bottom:12px;"><strong>Description</strong><div style="margin-top:6px;color:var(--text-600);">${s.description || '—'}</div></div>
+            <div style="margin-bottom:12px;"><strong>Contact Email</strong><div style="margin-top:6px;color:var(--text-600);">${s.email || '—'}</div></div>
+            <div style="margin-top:12px;"><h3 style="margin-bottom:8px;">Executive Committee</h3>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+                    <div><strong>President</strong><div>${exec.president?.name || '—'}</div><div style="font-size:13px;color:var(--text-500);">${exec.president?.email || ''}</div></div>
+                    <div><strong>Vice President</strong><div>${exec.vicePresident?.name || '—'}</div><div style="font-size:13px;color:var(--text-500);">${exec.vicePresident?.email || ''}</div></div>
+                    <div><strong>Treasurer</strong><div>${exec.treasurer?.name || '—'}</div><div style="font-size:13px;color:var(--text-500);">${exec.treasurer?.email || ''}</div></div>
+                    <div><strong>Secretary</strong><div>${exec.secretary?.name || '—'}</div><div style="font-size:13px;color:var(--text-500);">${exec.secretary?.email || ''}</div></div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('societyModalTitle').textContent = s.name || 'Society';
+        document.getElementById('societyModalBody').innerHTML = html;
+        document.getElementById('societySaveBtn').style.display = 'none';
+        document.getElementById('societyModal').style.display = 'flex';
+    } catch (error) {
+        console.error('Error viewing society:', error);
+        alert('Error viewing society. ' + error.message);
+    }
+}
+
+async function openEditSociety(societyId) {
+    try {
+        const doc = await db.collection('societies').doc(societyId).get();
+        if (!doc.exists) {
+            alert('Society not found.');
+            return;
+        }
+        const s = doc.data();
+
+        const exec = s.execCommittee || {};
+        const html = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <input id="edit-soc-name" placeholder="Society Name" value="${escapeHtml(s.name || '')}" />
+                <select id="edit-soc-category"><option value="">Category...</option><option value="Academic">Academic</option><option value="Cultural">Cultural</option><option value="Sports">Sports</option><option value="Religious">Religious</option><option value="Other">Other</option></select>
+                <input id="edit-soc-email" placeholder="Contact Email" value="${escapeHtml(s.email || '')}" />
+                <textarea id="edit-soc-description" placeholder="Short description" style="grid-column:1 / -1;min-height:72px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;">${escapeHtml(s.description || '')}</textarea>
+                <div style="grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;">
+                    <div>
+                        <strong style="display:block;margin-bottom:6px;color:var(--text-900);">President</strong>
+                        <input id="edit-president-name" placeholder="President Name" value="${escapeHtml(exec.president?.name || '')}" />
+                        <input id="edit-president-email" placeholder="President Email" value="${escapeHtml(exec.president?.email || '')}" style="margin-top:8px;" />
+                    </div>
+                    <div>
+                        <strong style="display:block;margin-bottom:6px;color:var(--text-900);">Vice President</strong>
+                        <input id="edit-vp-name" placeholder="Vice President Name" value="${escapeHtml(exec.vicePresident?.name || '')}" />
+                        <input id="edit-vp-email" placeholder="Vice President Email" value="${escapeHtml(exec.vicePresident?.email || '')}" style="margin-top:8px;" />
+                    </div>
+                    <div>
+                        <strong style="display:block;margin-bottom:6px;color:var(--text-900);">Treasurer</strong>
+                        <input id="edit-treasurer-name" placeholder="Treasurer Name" value="${escapeHtml(exec.treasurer?.name || '')}" />
+                        <input id="edit-treasurer-email" placeholder="Treasurer Email" value="${escapeHtml(exec.treasurer?.email || '')}" style="margin-top:8px;" />
+                    </div>
+                    <div>
+                        <strong style="display:block;margin-bottom:6px;color:var(--text-900);">Secretary</strong>
+                        <input id="edit-secretary-name" placeholder="Secretary Name" value="${escapeHtml(exec.secretary?.name || '')}" />
+                        <input id="edit-secretary-email" placeholder="Secretary Email" value="${escapeHtml(exec.secretary?.email || '')}" style="margin-top:8px;" />
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('societyModalTitle').textContent = `Edit: ${s.name || 'Society'}`;
+        document.getElementById('societyModalBody').innerHTML = html;
+        // set category select value after inserting
+        const catSelect = document.getElementById('edit-soc-category');
+        if (catSelect) catSelect.value = s.category || '';
+
+        const saveBtn = document.getElementById('societySaveBtn');
+        saveBtn.style.display = 'inline-block';
+        document.getElementById('societyModal').dataset.editingId = societyId;
+        document.getElementById('societyModal').style.display = 'flex';
+    } catch (error) {
+        console.error('Error opening society for edit:', error);
+        alert('Error opening society. ' + error.message);
+    }
+}
+
+async function saveSocietyEdits() {
+    const modal = document.getElementById('societyModal');
+    const societyId = modal.dataset.editingId;
+    if (!societyId) return;
+
+    const name = document.getElementById('edit-soc-name')?.value.trim();
+    const category = document.getElementById('edit-soc-category')?.value;
+    const email = document.getElementById('edit-soc-email')?.value.trim();
+    const description = document.getElementById('edit-soc-description')?.value.trim() || '';
+    const execCommittee = {
+        president: { name: document.getElementById('edit-president-name')?.value.trim() || '', email: document.getElementById('edit-president-email')?.value.trim() || '' },
+        vicePresident: { name: document.getElementById('edit-vp-name')?.value.trim() || '', email: document.getElementById('edit-vp-email')?.value.trim() || '' },
+        treasurer: { name: document.getElementById('edit-treasurer-name')?.value.trim() || '', email: document.getElementById('edit-treasurer-email')?.value.trim() || '' },
+        secretary: { name: document.getElementById('edit-secretary-name')?.value.trim() || '', email: document.getElementById('edit-secretary-email')?.value.trim() || '' }
+    };
+
+    if (!name || !category || !email) {
+        alert('Please fill in name, category and contact email.');
+        return;
+    }
+
+    try {
+        await db.collection('societies').doc(societyId).update({
+            name,
+            category,
+            email,
+            description,
+            execCommittee,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        closeSocietyModal();
+        loadSocieties();
+    } catch (error) {
+        console.error('Error saving society edits:', error);
+        alert('Error saving society. ' + error.message);
+    }
+}
+
+// small escaping helper for value injection
+function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // Delete society
@@ -218,7 +391,7 @@ async function deleteSociety(societyId) {
         loadSocieties();
     } catch (error) {
         console.error('Error deleting society:', error);
-        alert('Error deleting society: ' + error.message);
+        alert('Error deleting society. ' + error.message);
     }
 }
 

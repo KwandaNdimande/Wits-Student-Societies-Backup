@@ -121,6 +121,12 @@
             margin-bottom: 14px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
+        /* Modal basic styles */
+        .modal-overlay { display: none; position: fixed; inset:0; background: rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center; }
+        .modal-overlay.active, .modal-overlay[style*="display:flex"] { display:flex; }
+        .modal { background: var(--surface); border-radius:var(--radius); max-width:700px; width:90%; padding:24px; box-shadow:0 8px 32px rgba(0,0,0,0.3); }
+        .modal-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:12px; }
+        .modal-footer { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
         .announcement-header {
             display: flex;
             justify-content: space-between;
@@ -225,9 +231,43 @@
         <div class="create-section">
             <h2>Create Announcement</h2>
             <input id="announcement-title" placeholder="Title" />
+            <select id="announcement-category">
+                <option value="">Category...</option>
+                <option value="Upcoming Event">Upcoming Event</option>
+                <option value="Training Induction">Training Induction</option>
+                <option value="General Notice">General Notice</option>
+                <option value="Deadline Reminder">Deadline Reminder</option>
+            </select>
+            <input id="announcement-date" type="date" />
             <textarea id="announcement-body" placeholder="Message..." rows="3"></textarea>
             <button class="btn-post" onclick="postAnnouncement()">Post Announcement</button>
         </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="announcementModal" style="display:none;">
+        <div class="modal" style="max-width:680px;">
+            <div class="modal-header">
+                <h2 id="announcementModalTitle">Edit Announcement</h2>
+                <button class="modal-back" onclick="closeAnnouncementModal()" style="background:none;border:none;cursor:pointer;font-size:14px;margin-right:12px;">← Back to Announcements</button>
+            </div>
+            <div class="modal-body" id="announcementModalBody">
+                <input id="edit-ann-title" placeholder="Title" />
+                <select id="edit-ann-category">
+                    <option value="">Category...</option>
+                    <option value="Upcoming Event">Upcoming Event</option>
+                    <option value="Training Induction">Training Induction</option>
+                    <option value="General Notice">General Notice</option>
+                    <option value="Deadline Reminder">Deadline Reminder</option>
+                </select>
+                <input id="edit-ann-date" type="date" />
+                <textarea id="edit-ann-body" placeholder="Message..." rows="4"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="saveAnnBtn" onclick="saveAnnouncementEdits()">Save</button>
+                <button class="btn btn-secondary" onclick="closeAnnouncementModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
 
         <div id="announcements-container"></div>
 

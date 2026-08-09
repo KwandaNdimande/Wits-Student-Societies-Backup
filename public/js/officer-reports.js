@@ -517,7 +517,7 @@ function generatePDF(panel, panelId) {
     }).catch((error) => {
         console.error('PDF generation error:', error);
         document.body.removeChild(container);
-        alert('Error generating PDF. Please try again.');
+        alert('Error generating PDF. Try again.');
     });
 }
 

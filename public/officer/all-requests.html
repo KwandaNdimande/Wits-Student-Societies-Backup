@@ -313,6 +313,89 @@
             color: var(--navy-900);
             border-color: #fff;
         }
+        .nav-bell {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .nav-bell-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #8FA6CC;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 999px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        }
+        .nav-bell-btn:hover {
+            background: rgba(255,255,255,0.12);
+        }
+        .notification-badge {
+            min-width: 18px;
+            height: 18px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: #E53935;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .notification-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            width: 320px;
+            max-width: calc(100vw - 40px);
+            background: var(--surface);
+            color: var(--text-900);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 18px 48px rgba(0,0,0,0.16);
+            z-index: 1000;
+            display: none;
+        }
+        .notification-dropdown.active {
+            display: block;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .notification-item {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        .notification-item:hover {
+            background: #F4F7FB;
+        }
+        .notification-item .title {
+            font-weight: 700;
+            color: var(--text-900);
+            margin-bottom: 5px;
+        }
+        .notification-item .meta {
+            font-size: 12px;
+            color: var(--text-500);
+        }
+        .notification-item .note {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--text-600);
+        }
+        .notification-item.empty {
+            cursor: default;
+            color: var(--text-500);
+        }
         .wits-badge {
             text-align: center;
             margin-top: 28px;
@@ -460,6 +543,17 @@
             text-align: center;
             padding: 20px 0;
         }
+        .history-item {
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            background: #FAFBFD;
+        }
+        .history-item strong,
+        .history-item span {
+            display: block;
+        }
         .waiting-text {
             color: #E65100;
             font-weight: 600;
@@ -518,8 +612,8 @@
     <div class="modal-overlay" id="docModal">
         <div class="modal">
             <div class="modal-header">
+                <button class="modal-back" onclick="closeModal()" style="background:none;border:none;cursor:pointer;font-size:14px;margin-right:12px;">← Back to Requests</button>
                 <h2 id="modalTitle">Request Documents</h2>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div id="modalBody">
                 <div class="no-docs">Loading...</div>
@@ -527,20 +621,20 @@
         </div>
     </div>
 
-    <!-- Flag Modal -->
-    <div class="modal-overlay" id="flagModal">
+    <!-- Status Update Modal -->
+    <div class="modal-overlay" id="statusModal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="flagModalTitle">Flag for Revision</h2>
-                <button class="modal-close" onclick="closeFlagModal()">&times;</button>
+                <button class="modal-back" onclick="closeStatusModal(true)" style="background:none;border:none;cursor:pointer;font-size:14px;margin-right:12px;">← Back to Requests</button>
+                <h2 id="statusModalTitle">Update Request Status</h2>
             </div>
-            <div class="modal-body">
-                <label for="flagComment">Reason for Revision</label>
-                <textarea id="flagComment" placeholder="Please provide details on what needs to be corrected..."></textarea>
-                <div class="modal-footer">
-                    <button class="btn btn-danger" onclick="submitFlag()">Flag Request</button>
-                    <button class="btn btn-secondary" onclick="closeFlagModal()">Cancel</button>
-                </div>
+            <div class="modal-body" id="statusModalBody">
+                <label for="statusReasonDetails">Note</label>
+                <textarea id="statusReasonDetails" placeholder="Enter details for this status update..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="submitStatusModal()">Save Status</button>
+                <button class="btn btn-secondary" onclick="closeStatusModal(true)">Cancel</button>
             </div>
         </div>
     </div>

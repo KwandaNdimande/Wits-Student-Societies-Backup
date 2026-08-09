@@ -45,6 +45,7 @@ async function loadDocuments() {
                     </div>
                     <div style="display:flex;gap:8px;flex-shrink:0;">
                         <button style="padding:6px 16px;border:1px solid #003B5C;border-radius:6px;background:transparent;color:#003B5C;font-size:14px;cursor:pointer;font-family:'Times New Roman',serif;" onclick="downloadDocument('${doc.id}')">Download</button>
+                        <button style="padding:6px 16px;border:1px solid #6c757d;border-radius:6px;background:transparent;color:#6c757d;font-size:14px;cursor:pointer;font-family:'Times New Roman',serif;" onclick="openEditDocument('${doc.id}')">Edit</button>
                         <button style="padding:6px 16px;border:1px solid #f5c6cb;border-radius:6px;background:transparent;color:#dc3545;font-size:14px;cursor:pointer;font-family:'Times New Roman',serif;" onclick="removeDocument('${doc.id}')">Remove</button>
                     </div>
                 </div>
@@ -60,13 +61,131 @@ async function loadDocuments() {
 
 // Upload document
 async function uploadDocument() {
-    // This would use Firebase Storage
-    alert('Upload functionality coming soon.');
+    openDocumentModal();
+}
+
+function openDocumentModal(editingId) {
+    const modal = document.getElementById('documentModal');
+    document.getElementById('documentModalTitle').textContent = editingId ? 'Edit Document' : 'Upload Document';
+    document.getElementById('doc-name').value = '';
+    document.getElementById('doc-description').value = '';
+    document.getElementById('doc-file').value = null;
+    delete modal.dataset.editingId;
+    if (editingId) modal.dataset.editingId = editingId;
+    modal.style.display = 'flex';
+}
+
+function closeDocumentModal() {
+    const modal = document.getElementById('documentModal');
+    modal.style.display = 'none';
+    delete modal.dataset.editingId;
+}
+
+async function submitDocument() {
+    const modal = document.getElementById('documentModal');
+    const editingId = modal.dataset.editingId;
+    const name = document.getElementById('doc-name').value.trim();
+    const description = document.getElementById('doc-description').value.trim();
+    const fileInput = document.getElementById('doc-file');
+    const file = fileInput.files && fileInput.files[0];
+
+    if (!name) { alert('Please enter a document name.'); return; }
+
+    try {
+        const saveBtn = document.getElementById('documentSaveBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        let storagePath = null;
+        let downloadUrl = null;
+        let fileName = null;
+
+        if (file) {
+            if (file.type !== 'application/pdf') {
+                alert('Only PDF files are accepted.');
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save';
+                return;
+            }
+            const timestamp = Date.now();
+            fileName = file.name;
+            storagePath = `documents/${timestamp}_${fileName}`;
+            const storageRef = firebase.storage().ref().child(storagePath);
+            const uploadTask = await storageRef.put(file);
+            downloadUrl = await storageRef.getDownloadURL();
+        }
+
+        if (editingId) {
+            const updateData = { name, description, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+            if (storagePath) {
+                // replace file info
+                updateData.storagePath = storagePath;
+                updateData.fileName = fileName;
+                updateData.downloadUrl = downloadUrl;
+            }
+            await db.collection('documents').doc(editingId).update(updateData);
+        } else {
+            await db.collection('documents').add({
+                name,
+                description,
+                storagePath: storagePath || null,
+                fileName: fileName || null,
+                downloadUrl: downloadUrl || null,
+                uploadedBy: userUid,
+                uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        closeDocumentModal();
+        loadDocuments();
+    } catch (error) {
+        console.error('Error saving document:', error);
+        alert('Error saving document. ' + error.message);
+    } finally {
+        const saveBtn = document.getElementById('documentSaveBtn');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save';
+    }
+}
+
+async function openEditDocument(docId) {
+    try {
+        const doc = await db.collection('documents').doc(docId).get();
+        if (!doc.exists) { alert('Document not found.'); return; }
+        const d = doc.data();
+        openDocumentModal(docId);
+        document.getElementById('doc-name').value = d.name || '';
+        document.getElementById('doc-description').value = d.description || '';
+        // note: file input cannot be populated for security reasons
+    } catch (error) {
+        console.error('Error opening document for edit:', error);
+        alert('Error opening document. ' + error.message);
+    }
 }
 
 // Download document
 function downloadDocument(docId) {
-    alert('Download functionality coming soon. Document ID: ' + docId);
+    // Try to open stored downloadUrl, otherwise fetch storagePath and get URL
+    (async () => {
+        try {
+            const doc = await db.collection('documents').doc(docId).get();
+            if (!doc.exists) { alert('Document not found.'); return; }
+            const d = doc.data();
+            if (d.downloadUrl) {
+                window.open(d.downloadUrl, '_blank');
+                return;
+            }
+            if (d.storagePath) {
+                const url = await firebase.storage().ref().child(d.storagePath).getDownloadURL();
+                window.open(url, '_blank');
+                return;
+            }
+            alert('No file available for this document.');
+        } catch (error) {
+            console.error('Error downloading document:', error);
+            alert('Error downloading document. ' + error.message);
+        }
+    })();
 }
 
 // Remove document
@@ -78,7 +197,7 @@ async function removeDocument(docId) {
         loadDocuments();
     } catch (error) {
         console.error('Error removing document:', error);
-        alert('Error removing document: ' + error.message);
+        alert('Error removing document. ' + error.message);
     }
 }
 

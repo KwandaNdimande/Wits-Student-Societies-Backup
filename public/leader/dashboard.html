@@ -54,10 +54,11 @@
         }
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 16px;
             margin-bottom: 28px;
         }
+        .stat-card.orange .stat-number { color: #E65100; }
         .stat-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -153,7 +154,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Welcome back</h1>
+            <h1 id="welcomeHeading">Welcome back</h1>
             <p>Society Leader Dashboard</p>
         </div>
 
@@ -173,6 +174,10 @@
             <div class="stat-card red">
                 <div class="stat-number">0</div>
                 <div class="stat-label">Rejected</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Revision Required</div>
             </div>
         </div>
 

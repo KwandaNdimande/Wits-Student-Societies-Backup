@@ -344,6 +344,30 @@
                     <option value="Other">Other</option>
                 </select>
                 <input id="society-email" placeholder="Contact Email" />
+                <textarea id="society-description" placeholder="Short description of the society" style="grid-column:1 / -1;min-height:72px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface);"></textarea>
+
+                <div style="grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;">
+                    <div>
+                        <strong style="display:block;margin-bottom:6px;color:var(--text-900);">President</strong>
+                        <input id="president-name" placeholder="President Name" />
+                        <input id="president-email" placeholder="President Email" style="margin-top:8px;" />
+                    </div>
+                    <div>
+                        <strong style="display:block;margin-bottom:6px;color:var(--text-900);">Vice President</strong>
+                        <input id="vp-name" placeholder="Vice President Name" />
+                        <input id="vp-email" placeholder="Vice President Email" style="margin-top:8px;" />
+                    </div>
+                    <div>
+                        <strong style="display:block;margin-bottom:6px;color:var(--text-900);">Treasurer</strong>
+                        <input id="treasurer-name" placeholder="Treasurer Name" />
+                        <input id="treasurer-email" placeholder="Treasurer Email" style="margin-top:8px;" />
+                    </div>
+                    <div>
+                        <strong style="display:block;margin-bottom:6px;color:var(--text-900);">Secretary</strong>
+                        <input id="secretary-name" placeholder="Secretary Name" />
+                        <input id="secretary-email" placeholder="Secretary Email" style="margin-top:8px;" />
+                    </div>
+                </div>
                 <button class="btn-add" onclick="addSociety()">Add Society</button>
             </div>
         </div>
@@ -377,6 +401,22 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <script src="/js/officer-societies.js"></script>
+    <!-- Society Detail / Edit Modal -->
+    <div class="modal-overlay" id="societyModal" style="display:none;">
+        <div class="modal" style="max-width:700px;">
+            <div class="modal-header">
+                <h2 id="societyModalTitle">Society</h2>
+                <button class="modal-back" onclick="closeSocietyModal()" style="background:none;border:none;cursor:pointer;font-size:14px;margin-right:12px;">← Back to Societies</button>
+            </div>
+            <div class="modal-body" id="societyModalBody">
+                Loading...
+            </div>
+            <div class="modal-footer" id="societyModalFooter" style="display:flex;gap:12px;">
+                <button class="btn btn-primary" id="societySaveBtn" onclick="saveSocietyEdits()" style="display:none;">Save</button>
+                <button class="btn btn-secondary" onclick="closeSocietyModal()">Close</button>
+            </div>
+        </div>
+    </div>
 <script>
 (function() {
     const navLinks = document.querySelector('.nav-links');

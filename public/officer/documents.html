@@ -196,7 +196,7 @@
                 <h1>Document Repository</h1>
                 <p>Manage documents for all societies</p>
             </div>
-            <button class="btn-upload" onclick="alert('Upload document functionality coming soon!')">Upload Document</button>
+            <button class="btn-upload" onclick="openDocumentModal()">Upload Document</button>
         </div>
 
         <div id="documents-container"></div>
@@ -219,8 +219,30 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
     <script src="/js/officer-documents.js"></script>
+    <!-- Document Upload / Edit Modal -->
+    <div class="modal-overlay" id="documentModal" style="display:none;">
+        <div class="modal" style="max-width:640px;">
+            <div class="modal-header">
+                <button class="modal-back" onclick="closeDocumentModal()" style="background:none;border:none;cursor:pointer;font-size:14px;margin-right:12px;">← Back to Documents</button>
+                <h2 id="documentModalTitle">Upload Document</h2>
+            </div>
+            <div class="modal-body" id="documentModalBody">
+                <div style="display:grid;gap:10px;">
+                    <input id="doc-name" placeholder="Document name (e.g., Budget Template)" />
+                    <textarea id="doc-description" placeholder="Short description" style="min-height:80px;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);"></textarea>
+                    <input id="doc-file" type="file" accept="application/pdf" />
+                    <div style="font-size:13px;color:var(--text-500);">Only PDF files are accepted.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="documentSaveBtn" onclick="submitDocument()">Save</button>
+                <button class="btn btn-secondary" onclick="closeDocumentModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
 <script>
 (function() {
     const navLinks = document.querySelector('.nav-links');

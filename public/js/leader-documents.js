@@ -56,7 +56,7 @@ async function loadDocuments() {
 
 // Download document (placeholder - actual download would use Firebase Storage)
 function downloadDocument(docId) {
-    alert('Download functionality coming soon. Document ID: ' + docId);
+    alert('Download is not available yet.');
 }
 
 // Load data

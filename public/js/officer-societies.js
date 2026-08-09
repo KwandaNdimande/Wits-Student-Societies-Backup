@@ -185,13 +185,13 @@ async function addSociety() {
     const email = document.getElementById('society-email').value.trim();
     const description = document.getElementById('society-description')?.value.trim() || '';
     const execCommittee = {
-        president: {
-            name: document.getElementById('president-name')?.value.trim() || '',
-            email: document.getElementById('president-email')?.value.trim() || ''
+        chairperson: {
+            name: document.getElementById('chairperson-name')?.value.trim() || '',
+            email: document.getElementById('chairperson-email')?.value.trim() || ''
         },
-        vicePresident: {
-            name: document.getElementById('vp-name')?.value.trim() || '',
-            email: document.getElementById('vp-email')?.value.trim() || ''
+        deputychairperson: {
+            name: document.getElementById('dc-name')?.value.trim() || '',
+            email: document.getElementById('dc-email')?.value.trim() || ''
         },
         treasurer: {
             name: document.getElementById('treasurer-name')?.value.trim() || '',
@@ -263,8 +263,8 @@ async function viewSociety(societyId) {
             <div style="margin-bottom:12px;"><strong>Contact Email</strong><div style="margin-top:6px;color:var(--text-600);">${s.email || '—'}</div></div>
             <div style="margin-top:12px;"><h3 style="margin-bottom:8px;">Executive Committee</h3>
                 <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
-                    <div><strong>President</strong><div>${exec.president?.name || '—'}</div><div style="font-size:13px;color:var(--text-500);">${exec.president?.email || ''}</div></div>
-                    <div><strong>Vice President</strong><div>${exec.vicePresident?.name || '—'}</div><div style="font-size:13px;color:var(--text-500);">${exec.vicePresident?.email || ''}</div></div>
+                    <div><strong>Chairperson</strong><div>${exec.chairperson?.name || '—'}</div><div style="font-size:13px;color:var(--text-500);">${exec.chairperson?.email || ''}</div></div>
+                    <div><strong>Deputy Chairperson</strong><div>${exec.deputychairperson?.name || '—'}</div><div style="font-size:13px;color:var(--text-500);">${exec.deputychairperson?.email || ''}</div></div>
                     <div><strong>Treasurer</strong><div>${exec.treasurer?.name || '—'}</div><div style="font-size:13px;color:var(--text-500);">${exec.treasurer?.email || ''}</div></div>
                     <div><strong>Secretary</strong><div>${exec.secretary?.name || '—'}</div><div style="font-size:13px;color:var(--text-500);">${exec.secretary?.email || ''}</div></div>
                 </div>
@@ -299,14 +299,14 @@ async function openEditSociety(societyId) {
                 <textarea id="edit-soc-description" placeholder="Short description" style="grid-column:1 / -1;min-height:72px;padding:10px 14px;border:1px solid var(--border);border-radius:8px;">${escapeHtml(s.description || '')}</textarea>
                 <div style="grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;">
                     <div>
-                        <strong style="display:block;margin-bottom:6px;color:var(--text-900);">President</strong>
-                        <input id="edit-president-name" placeholder="President Name" value="${escapeHtml(exec.president?.name || '')}" />
-                        <input id="edit-president-email" placeholder="President Email" value="${escapeHtml(exec.president?.email || '')}" style="margin-top:8px;" />
+                        <strong style="display:block;margin-bottom:6px;color:var(--text-900);">Chairperson</strong>
+                        <input id="edit-chairperson-name" placeholder="Chairperson Name" value="${escapeHtml(exec.chairperson?.name || '')}" />
+                        <input id="edit-chairperson-email" placeholder="Chairperson Email" value="${escapeHtml(exec.chairperson?.email || '')}" style="margin-top:8px;" />
                     </div>
                     <div>
-                        <strong style="display:block;margin-bottom:6px;color:var(--text-900);">Vice President</strong>
-                        <input id="edit-vp-name" placeholder="Vice President Name" value="${escapeHtml(exec.vicePresident?.name || '')}" />
-                        <input id="edit-vp-email" placeholder="Vice President Email" value="${escapeHtml(exec.vicePresident?.email || '')}" style="margin-top:8px;" />
+                        <strong style="display:block;margin-bottom:6px;color:var(--text-900);">Deputy Chairperson</strong>
+                        <input id="edit-deputychairperson-name" placeholder="Deputy Chairperson Name" value="${escapeHtml(exec.deputychairperson?.name || '')}" />
+                        <input id="edit-deputychairperson-email" placeholder="Deputy Chairperson Email" value="${escapeHtml(exec.deputychairperson?.email || '')}" style="margin-top:8px;" />
                     </div>
                     <div>
                         <strong style="display:block;margin-bottom:6px;color:var(--text-900);">Treasurer</strong>
@@ -348,8 +348,8 @@ async function saveSocietyEdits() {
     const email = document.getElementById('edit-soc-email')?.value.trim();
     const description = document.getElementById('edit-soc-description')?.value.trim() || '';
     const execCommittee = {
-        president: { name: document.getElementById('edit-president-name')?.value.trim() || '', email: document.getElementById('edit-president-email')?.value.trim() || '' },
-        vicePresident: { name: document.getElementById('edit-vp-name')?.value.trim() || '', email: document.getElementById('edit-vp-email')?.value.trim() || '' },
+        chairperson: { name: document.getElementById('edit-chairperson-name')?.value.trim() || '', email: document.getElementById('edit-chairperson-email')?.value.trim() || '' },
+        deputychairperson: { name: document.getElementById('edit-deputychairperson-name')?.value.trim() || '', email: document.getElementById('edit-deputychairperson-email')?.value.trim() || '' },
         treasurer: { name: document.getElementById('edit-treasurer-name')?.value.trim() || '', email: document.getElementById('edit-treasurer-email')?.value.trim() || '' },
         secretary: { name: document.getElementById('edit-secretary-name')?.value.trim() || '', email: document.getElementById('edit-secretary-email')?.value.trim() || '' }
     };

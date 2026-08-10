@@ -347,7 +347,7 @@ function openDetailView(requestId) {
     const docsHtml = docOrder.map(key => {
         const label = docLabels[key] || key;
         const file = documents[key];
-        const fileName = file?.fileName || file?.name || 'No file uploaded';
+        const fileName = file?.fileName || file?.name || file || 'No file uploaded';
         return `<div class="doc-item"><strong>${label}</strong><div>${fileName}</div></div>`;
     }).join('');
 
@@ -418,7 +418,15 @@ async function openUpdateModal(requestId) {
             const doc = documents[key];
             const config = fileConfigs[key];
             const label = config.label;
-            const currentFile = doc ? doc.fileName : 'No file uploaded';
+            // Handle both string format (from new request) and object format
+            let currentFile = 'No file uploaded';
+            if (doc) {
+                if (typeof doc === 'string') {
+                    currentFile = doc;
+                } else if (typeof doc === 'object') {
+                    currentFile = doc.fileName || doc.name || doc.file || 'No file uploaded';
+                }
+            }
             const accept = config.accept;
             const hint = config.hint;
             
@@ -462,15 +470,6 @@ async function openUpdateModal(requestId) {
             }
         });
 
-        // Add comment validation
-        const commentInput = document.getElementById('updateComment');
-        if (commentInput) {
-            commentInput.addEventListener('input', function() {
-                validateUpdateComment(this);
-                checkUpdateFormValidity();
-            });
-        }
-
         // Initial validation check
         checkUpdateFormValidity();
 
@@ -509,14 +508,6 @@ function validateUpdateFile(key, input) {
         errorEl.textContent = '';
         input.style.borderColor = '';
     }
-}
-
-function validateUpdateComment(input) {
-    const errorEl = document.getElementById('updateComment-error');
-    if (!errorEl) return;
-    
-    // Comments are optional, so no validation needed
-    errorEl.textContent = '';
 }
 
 function checkUpdateFormValidity() {
@@ -568,8 +559,13 @@ async function submitUpdate() {
             const fileInput = document.getElementById(`file_${key}`);
             if (fileInput && fileInput.files && fileInput.files[0]) {
                 const file = fileInput.files[0];
-                const currentVersion = updatedDocs[key] ? (updatedDocs[key].version || 1) : 0;
-                
+                // Handle both string and object formats
+                const currentDoc = updatedDocs[key];
+                let currentVersion = 1;
+                if (typeof currentDoc === 'object' && currentDoc !== null) {
+                    currentVersion = currentDoc.version || 1;
+                }
+                // Save as object with full metadata
                 updatedDocs[key] = {
                     fileName: file.name,
                     fileSize: file.size,

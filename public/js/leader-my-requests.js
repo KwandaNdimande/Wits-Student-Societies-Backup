@@ -62,7 +62,7 @@ async function loadRequests() {
         openLeaderNotificationFromUrl();
 
     } catch (error) {
-            console.error('Error loading requests:', error);
+        console.error('Error loading requests:', error);
         document.getElementById('requests-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading requests. Please try again.</p>';
     }
 }
@@ -381,7 +381,6 @@ async function openUpdateModal(requestId) {
         }
 
         const data = docRef.data();
-        const documents = data.documents || {};
         const itemName = data.itemName || 'Request';
         const officerComment = data.officerComment || '';
 
@@ -413,27 +412,17 @@ async function openUpdateModal(requestId) {
             'meetingMinutes': { label: 'Meeting Minutes', accept: '.pdf', hint: 'PDF only' },
             'vendorQuotation': { label: 'Vendor Quotation', accept: '.pdf', hint: 'PDF only' }
         };
-        
+
         docOrder.forEach(key => {
-            const doc = documents[key];
             const config = fileConfigs[key];
             const label = config.label;
-            // Handle both string format (from new request) and object format
-            let currentFile = 'No file uploaded';
-            if (doc) {
-                if (typeof doc === 'string') {
-                    currentFile = doc;
-                } else if (typeof doc === 'object') {
-                    currentFile = doc.fileName || doc.name || doc.file || 'No file uploaded';
-                }
-            }
             const accept = config.accept;
             const hint = config.hint;
             
             modalBody += `
                 <div class="form-group" style="margin-bottom:16px;">
                     <label style="display:block;font-size:13px;font-weight:600;color:var(--text-600);margin-bottom:4px;">${label}</label>
-                    <div style="font-size:12px;color:var(--text-500);margin-bottom:4px;">Current: <strong>${currentFile}</strong></div>
+                    <div style="font-size:12px;color:var(--text-500);margin-bottom:4px;">Current: <strong style="color:#D64545;">No file uploaded</strong></div>
                     <div class="file-input">
                         <input type="file" id="file_${key}" accept="${accept}" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;background:var(--surface);" />
                         <div style="font-size:12px;color:var(--text-500);margin-top:4px;">Upload new version (${hint})</div>

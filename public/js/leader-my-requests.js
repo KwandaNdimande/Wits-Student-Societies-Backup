@@ -418,15 +418,45 @@ async function openUpdateModal(requestId) {
             const label = config.label;
             const accept = config.accept;
             const hint = config.hint;
-            
+
+            // Get the current file name from the document data
+            const currentFile = data.documents?.[key];
+            const currentFileName =
+                currentFile?.fileName ||
+                currentFile?.name ||
+                currentFile ||
+                'No file uploaded';
+
             modalBody += `
                 <div class="form-group" style="margin-bottom:16px;">
-                    <label style="display:block;font-size:13px;font-weight:600;color:var(--text-600);margin-bottom:4px;">${label}</label>
-                    <div style="font-size:12px;color:var(--text-500);margin-bottom:4px;">Current: <strong style="color:#D64545;">No file uploaded</strong></div>
+                    <label style="display:block;font-size:13px;font-weight:600;color:var(--text-600);margin-bottom:4px;">
+                        ${label}
+                    </label>
+
+                    <div style="font-size:12px;color:var(--text-500);margin-bottom:4px;">
+                        Current:
+                        <strong id="current_${key}" style="color:${currentFileName === 'No file uploaded' ? '#D64545' : '#2E7D32'};">
+                            ${currentFileName}
+                        </strong>
+                    </div>
+
                     <div class="file-input">
-                        <input type="file" id="file_${key}" accept="${accept}" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;background:var(--surface);" />
-                        <div style="font-size:12px;color:var(--text-500);margin-top:4px;">Upload new version (${hint})</div>
-                        <div class="form-error" id="file_${key}_error" style="font-size:12px;color:#D64545;margin-top:4px;min-height:18px;"></div>
+                        <input
+                            type="file"
+                            id="file_${key}"
+                            accept="${accept}"
+                            style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;background:var(--surface);"
+                        />
+
+                        <div style="font-size:12px;color:var(--text-500);margin-top:4px;">
+                            Upload new version (${hint})
+                        </div>
+
+                        <div
+                            class="form-error"
+                            id="file_${key}_error"
+                            style="font-size:12px;color:#D64545;margin-top:4px;min-height:18px;">
+                        </div>
                     </div>
                 </div>
             `;
@@ -448,12 +478,21 @@ async function openUpdateModal(requestId) {
         document.getElementById('modalBody').innerHTML = modalBody;
         document.getElementById('updateModal').classList.add('active');
 
-        // Add file validation listeners
+        // Add file validation and live update listeners
         docOrder.forEach(key => {
             const fileInput = document.getElementById(`file_${key}`);
             if (fileInput) {
                 fileInput.addEventListener('change', function() {
                     validateUpdateFile(key, this);
+
+                    const file = this.files[0];
+                    const currentFileEl = document.getElementById(`current_${key}`);
+
+                    if (file && currentFileEl) {
+                        currentFileEl.textContent = file.name;
+                        currentFileEl.style.color = '#2E7D32';
+                    }
+
                     checkUpdateFormValidity();
                 });
             }
@@ -540,9 +579,6 @@ async function submitUpdate() {
         const data = docRef.data();
         const currentDocs = data.documents || {};
         const updatedDocs = { ...currentDocs };
-
-        const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
-        let hasUpdate = false;
 
         // Get file inputs
         const budgetForm = document.getElementById('file_budgetForm').files[0];

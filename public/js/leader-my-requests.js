@@ -62,7 +62,7 @@ async function loadRequests() {
         openLeaderNotificationFromUrl();
 
     } catch (error) {
-        console.error('Error loading requests:', error);
+            console.error('Error loading requests:', error);
         document.getElementById('requests-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading requests. Please try again.</p>';
     }
 }
@@ -544,28 +544,24 @@ async function submitUpdate() {
         const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
         let hasUpdate = false;
 
-        docOrder.forEach(key => {
-            const fileInput = document.getElementById(`file_${key}`);
-            if (fileInput && fileInput.files && fileInput.files[0]) {
-                const file = fileInput.files[0];
-                // Handle both string and object formats
-                const currentDoc = updatedDocs[key];
-                let currentVersion = 1;
-                if (typeof currentDoc === 'object' && currentDoc !== null) {
-                    currentVersion = currentDoc.version || 1;
-                }
-                // Save as object with full metadata
-                updatedDocs[key] = {
-                    fileName: file.name,
-                    fileSize: file.size,
-                    fileType: file.type,
-                    uploadedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    version: currentVersion + 1,
-                    isCurrent: true
-                };
-                hasUpdate = true;
-            }
-        });
+        // Get file inputs
+        const budgetForm = document.getElementById('file_budgetForm').files[0];
+        const meetingMinutes = document.getElementById('file_meetingMinutes').files[0];
+        const vendorQuotation = document.getElementById('file_vendorQuotation').files[0];
+
+        // Update documents with new files
+        if (budgetForm) {
+            updatedDocs.budgetForm = budgetForm.name;
+            hasUpdate = true;
+        }
+        if (meetingMinutes) {
+            updatedDocs.meetingMinutes = meetingMinutes.name;
+            hasUpdate = true;
+        }
+        if (vendorQuotation) {
+            updatedDocs.vendorQuotation = vendorQuotation.name;
+            hasUpdate = true;
+        }
 
         if (!hasUpdate) {
             alert('Please select at least one file to update.');

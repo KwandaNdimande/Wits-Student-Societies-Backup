@@ -160,35 +160,7 @@
             background: var(--navy-800);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
-        }
-        .nav-links {
-            margin-top: 28px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .nav-links a {
-            color: #8FA6CC;
-            text-decoration: none;
-            padding: 8px 18px;
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.2s ease;
-        }
-        .nav-links a:hover {
-            background: rgba(255,255,255,0.08);
-            color: #fff;
-            border-color: rgba(255,255,255,0.3);
-        }
-        .nav-links a.active {
-            background: #fff;
-            color: var(--navy-900);
-            border-color: #fff;
-        }
-        .wits-badge {
+        }.wits-badge {
             text-align: center;
             margin-top: 28px;
             font-size: 11px;
@@ -228,11 +200,6 @@
             </div>
         </div>
 
-        <!-- Navigation outside the white frame -->
-        <div class="nav-links" id="nav-links">
-            <!-- Populated by JavaScript -->
-        </div>
-
         <div class="wits-badge">University of the Witwatersrand</div>
     </div>
 
@@ -242,5 +209,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <script src="/js/chatbot.js"></script>
+<script src="/js/shared-nav.js"></script>
 </body>
 </html>

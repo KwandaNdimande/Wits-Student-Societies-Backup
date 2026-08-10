@@ -28,48 +28,6 @@ function capitalizeRole(role) {
     return role ? role.charAt(0).toUpperCase() + role.slice(1) : '';
 }
 
-function updateNavigation() {
-    const navLinks = document.querySelector('.nav-links');
-    if (!navLinks) return;
-    const userInfoHtml = `<div class="nav-user-info" style="color: #8FA6CC; font-size: 13px; font-weight: 600; width: 100%; margin-bottom: 8px;">${userName}${userRole ? ' · ' + capitalizeRole(userRole) : ''}</div>`;
-
-    if (userRole === 'officer') {
-        // Officer navigation
-        navLinks.innerHTML = `${userInfoHtml}
-            <a href="/officer/dashboard.html">Dashboard</a>
-            <a href="/officer/announcements.html">Announcements</a>
-            <a href="/officer/all-requests.html">All Requests</a>
-            <a href="/officer/societies.html">Manage Societies</a>
-            <a href="/officer/reports.html">Reports</a>
-            <a href="/chatbot.html" class="active">SGO Assistant</a>
-            <a href="/officer/documents.html">Documents</a>
-            <a href="/login.html" class="logout-link">Logout</a>`;
-    } else {
-        // Leader navigation (default)
-        navLinks.innerHTML = `${userInfoHtml}
-            <a href="/leader/dashboard.html">Dashboard</a>
-            <a href="/leader/announcements.html">Announcements</a>
-            <a href="/leader/my-requests.html">My Requests</a>
-            <a href="/leader/new-request.html">New Request</a>
-            <a href="/leader/documents.html">Documents</a>
-            <a href="/chatbot.html" class="active">SGO Assistant</a>
-            <a href="/login.html" class="logout-link">Logout</a>`;
-    }
-
-    const logoutLink = navLinks.querySelector('a.logout-link');
-    if (logoutLink) {
-        logoutLink.addEventListener('click', function(event) {
-            event.preventDefault();
-            if (confirm('Are you sure you want to log out?')) {
-                localStorage.removeItem('userUid');
-                localStorage.removeItem('userRole');
-                localStorage.removeItem('userName');
-                window.location.href = '/login.html';
-            }
-        });
-    }
-}
-
 // Responses database
 const responses = {
     "submit": "To submit a request, go to Submit Request in the navigation menu. You will need your Budget Form, Meeting Minutes, and Vendor Quotation in PDF format.",
@@ -145,8 +103,7 @@ if (inputField) {
 
 // Update navigation when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    updateNavigation();
-    // Remove the hardcoded nav-links from HTML and let JS handle it
+    // Navigation is handled by shared-nav.js
 });
 
 // Initial render

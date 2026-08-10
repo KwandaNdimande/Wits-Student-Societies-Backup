@@ -97,35 +97,7 @@
             font-size: 14px;
             text-align: center;
             padding: 40px 0;
-        }
-        .nav-links {
-            margin-top: 28px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .nav-links a {
-            color: #8FA6CC;
-            text-decoration: none;
-            padding: 8px 18px;
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.2s ease;
-        }
-        .nav-links a:hover {
-            background: rgba(255,255,255,0.08);
-            color: #fff;
-            border-color: rgba(255,255,255,0.3);
-        }
-        .nav-links a.active {
-            background: #fff;
-            color: var(--navy-900);
-            border-color: #fff;
-        }
-        .wits-badge {
+        }.wits-badge {
             text-align: center;
             margin-top: 28px;
             font-size: 11px;
@@ -150,16 +122,6 @@
 
         <div id="documents-container"></div>
 
-        <div class="nav-links">
-            <a href="/leader/dashboard.html">Dashboard</a>
-            <a href="/leader/announcements.html">Announcements</a>
-            <a href="/leader/my-requests.html">My Requests</a>
-            <a href="/leader/new-request.html">New Request</a>
-            <a href="/leader/documents.html" class="active">Documents</a>
-            <a href="/chatbot.html">SGO Assistant</a>
-            <a href="/login.html" class="logout-link">Logout</a>
-        </div>
-
         <div class="wits-badge">University of the Witwatersrand</div>
     </div>
 
@@ -169,34 +131,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <script src="/js/leader-documents.js"></script>
-<script>
-(function() {
-    const navLinks = document.querySelector('.nav-links');
-    if (!navLinks) return;
-
-    const userName = localStorage.getItem('userName') || 'Guest';
-    const userRole = localStorage.getItem('userRole') || '';
-    const roleLabel = userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : '';
-    const userInfo = document.createElement('div');
-    userInfo.className = 'nav-user-info';
-    userInfo.textContent = userName + (roleLabel ? ' · ' + roleLabel : '');
-    userInfo.style.cssText = 'color: #8FA6CC; font-size: 13px; font-weight: 600; width: 100%; margin-bottom: 8px;';
-    if (!navLinks.querySelector('.nav-user-info')) {
-        navLinks.prepend(userInfo);
-    }
-
-    const logoutLink = navLinks.querySelector('a.logout-link');
-    if (!logoutLink) return;
-    logoutLink.addEventListener('click', function(event) {
-        event.preventDefault();
-        if (confirm('Are you sure you want to log out?')) {
-            localStorage.removeItem('userUid');
-            localStorage.removeItem('userRole');
-            localStorage.removeItem('userName');
-            window.location.href = '/login.html';
-        }
-    });
-})();
-</script>
+<script src="/js/shared-nav.js"></script>
 </body>
 </html>

@@ -686,11 +686,21 @@ async function submitStatusModal() {
         statusNote = 'Revision required';
     }
 
+    // --- ADD LOADING INDICATOR ---
+    const saveBtn = document.querySelector('#statusModal .btn-primary');
+    const originalText = saveBtn ? saveBtn.textContent : 'Save Status';
+    
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+        saveBtn.style.opacity = '0.7';
+        saveBtn.style.cursor = 'not-allowed';
+    }
+
     try {
         const actorName = localStorage.getItem('userName') || 'Officer';
         const actorRole = localStorage.getItem('userRole') || 'officer';
 
-        // Create a history entry with a regular timestamp (not serverTimestamp)
         const historyEntry = {
             timestamp: new Date().toISOString(),
             status: newStatus,
@@ -737,6 +747,14 @@ async function submitStatusModal() {
     } catch (error) {
         console.error('Error updating status:', error);
         alert('Error updating status. ' + error.message);
+    } finally {
+        // --- REMOVE LOADING INDICATOR ---
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText;
+            saveBtn.style.opacity = '1';
+            saveBtn.style.cursor = 'pointer';
+        }
     }
 }
 

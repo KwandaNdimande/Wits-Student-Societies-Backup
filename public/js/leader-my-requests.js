@@ -86,7 +86,7 @@ function initLeaderNotificationBell() {
         <button id="notificationBell" class="nav-bell-btn" type="button" aria-haspopup="true" aria-expanded="false">
             🔔 <span id="notificationCount" class="notification-badge hidden">0</span>
         </button>
-        <div id="notificationDropdown" class="notification-dropdown"></div>
+        <div id="notificationDropdown" class="notification-dropdown" style="left: 0; right: auto;"></div>
     `;
     navLinks.prepend(bell);
 
@@ -347,7 +347,7 @@ function openDetailView(requestId) {
     const docsHtml = docOrder.map(key => {
         const label = docLabels[key] || key;
         const file = documents[key];
-        const fileName = file?.fileName || file?.name || 'No file uploaded';
+        const fileName = file?.fileName || file?.name || file || 'No file uploaded';
         return `<div class="doc-item"><strong>${label}</strong><div>${fileName}</div></div>`;
     }).join('');
 
@@ -381,58 +381,96 @@ async function openUpdateModal(requestId) {
         }
 
         const data = docRef.data();
-        const documents = data.documents || {};
         const itemName = data.itemName || 'Request';
         const officerComment = data.officerComment || '';
 
         let modalBody = `
-            <p style="color:#6c757d;font-size:14px;margin-bottom:16px;">
-                <strong>Request:</strong> ${itemName}
-            </p>
+            <div style="margin-bottom:20px;">
+                <div style="font-size:14px;color:var(--text-600);margin-bottom:4px;"><strong>Request:</strong> ${itemName}</div>
+                <div style="font-size:13px;color:var(--text-500);">Update the documents below to resubmit your request.</div>
+            </div>
         `;
 
         if (officerComment) {
             modalBody += `
-                <div style="background:#FFF3E0;padding:12px;border-radius:8px;margin-bottom:16px;">
-                    <strong style="color:#E65100;">📝 Officer's Feedback:</strong>
+                <div style="background:#FFF3E0;padding:14px 16px;border-radius:8px;margin-bottom:20px;border-left:4px solid #E65100;">
+                    <strong style="color:#E65100;font-size:13px;">📝 Officer's Feedback</strong>
                     <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${officerComment}</p>
                 </div>
             `;
         }
 
         modalBody += `
-            <p style="color:#E65100;font-size:14px;margin-bottom:16px;background:#FFF3E0;padding:10px;border-radius:6px;">
-                ⚠️ Please upload corrected documents below.
+            <p style="color:#E65100;font-size:14px;margin-bottom:20px;background:#FFF3E0;padding:12px 16px;border-radius:8px;border-left:4px solid #E65100;">
+                ⚠️ Please upload corrected documents below. All files must be in the correct format.
             </p>
         `;
 
         const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
-        
+        const fileConfigs = {
+            'budgetForm': { label: 'Budget Form', accept: '.xlsx,.xls', hint: 'Excel file required' },
+            'meetingMinutes': { label: 'Meeting Minutes', accept: '.pdf', hint: 'PDF only' },
+            'vendorQuotation': { label: 'Vendor Quotation', accept: '.pdf', hint: 'PDF only' }
+        };
+
         docOrder.forEach(key => {
-            const doc = documents[key];
-            const label = docLabels[key] || key;
-            const currentFile = doc ? doc.fileName : 'No file uploaded';
-            
+            const config = fileConfigs[key];
+            const label = config.label;
+            const accept = config.accept;
+            const hint = config.hint;
+
+            // Get the current file name from the document data
+            const currentFile = data.documents?.[key];
+            const currentFileName =
+                currentFile?.fileName ||
+                currentFile?.name ||
+                currentFile ||
+                'No file uploaded';
+
             modalBody += `
-                <div class="doc-item">
-                    <div class="doc-name">${label}</div>
-                    <div class="doc-detail">Current: ${currentFile}</div>
+                <div class="form-group" style="margin-bottom:16px;">
+                    <label style="display:block;font-size:13px;font-weight:600;color:var(--text-600);margin-bottom:4px;">
+                        ${label}
+                    </label>
+
+                    <div style="font-size:12px;color:var(--text-500);margin-bottom:4px;">
+                        Current:
+                        <strong id="current_${key}" style="color:${currentFileName === 'No file uploaded' ? '#D64545' : '#2E7D32'};">
+                            ${currentFileName}
+                        </strong>
+                    </div>
+
                     <div class="file-input">
-                        <input type="file" id="file_${key}" accept=".pdf" />
-                        <span style="font-size:12px;color:#6c757d;">Upload new version (PDF only)</span>
+                        <input
+                            type="file"
+                            id="file_${key}"
+                            accept="${accept}"
+                            style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;background:var(--surface);"
+                        />
+
+                        <div style="font-size:12px;color:var(--text-500);margin-top:4px;">
+                            Upload new version (${hint})
+                        </div>
+
+                        <div
+                            class="form-error"
+                            id="file_${key}_error"
+                            style="font-size:12px;color:#D64545;margin-top:4px;min-height:18px;">
+                        </div>
                     </div>
                 </div>
             `;
         });
 
         modalBody += `
-            <div class="comment-area">
-                <label style="font-weight:600;font-size:13px;color:var(--text-600);">Add Comment (Optional)</label>
-                <textarea id="updateComment" placeholder="Describe the changes you've made..."></textarea>
+            <div class="comment-area" style="margin-top:16px;">
+                <label style="display:block;font-weight:600;font-size:13px;color:var(--text-600);margin-bottom:4px;">Add Comment (Optional)</label>
+                <textarea id="updateComment" placeholder="Describe the changes you've made..." style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;resize:vertical;min-height:60px;"></textarea>
+                <div class="form-error" id="updateComment-error" style="font-size:12px;color:#D64545;margin-top:4px;min-height:18px;"></div>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" onclick="submitUpdate()">Resubmit</button>
-                <button class="btn btn-secondary" onclick="closeUpdateModal()">Cancel</button>
+            <div class="modal-footer" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:12px;">
+                <button class="btn btn-primary" id="updateResubmitBtn" onclick="submitUpdate()" style="font-family:'Inter',sans-serif;font-size:14px;font-weight:600;padding:10px 24px;border-radius:8px;border:none;cursor:pointer;transition:all 0.2s ease;background:var(--navy-900);color:#fff;">Resubmit</button>
+                <button class="btn btn-secondary" onclick="closeUpdateModal()" style="font-family:'Inter',sans-serif;font-size:14px;font-weight:600;padding:10px 24px;border-radius:8px;border:none;cursor:pointer;transition:all 0.2s ease;background:var(--border);color:var(--text-600);">Cancel</button>
             </div>
         `;
 
@@ -440,10 +478,89 @@ async function openUpdateModal(requestId) {
         document.getElementById('modalBody').innerHTML = modalBody;
         document.getElementById('updateModal').classList.add('active');
 
+        // Add file validation and live update listeners
+        docOrder.forEach(key => {
+            const fileInput = document.getElementById(`file_${key}`);
+            if (fileInput) {
+                fileInput.addEventListener('change', function() {
+                    validateUpdateFile(key, this);
+
+                    const file = this.files[0];
+                    const currentFileEl = document.getElementById(`current_${key}`);
+
+                    if (file && currentFileEl) {
+                        currentFileEl.textContent = file.name;
+                        currentFileEl.style.color = '#2E7D32';
+                    }
+
+                    checkUpdateFormValidity();
+                });
+            }
+        });
+
+        // Initial validation check
+        checkUpdateFormValidity();
+
     } catch (error) {
         console.error('Error loading documents:', error);
         alert('Error loading documents. ' + error.message);
     }
+}
+
+// ============ UPDATE FORM VALIDATION ============
+
+function validateUpdateFile(key, input) {
+    const errorEl = document.getElementById(`file_${key}_error`);
+    if (!errorEl) return;
+    
+    const file = input.files[0];
+    if (!file) {
+        errorEl.textContent = '';
+        return;
+    }
+    
+    const configs = {
+        'budgetForm': { accept: ['.xlsx', '.xls'], label: 'Excel' },
+        'meetingMinutes': { accept: ['.pdf'], label: 'PDF' },
+        'vendorQuotation': { accept: ['.pdf'], label: 'PDF' }
+    };
+    
+    const config = configs[key];
+    if (!config) return;
+    
+    const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+    if (!config.accept.includes(fileExt)) {
+        errorEl.textContent = `Please upload a ${config.label} file (${config.accept.join(', ')}).`;
+        input.style.borderColor = '#D64545';
+    } else {
+        errorEl.textContent = '';
+        input.style.borderColor = '';
+    }
+}
+
+function checkUpdateFormValidity() {
+    const btn = document.getElementById('updateResubmitBtn');
+    if (!btn) return;
+    
+    const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
+    let hasFile = false;
+    let hasError = false;
+    
+    docOrder.forEach(key => {
+        const input = document.getElementById(`file_${key}`);
+        const errorEl = document.getElementById(`file_${key}_error`);
+        if (input && input.files && input.files[0]) {
+            hasFile = true;
+            if (errorEl && errorEl.textContent) {
+                hasError = true;
+            }
+        }
+    });
+    
+    // Enable button if at least one file is selected and no errors
+    btn.disabled = !hasFile || hasError;
+    btn.style.opacity = btn.disabled ? '0.6' : '1';
+    btn.style.cursor = btn.disabled ? 'not-allowed' : 'pointer';
 }
 
 // ============ SUBMIT UPDATE ============
@@ -451,9 +568,11 @@ async function openUpdateModal(requestId) {
 async function submitUpdate() {
     if (!currentRequestId) return;
 
-    const btn = document.querySelector('#modalBody .btn-primary');
+    const btn = document.getElementById('updateResubmitBtn');
     btn.disabled = true;
     btn.textContent = 'Submitting...';
+    btn.style.opacity = '0.7';
+    btn.style.cursor = 'not-allowed';
 
     try {
         const docRef = await db.collection('requests').doc(currentRequestId).get();
@@ -461,31 +580,31 @@ async function submitUpdate() {
         const currentDocs = data.documents || {};
         const updatedDocs = { ...currentDocs };
 
-        const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
-        let hasUpdate = false;
+        // Get file inputs
+        const budgetForm = document.getElementById('file_budgetForm').files[0];
+        const meetingMinutes = document.getElementById('file_meetingMinutes').files[0];
+        const vendorQuotation = document.getElementById('file_vendorQuotation').files[0];
 
-        docOrder.forEach(key => {
-            const fileInput = document.getElementById(`file_${key}`);
-            if (fileInput && fileInput.files && fileInput.files[0]) {
-                const file = fileInput.files[0];
-                const currentVersion = updatedDocs[key] ? (updatedDocs[key].version || 1) : 0;
-                
-                updatedDocs[key] = {
-                    fileName: file.name,
-                    fileSize: file.size,
-                    fileType: file.type,
-                    uploadedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    version: currentVersion + 1,
-                    isCurrent: true
-                };
-                hasUpdate = true;
-            }
-        });
+        // Update documents with new files
+        if (budgetForm) {
+            updatedDocs.budgetForm = budgetForm.name;
+            hasUpdate = true;
+        }
+        if (meetingMinutes) {
+            updatedDocs.meetingMinutes = meetingMinutes.name;
+            hasUpdate = true;
+        }
+        if (vendorQuotation) {
+            updatedDocs.vendorQuotation = vendorQuotation.name;
+            hasUpdate = true;
+        }
 
         if (!hasUpdate) {
             alert('Please select at least one file to update.');
             btn.disabled = false;
             btn.textContent = 'Resubmit';
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
             return;
         }
 
@@ -500,7 +619,7 @@ async function submitUpdate() {
 
         closeUpdateModal();
         loadRequests();
-        alert('Documents updated successfully. Your request has been resubmitted for review.');
+        alert('✅ Documents updated successfully. Your request has been resubmitted for review.');
 
     } catch (error) {
         console.error('Error updating documents:', error);
@@ -508,6 +627,8 @@ async function submitUpdate() {
     } finally {
         btn.disabled = false;
         btn.textContent = 'Resubmit';
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
     }
 }
 

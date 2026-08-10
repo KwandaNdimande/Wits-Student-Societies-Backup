@@ -247,7 +247,7 @@ function initOfficerNotificationBell() {
         <button id="officerNotificationBell" class="nav-bell-btn" type="button" aria-haspopup="true" aria-expanded="false">
             🔔 <span id="officerNotificationCount" class="notification-badge hidden">0</span>
         </button>
-        <div id="officerNotificationDropdown" class="notification-dropdown"></div>
+        <div id="officerNotificationDropdown" class="notification-dropdown" style="left: 0; right: auto;"></div>
     `;
     navLinks.prepend(bell);
 

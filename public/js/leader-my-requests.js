@@ -86,7 +86,7 @@ function initLeaderNotificationBell() {
         <button id="notificationBell" class="nav-bell-btn" type="button" aria-haspopup="true" aria-expanded="false">
             🔔 <span id="notificationCount" class="notification-badge hidden">0</span>
         </button>
-        <div id="notificationDropdown" class="notification-dropdown"></div>
+        <div id="notificationDropdown" class="notification-dropdown" style="left: 0; right: auto;"></div>
     `;
     navLinks.prepend(bell);
 

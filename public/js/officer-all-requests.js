@@ -690,17 +690,20 @@ async function submitStatusModal() {
         const actorName = localStorage.getItem('userName') || 'Officer';
         const actorRole = localStorage.getItem('userRole') || 'officer';
 
+        // Create a history entry with a regular timestamp (not serverTimestamp)
+        const historyEntry = {
+            timestamp: new Date().toISOString(),
+            status: newStatus,
+            actorName,
+            actorRole,
+            note: statusNote || ''
+        };
+
         await db.collection('requests').doc(requestId).update({
             status: newStatus,
             officerComment: newStatus === 'Revision Required' || newStatus === 'Rejected' ? statusNote : (newStatus === 'Under Review' ? statusNote : ''),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            statusHistory: firebase.firestore.FieldValue.arrayUnion({
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                status: newStatus,
-                actorName,
-                actorRole,
-                note: statusNote || ''
-            })
+            statusHistory: firebase.firestore.FieldValue.arrayUnion(historyEntry)
         });
 
         const requestDoc = await db.collection('requests').doc(requestId).get();
@@ -755,8 +758,6 @@ document.getElementById('docModal').addEventListener('click', function(e) {
         closeModal();
     }
 });
-
-// ============ UPDATE STATUS ============
 
 // ============ DELETE REQUEST ============
 

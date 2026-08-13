@@ -846,6 +846,54 @@ document.getElementById('updateModal').addEventListener('click', function(e) {
     }
 });
 
+// ================================================================
+// ============ DELETE REQUEST (UPDATED - deletes files from Supabase) ============
+// ================================================================
+
+async function deleteRequest(requestId) {
+    if (!confirm('Are you sure you want to delete this request? This cannot be undone.')) return;
+
+    try {
+        // 1. Get the request data to find the file paths
+        const docRef = db.collection('requests').doc(requestId);
+        const doc = await docRef.get();
+        if (!doc.exists) {
+            alert('Request not found.');
+            return;
+        }
+        const data = doc.data();
+        const documents = data.documents || {};
+        
+        // 2. Collect all file paths
+        const filePaths = [];
+        if (documents.budgetForm) filePaths.push(documents.budgetForm);
+        if (documents.meetingMinutes) filePaths.push(documents.meetingMinutes);
+        if (documents.vendorQuotation) filePaths.push(documents.vendorQuotation);
+
+        // 3. Delete files from Supabase Storage (if any exist)
+        if (filePaths.length > 0) {
+            const { error } = await window.supabaseClient.storage
+                .from('documents')
+                .remove(filePaths);
+            if (error) {
+                console.error('Error deleting files from Supabase:', error);
+                // Continue deleting the Firestore document even if Supabase fails
+            }
+        }
+
+        // 4. Delete the Firestore document
+        await docRef.delete();
+        
+        // 5. Reload the table
+        loadRequests();
+        
+        alert('Request and associated files deleted successfully.');
+    } catch (error) {
+        console.error('Error deleting request:', error);
+        alert('Error deleting request. ' + error.message);
+    }
+}
+
 window.searchRequests = searchRequests;
 
 loadRequests();

@@ -1,3 +1,10 @@
+// ---------- SUPABASE INITIALIZATION ----------
+const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
+
+// Create a global supabase client
+window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAsWp91SrNnlVHoyJWJyxjvXgGY6debDLE",
@@ -342,7 +349,59 @@ function openOfficerNotificationFromUrl() {
     }
 }
 
-// ============ VIEW DOCUMENTS ============
+// ================================================================
+// ============ DOWNLOAD FILE FROM SUPABASE ============
+// ================================================================
+
+async function downloadFileFromSupabase(filePath, fileName) {
+    try {
+        // 1. Get the logged-in user
+        const user = auth.currentUser;
+        if (!user) {
+            alert('You must be logged in to download files.');
+            return;
+        }
+
+        // 2. Get the Firebase JWT token
+        const firebaseToken = await user.getIdToken();
+
+        // 3. Download the file from Supabase with the Firebase token
+        const { data, error } = await window.supabaseClient.storage
+            .from('documents')
+            .download(filePath, {
+                headers: {
+                    Authorization: `Bearer ${firebaseToken}`
+                }
+            });
+
+        if (error) {
+            console.error('Download error:', error);
+            alert('Failed to download file: ' + error.message);
+            return;
+        }
+
+        // 4. Create a download link for the user
+        const url = URL.createObjectURL(data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName || filePath.split('/').pop(); // Use original filename or the last part of the path
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // 5. Clean up the object URL
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+    } catch (error) {
+        console.error('Download error:', error);
+        alert('An unexpected error occurred while downloading: ' + error.message);
+    }
+}
+
+// ================================================================
+// ============ VIEW DOCUMENTS WITH DOWNLOAD BUTTONS ============
+// ================================================================
+
 async function viewDocuments(requestId) {
     try {
         const docRef = await db.collection('requests').doc(requestId).get();
@@ -377,11 +436,14 @@ async function viewDocuments(requestId) {
                         </div>
                     `;
                 }
-                const fileName = doc.fileName || 'No file';
+                // doc is now the file path (string) from Supabase
+                const filePath = doc;
+                const fileName = filePath.split('/').pop(); // Extract filename from path
                 return `
                     <div class="doc-item">
                         <div class="doc-name">${docLabels[key] || key}</div>
                         <div class="doc-detail">${fileName}</div>
+                        <button class="btn-download" onclick="downloadFileFromSupabase('${filePath}', '${fileName}')">⬇ Download</button>
                     </div>
                 `;
             }).join('');
@@ -448,14 +510,14 @@ async function viewUpdatedDocuments(requestId) {
                         </div>
                     `;
                 }
-                const fileName = doc.fileName || 'No file';
-                const version = doc.version || 1;
-                const uploadedAt = doc.uploadedAt ? new Date(doc.uploadedAt.seconds * 1000).toLocaleString() : 'N/A';
+                // doc is now the file path (string)
+                const filePath = doc;
+                const fileName = filePath.split('/').pop();
                 return `
                     <div class="doc-item">
                         <div class="doc-name">${docLabels[key] || key}</div>
                         <div class="doc-detail">File: ${fileName}</div>
-                        <div class="doc-detail">Version: ${version} • Uploaded: ${uploadedAt}</div>
+                        <button class="btn-download" onclick="downloadFileFromSupabase('${filePath}', '${fileName}')">⬇ Download</button>
                     </div>
                 `;
             }).join('');
@@ -506,9 +568,16 @@ async function viewRequestDetails(requestId) {
             if (!doc) {
                 return `<div class="doc-item"><div class="doc-name">${docLabels[key] || key}</div><div class="doc-detail">No file uploaded</div></div>`;
             }
-            const fileName = doc.fileName || 'No file';
-            const uploadedAt = doc.uploadedAt ? new Date(doc.uploadedAt.seconds * 1000).toLocaleString() : 'N/A';
-            return `<div class="doc-item"><div class="doc-name">${docLabels[key] || key}</div><div class="doc-detail">${fileName}</div><div class="doc-detail">Uploaded: ${uploadedAt}</div></div>`;
+            // doc is now the file path
+            const filePath = doc;
+            const fileName = filePath.split('/').pop();
+            return `
+                <div class="doc-item">
+                    <div class="doc-name">${docLabels[key] || key}</div>
+                    <div class="doc-detail">${fileName}</div>
+                    <button class="btn-download" onclick="downloadFileFromSupabase('${filePath}', '${fileName}')">⬇ Download</button>
+                </div>
+            `;
         }).join('');
 
         const modalBody = `

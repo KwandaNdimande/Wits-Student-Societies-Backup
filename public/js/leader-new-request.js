@@ -1,3 +1,10 @@
+// ---------- SUPABASE INITIALIZATION ----------
+const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
+
+// Create a global supabase client that all functions can use
+window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAsWp91SrNnlVHoyJWJyxjvXgGY6debDLE",
@@ -192,6 +199,9 @@ document.getElementById('submit-another').addEventListener('click', function () 
     resetForm();
 });
 
+// ================================================================
+// CHANGED: This is the new submit function with Supabase upload
+// ================================================================
 document.getElementById('submit-request').addEventListener('click', async (e) => {
     e.preventDefault();
     if (!validateField()) {
@@ -208,11 +218,40 @@ document.getElementById('submit-request').addEventListener('click', async (e) =>
     const meetingMinutes = document.getElementById('meeting-minutes').files[0];
     const vendorQuotation = document.getElementById('vendor-quotation').files[0];
 
-    try {
-        const btn = document.getElementById('submit-request');
-        btn.disabled = true;
-        btn.textContent = 'Submitting...';
+    const btn = document.getElementById('submit-request');
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
 
+    try {
+        // 1. Get the Firebase JWT token (required for your private bucket)
+        const user = auth.currentUser;
+        if (!user) throw new Error('User not logged in.');
+        const firebaseToken = await user.getIdToken();
+
+        // 2. Helper function to upload one file to Supabase
+        const uploadFile = async (file, fileType) => {
+            if (!file) return null;
+            const timestamp = Date.now();
+            const path = `requests/${userUid}/${timestamp}_${file.name}`;
+            const { data, error } = await window.supabaseClient.storage
+                .from('documents')
+                .upload(path, file, {
+                    cacheControl: '3600',
+                    upsert: false,
+                    headers: {
+                        Authorization: `Bearer ${firebaseToken}`
+                    }
+                });
+            if (error) throw new Error(`Failed to upload ${fileType}: ${error.message}`);
+            return data.path; // Returns the file path in Supabase
+        };
+
+        // 3. Upload all three files to Supabase
+        const budgetPath = await uploadFile(budgetForm, 'Budget Form');
+        const minutesPath = await uploadFile(meetingMinutes, 'Meeting Minutes');
+        const quotationPath = await uploadFile(vendorQuotation, 'Vendor Quotation');
+
+        // 4. Save the request metadata (with file paths) to Firestore
         const requestData = {
             type,
             itemName,
@@ -223,21 +262,21 @@ document.getElementById('submit-request').addEventListener('click', async (e) =>
             submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
             societyName: document.getElementById('society-name').value || 'Your Society',
             documents: {
-                budgetForm: budgetForm.name,
-                meetingMinutes: meetingMinutes.name,
-                vendorQuotation: vendorQuotation.name
+                budgetForm: budgetPath,      // Now storing the Supabase path
+                meetingMinutes: minutesPath,
+                vendorQuotation: quotationPath
             }
         };
 
         await db.collection('requests').add(requestData);
         document.getElementById('form-section').classList.add('hidden');
         document.getElementById('success-section').classList.remove('hidden');
+
     } catch (error) {
         console.error('Error submitting request:', error);
         const summary = document.getElementById('form-error');
-        if (summary) summary.textContent = 'Error submitting request: ' + error.message;
+        if (summary) summary.textContent = 'Error: ' + error.message;
     } finally {
-        const btn = document.getElementById('submit-request');
         btn.disabled = false;
         btn.textContent = 'Submit Request';
     }

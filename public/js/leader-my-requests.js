@@ -1,3 +1,10 @@
+// ---------- SUPABASE INITIALIZATION ----------
+const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
+
+// Create a global supabase client
+window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
 // Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAsWp91SrNnlVHoyJWJyxjvXgGY6debDLE",
@@ -41,6 +48,83 @@ const docLabels = {
     'meetingMinutes': 'Meeting Minutes',
     'vendorQuotation': 'Vendor Quotation'
 };
+
+// ================================================================
+// DOWNLOAD FILE FROM SUPABASE
+// ================================================================
+
+async function downloadFileFromSupabase(filePath, fileName) {
+    try {
+        // 1. Get the logged-in user
+        const user = auth.currentUser;
+        if (!user) {
+            alert('You must be logged in to download files.');
+            return;
+        }
+
+        // 2. Get the Firebase JWT token
+        const firebaseToken = await user.getIdToken();
+
+        // 3. Download the file from Supabase with the Firebase token
+        const { data, error } = await window.supabaseClient.storage
+            .from('documents')
+            .download(filePath, {
+                headers: {
+                    Authorization: `Bearer ${firebaseToken}`
+                }
+            });
+
+        if (error) {
+            console.error('Download error:', error);
+            alert('Failed to download file: ' + error.message);
+            return;
+        }
+
+        // 4. Create a download link for the user
+        const url = URL.createObjectURL(data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName || filePath.split('/').pop();
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // 5. Clean up the object URL
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+    } catch (error) {
+        console.error('Download error:', error);
+        alert('An unexpected error occurred while downloading: ' + error.message);
+    }
+}
+
+// Helper: Extract filename and filepath from document object/string
+function getFileInfo(doc) {
+    if (!doc) return { path: null, name: null };
+    
+    // If doc is a string (the file path)
+    if (typeof doc === 'string') {
+        return { path: doc, name: doc.split('/').pop() };
+    }
+    
+    // If doc is an object with filePath or path
+    if (doc.filePath) {
+        return { path: doc.filePath, name: doc.filePath.split('/').pop() };
+    }
+    if (doc.path) {
+        return { path: doc.path, name: doc.path.split('/').pop() };
+    }
+    
+    // If doc has fileName or name
+    if (doc.fileName) {
+        return { path: doc.filePath || null, name: doc.fileName };
+    }
+    if (doc.name) {
+        return { path: doc.filePath || null, name: doc.name };
+    }
+    
+    return { path: null, name: null };
+}
 
 // Load requests
 async function loadRequests() {
@@ -323,6 +407,10 @@ function changePage(page) {
     renderTable();
 }
 
+// ================================================================
+// OPEN DETAIL VIEW WITH DOWNLOAD BUTTONS
+// ================================================================
+
 function openDetailView(requestId) {
     const request = allRequests.find(r => r.id === requestId);
     if (!request) return;
@@ -344,11 +432,23 @@ function openDetailView(requestId) {
     const leaderComment = request.leaderComment ? `<div style="margin-top:12px;color:#2E6FBA;font-size:14px;"><strong>Your comment:</strong> ${request.leaderComment}</div>` : '';
 
     const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
-    const docsHtml = docOrder.map(key => {
+    
+    let docsHtml = docOrder.map(key => {
         const label = docLabels[key] || key;
-        const file = documents[key];
-        const fileName = file?.fileName || file?.name || file || 'No file uploaded';
-        return `<div class="doc-item"><strong>${label}</strong><div>${fileName}</div></div>`;
+        const doc = documents[key];
+        const info = getFileInfo(doc);
+        
+        if (!info.path) {
+            return `<div class="doc-item"><strong>${label}</strong><div>No file uploaded</div></div>`;
+        }
+        
+        return `
+            <div class="doc-item">
+                <strong>${label}</strong>
+                <div>${info.name}</div>
+                <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
+            </div>
+        `;
     }).join('');
 
     document.getElementById('detailBody').innerHTML = `
@@ -421,11 +521,8 @@ async function openUpdateModal(requestId) {
 
             // Get the current file name from the document data
             const currentFile = data.documents?.[key];
-            const currentFileName =
-                currentFile?.fileName ||
-                currentFile?.name ||
-                currentFile ||
-                'No file uploaded';
+            const info = getFileInfo(currentFile);
+            const currentFileName = info.name || 'No file uploaded';
 
             modalBody += `
                 <div class="form-group" style="margin-bottom:16px;">
@@ -585,17 +682,45 @@ async function submitUpdate() {
         const meetingMinutes = document.getElementById('file_meetingMinutes').files[0];
         const vendorQuotation = document.getElementById('file_vendorQuotation').files[0];
 
-        // Update documents with new files
+        // Get the Firebase token
+        const user = auth.currentUser;
+        if (!user) throw new Error('User not logged in.');
+        const firebaseToken = await user.getIdToken();
+
+        let hasUpdate = false;
+
+        // Helper to upload a single file
+        const uploadFile = async (file, key) => {
+            if (!file) return null;
+            const timestamp = Date.now();
+            const path = `requests/${userUid}/${timestamp}_${file.name}`;
+            const { data, error } = await window.supabaseClient.storage
+                .from('documents')
+                .upload(path, file, {
+                    cacheControl: '3600',
+                    upsert: false,
+                    headers: {
+                        Authorization: `Bearer ${firebaseToken}`
+                    }
+                });
+            if (error) throw new Error(`Failed to upload ${key}: ${error.message}`);
+            return data.path;
+        };
+
+        // Upload files if selected
         if (budgetForm) {
-            updatedDocs.budgetForm = budgetForm.name;
+            const path = await uploadFile(budgetForm, 'Budget Form');
+            updatedDocs.budgetForm = path;
             hasUpdate = true;
         }
         if (meetingMinutes) {
-            updatedDocs.meetingMinutes = meetingMinutes.name;
+            const path = await uploadFile(meetingMinutes, 'Meeting Minutes');
+            updatedDocs.meetingMinutes = path;
             hasUpdate = true;
         }
         if (vendorQuotation) {
-            updatedDocs.vendorQuotation = vendorQuotation.name;
+            const path = await uploadFile(vendorQuotation, 'Vendor Quotation');
+            updatedDocs.vendorQuotation = path;
             hasUpdate = true;
         }
 

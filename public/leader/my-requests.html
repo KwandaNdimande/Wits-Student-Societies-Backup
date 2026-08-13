@@ -6,6 +6,10 @@
     <title>My Requests - Leader Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Supabase SDK (required for uploads and downloads) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --navy-900: #0B1F3A;
@@ -136,6 +140,10 @@
             margin-top: 18px;
         }
         .detail-docs .doc-item {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
             padding: 14px 16px;
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -143,8 +151,16 @@
             background: #FAFBFD;
         }
         .detail-docs .doc-item strong {
-            display: block;
-            margin-bottom: 6px;
+            font-weight: 600;
+            color: var(--text-900);
+            min-width: 140px;
+            font-size: 14px;
+        }
+        .detail-docs .doc-item div {
+            color: var(--text-500);
+            font-size: 13px;
+            flex: 1;
+            word-break: break-word;
         }
         .detail-back {
             margin-bottom: 16px;
@@ -208,6 +224,10 @@
         .status-revision {
             background: #FFF3E0;
             color: #E65100;
+        }
+        .status-resubmitted {
+            background: #E3F2FD;
+            color: #0D47A1;
         }
         .btn-update {
             font-size: 12px;
@@ -293,7 +313,8 @@
         .pagination .pages .ellipsis {
             color: var(--text-500);
             padding: 0 4px;
-        }.nav-bell {
+        }
+        .nav-bell {
             position: relative;
             display: inline-flex;
             align-items: center;
@@ -383,7 +404,9 @@
             font-weight: 500;
         }
 
-        /* Modal Styles */
+        /* ================================================================
+           MODAL STYLES (with backdrop blur)
+           ================================================================ */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -392,6 +415,8 @@
             width: 100%;
             height: 100%;
             background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -435,6 +460,7 @@
         }
         .modal-body {
             padding: 4px 0;
+            color: var(--text-900);
         }
         .modal-body .doc-item {
             padding: 10px 0;
@@ -526,6 +552,31 @@
             margin-top: 4px;
             display: inline-block;
         }
+
+        /* ================================================================
+           DOWNLOAD BUTTON
+           ================================================================ */
+        .btn-download {
+            padding: 5px 16px;
+            background: #003B5C;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: background 0.2s ease;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+        .btn-download:hover {
+            background: #1B3E73;
+        }
+
+        /* ================================================================
+           RESPONSIVE
+           ================================================================ */
         @media (max-width: 768px) {
             .controls {
                 flex-direction: column;
@@ -543,6 +594,18 @@
             .modal { padding: 20px; }
             .pagination {
                 flex-direction: column;
+                text-align: center;
+            }
+            .detail-docs .doc-item {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .detail-docs .doc-item strong {
+                min-width: 100%;
+            }
+            .btn-download {
+                margin-left: 0;
+                width: 100%;
                 text-align: center;
             }
         }
@@ -601,7 +664,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
+    <!-- Supabase is already loaded in the <head> -->
+    <!-- Your page scripts -->
     <script src="/js/leader-my-requests.js"></script>
-<script src="/js/shared-nav.js"></script>
+    <script src="/js/shared-nav.js"></script>
 </body>
 </html>

@@ -6,6 +6,10 @@
     <title>All Requests - Officer Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Supabase SDK (required for uploads and downloads) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --navy-900: #0B1F3A;
@@ -285,7 +289,8 @@
         .pagination .pages .ellipsis {
             color: var(--text-500);
             padding: 0 4px;
-        }.nav-bell {
+        }
+        .nav-bell {
             position: relative;
             display: inline-flex;
             align-items: center;
@@ -378,7 +383,9 @@
             font-weight: 500;
         }
 
-        /* Modal Styles */
+        /* ================================================================
+           MODAL STYLES (with backdrop blur)
+           ================================================================ */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -387,6 +394,8 @@
             width: 100%;
             height: 100%;
             background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -397,16 +406,15 @@
         .modal {
             background: var(--surface);
             border-radius: var(--radius);
-            max-width: 500px;
+            max-width: 600px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
-            padding: 32px;
+            padding: 28px 32px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
         .modal-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 12px;
@@ -417,19 +425,23 @@
             font-size: 20px;
             font-weight: 600;
             color: var(--navy-900);
+            flex: 1;
         }
-        .modal-close {
+        .modal-back {
             background: none;
             border: none;
-            font-size: 24px;
+            font-size: 14px;
             cursor: pointer;
             color: var(--text-500);
+            padding: 4px 8px;
+            font-family: 'Inter', sans-serif;
         }
-        .modal-close:hover {
+        .modal-back:hover {
             color: var(--text-900);
         }
         .modal-body {
-            padding: 8px 0;
+            padding: 4px 0;
+            color: var(--text-900);
         }
         .modal-body label {
             font-weight: 600;
@@ -494,43 +506,75 @@
         .btn-danger:hover {
             background: #a93226;
         }
+
+        /* ================================================================
+           DOCUMENT ITEMS INSIDE MODAL (with Download button)
+           ================================================================ */
         .doc-item {
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #FAFBFD;
         }
         .doc-item:last-child {
-            border-bottom: none;
+            margin-bottom: 0;
         }
-        .doc-name {
+        .doc-item strong {
             font-weight: 600;
             color: var(--text-900);
+            min-width: 140px;
+            font-size: 14px;
         }
-        .doc-detail {
-            font-size: 13px;
+        .doc-item div {
             color: var(--text-500);
-            margin-top: 2px;
+            font-size: 13px;
+            flex: 1;
+            word-break: break-word;
         }
         .no-docs {
             color: var(--text-500);
             text-align: center;
-            padding: 20px 0;
+            padding: 30px 0;
         }
-        .history-item {
-            padding: 14px 16px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            margin-bottom: 12px;
-            background: #FAFBFD;
+
+        /* ================================================================
+           DOWNLOAD BUTTON
+           ================================================================ */
+        .btn-download {
+            padding: 5px 16px;
+            background: #003B5C;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: background 0.2s ease;
+            margin-left: auto;
+            white-space: nowrap;
         }
-        .history-item strong,
-        .history-item span {
-            display: block;
+        .btn-download:hover {
+            background: #1B3E73;
         }
+
+        /* ================================================================
+           WAITING TEXT
+           ================================================================ */
         .waiting-text {
             color: #E65100;
             font-weight: 600;
             font-size: 12px;
         }
+
+        /* ================================================================
+           RESPONSIVE
+           ================================================================ */
         @media (max-width: 768px) {
             .controls {
                 flex-direction: column;
@@ -545,6 +589,18 @@
             .modal { padding: 20px; }
             .pagination {
                 flex-direction: column;
+                text-align: center;
+            }
+            .doc-item {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .doc-item strong {
+                min-width: 100%;
+            }
+            .btn-download {
+                margin-left: 0;
+                width: 100%;
                 text-align: center;
             }
         }
@@ -605,7 +661,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
+    <!-- Supabase is already loaded in the <head> -->
+    <!-- Your page scripts -->
     <script src="/js/officer-all-requests.js"></script>
-<script src="/js/shared-nav.js"></script>
+    <script src="/js/shared-nav.js"></script>
 </body>
 </html>

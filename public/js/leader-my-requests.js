@@ -50,7 +50,7 @@ const docLabels = {
 };
 
 // ================================================================
-// VIEW FILE IN NEW TAB (FIXED - uses signed URL)
+// VIEW FILE IN NEW TAB (FIXED - with Firebase token)
 // ================================================================
 
 async function viewFileFromSupabase(filePath, fileName) {
@@ -61,10 +61,16 @@ async function viewFileFromSupabase(filePath, fileName) {
             return;
         }
 
-        // Generate a signed URL (valid for 60 seconds)
+        const firebaseToken = await user.getIdToken();
+
+        // Generate a signed URL (valid for 60 seconds) with Firebase token
         const { data, error } = await window.supabaseClient.storage
             .from('documents')
-            .createSignedUrl(filePath, 60);
+            .createSignedUrl(filePath, 60, {
+                headers: {
+                    Authorization: `Bearer ${firebaseToken}`
+                }
+            });
 
         if (error) {
             console.error('Signed URL error:', error);
@@ -85,7 +91,7 @@ async function viewFileFromSupabase(filePath, fileName) {
 }
 
 // ================================================================
-// DOWNLOAD FILE (FIXED - uses signed URL)
+// DOWNLOAD FILE (FIXED - with Firebase token)
 // ================================================================
 
 async function downloadFileFromSupabase(filePath, fileName) {
@@ -96,10 +102,16 @@ async function downloadFileFromSupabase(filePath, fileName) {
             return;
         }
 
-        // Generate a signed URL (valid for 60 seconds)
+        const firebaseToken = await user.getIdToken();
+
+        // Generate a signed URL (valid for 60 seconds) with Firebase token
         const { data, error } = await window.supabaseClient.storage
             .from('documents')
-            .createSignedUrl(filePath, 60);
+            .createSignedUrl(filePath, 60, {
+                headers: {
+                    Authorization: `Bearer ${firebaseToken}`
+                }
+            });
 
         if (error) {
             console.error('Signed URL error:', error);

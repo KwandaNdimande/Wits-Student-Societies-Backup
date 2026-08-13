@@ -110,7 +110,6 @@
         .hidden {
             display: none !important;
         }
-        .clickable-row { cursor: pointer; }
         .detail-view {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -191,9 +190,6 @@
         tr:last-child td {
             border-bottom: none;
         }
-        tr:hover {
-            background: #FAFBFD;
-        }
         td.strong {
             color: var(--text-900);
             font-weight: 600;
@@ -235,7 +231,7 @@
             background: var(--warning);
             border: none;
             border-radius: 6px;
-            padding: 4px 12px;
+            padding: 6px 14px;
             cursor: pointer;
             font-weight: 600;
             font-family: 'Inter', sans-serif;
@@ -554,8 +550,69 @@
         }
 
         /* ================================================================
-           DOWNLOAD BUTTON
+           ACTION BUTTONS (Details, View Docs, Update)
            ================================================================ */
+
+        /* Base button styling for all action buttons */
+        .btn-action {
+            display: inline-block;
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* "Details" button - Navy color */
+        .btn-details {
+            background: #0B1F3A;
+            color: #fff;
+        }
+        .btn-details:hover {
+            background: #1B3E73;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(11, 31, 58, 0.3);
+        }
+
+        /* "View Docs" button - Blue color */
+        .btn-docs {
+            background: #2E6FBA;
+            color: #fff;
+        }
+        .btn-docs:hover {
+            background: #1B4F8A;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(46, 111, 186, 0.3);
+        }
+
+        /* "No Docs" button - Grey/disabled looking */
+        .btn-no-docs {
+            background: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        /* "Update" button - Orange/Warning color */
+        .btn-update-action {
+            background: #E65100;
+            color: #fff;
+        }
+        .btn-update-action:hover {
+            background: #BF360C;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(230, 81, 0, 0.3);
+        }
+
+        /* ================================================================
+           DOCUMENT VIEW/DOWNLOAD BUTTONS (inside modals)
+           ================================================================ */
+
+        /* Download button - Dark Blue */
         .btn-download {
             padding: 5px 16px;
             background: #003B5C;
@@ -573,9 +630,7 @@
             background: #1B3E73;
         }
 
-        /* ================================================================
-           VIEW BUTTON (NEW)
-           ================================================================ */
+        /* View button - Medium Blue */
         .btn-view-doc {
             padding: 5px 16px;
             background: #2E6FBA;
@@ -632,6 +687,14 @@
                 width: 100%;
                 flex-wrap: wrap;
             }
+            .btn-action {
+                display: block;
+                width: 100%;
+                margin-bottom: 4px;
+            }
+            td .btn-action {
+                margin-right: 0 !important;
+            }
         }
     </style>
 </head>
@@ -651,7 +714,7 @@
 
         <div id="request-detail-view" class="detail-view hidden">
             <div class="detail-back">
-                <button type="button" class="btn btn-secondary" onclick="closeDetailView()">Back</button>
+                <button type="button" class="btn btn-secondary" onclick="closeDetailView()">← Back</button>
             </div>
             <div class="detail-row" style="margin-bottom:18px; align-items:flex-start; gap:12px;">
                 <div style="flex:1;">
@@ -688,7 +751,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <!-- Supabase is already loaded in the <head> -->
     <script src="/js/leader-my-requests.js"></script>
     <script src="/js/shared-nav.js"></script>
 </body>

@@ -443,7 +443,7 @@ function renderTable() {
         const hasDocs = r.documents && Object.keys(r.documents).length > 0;
         
         html += `
-            <tr>  <!-- REMOVED: onclick and clickable-row class -->
+            <tr>
                 <td style="color:#6c757d;font-weight:500;">${num}</td>
                 <td class="strong">${r.itemName || r.name || 'Untitled'}</td>
                 <td style="color:#6c757d;">${r.type || 'N/A'}</td>
@@ -454,16 +454,18 @@ function renderTable() {
                     ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">📝 ${r.officerComment}</span>` : ''}
                 </td>
                 <td>
-                    <!-- NEW "Details" button -->
-                    <button class="btn-view" onclick="openDetailView('${r.id}')" style="margin-right:6px;">
+                    <!-- "Details" button -->
+                    <button class="btn-action btn-details" onclick="openDetailView('${r.id}')" style="margin-right:6px;">
                         📋 Details
                     </button>
                     
-                    <button class="btn-view" onclick="viewLeaderDocuments('${r.id}')" style="margin-right:6px;">
-                        ${hasDocs ? '📄 View Docs' : 'No Docs'}
-                    </button>
+                    <!-- "View Docs" or "No Docs" button -->
+                    ${hasDocs 
+                        ? `<button class="btn-action btn-docs" onclick="viewLeaderDocuments('${r.id}')" style="margin-right:6px;">📄 View Docs</button>`
+                        : `<button class="btn-action btn-no-docs" style="margin-right:6px;" disabled>No Docs</button>`
+                    }
                     
-                    ${isRevision ? `<button class="btn-update" onclick="openUpdateModal('${r.id}')">Update</button>` : ''}
+                    ${isRevision ? `<button class="btn-action btn-update-action" onclick="openUpdateModal('${r.id}')">Update</button>` : ''}
                 </td>
             </tr>
         `;

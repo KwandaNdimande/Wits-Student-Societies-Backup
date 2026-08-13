@@ -178,9 +178,14 @@ function resetForm() {
     document.getElementById('submit-request').disabled = true;
 }
 
+// ================================================================
+// UPDATED: Cancel button now redirects to Dashboard
+// ================================================================
 function confirmCancel() {
     if (confirm('Are you sure you want to discard this request?')) {
         resetForm();
+        // Redirect to the dashboard after cancelling
+        window.location.href = '/leader/dashboard.html';
     }
 }
 
@@ -200,8 +205,9 @@ document.getElementById('submit-another').addEventListener('click', function () 
 });
 
 // ================================================================
-// CHANGED: This is the new submit function with Supabase upload
+// SUBMIT REQUEST WITH SUPABASE UPLOAD
 // ================================================================
+
 document.getElementById('submit-request').addEventListener('click', async (e) => {
     e.preventDefault();
     if (!validateField()) {

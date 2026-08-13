@@ -55,7 +55,6 @@ const docLabels = {
 
 async function viewFileFromSupabase(filePath, fileName) {
     try {
-        // Get the public URL of the file
         const { data } = window.supabaseClient.storage
             .from('documents')
             .getPublicUrl(filePath);
@@ -320,7 +319,7 @@ function searchRequests() {
 }
 
 // ================================================================
-// RENDER TABLE
+// RENDER TABLE (UPDATED: hide "View Docs" for Revision Required)
 // ================================================================
 
 function renderTable() {
@@ -388,9 +387,10 @@ function renderTable() {
                     <button class="btn-action btn-details" onclick="openDetailView('${r.id}')" style="margin-right:6px;">
                         📋 Details
                     </button>
-                    ${hasDocs
+                    <!-- Hide "View Docs" for Revision Required -->
+                    ${!isRevision && hasDocs
                         ? `<button class="btn-action btn-docs" onclick="viewLeaderDocuments('${r.id}')" style="margin-right:6px;">📄 View Docs</button>`
-                        : `<button class="btn-action btn-no-docs" style="margin-right:6px;" disabled>No Docs</button>`
+                        : (!isRevision && !hasDocs ? `<button class="btn-action btn-no-docs" style="margin-right:6px;" disabled>No Docs</button>` : '')
                     }
                     ${isRevision ? `<button class="btn-action btn-update-action" onclick="openUpdateModal('${r.id}')">Update</button>` : ''}
                 </td>
@@ -442,7 +442,7 @@ function changePage(page) {
 }
 
 // ================================================================
-// OPEN DETAIL VIEW WITH VIEW + DOWNLOAD BUTTONS
+// OPEN DETAIL VIEW (UPDATED: hide View/Download for Revision Required)
 // ================================================================
 
 function openDetailView(requestId) {
@@ -464,6 +464,7 @@ function openDetailView(requestId) {
     const officerComment = request.officerComment ? `<div class="officer-comment"><strong>Officer Feedback:</strong> ${request.officerComment}</div>` : '';
     const leaderComment = request.leaderComment ? `<div style="margin-top:12px;color:#2E6FBA;font-size:14px;"><strong>Your comment:</strong> ${request.leaderComment}</div>` : '';
 
+    const isRevision = request.status === 'Revision Required';
     const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
     let docsHtml = docOrder.map(key => {
         const label = docLabels[key] || key;
@@ -472,16 +473,26 @@ function openDetailView(requestId) {
         if (!info.path) {
             return `<div class="doc-item"><strong>${label}</strong><div>No file uploaded</div></div>`;
         }
-        return `
-            <div class="doc-item">
-                <strong>${label}</strong>
-                <div>${info.name}</div>
-                <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
-                    <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">👁️ View</button>
-                    <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
+        // For Revision Required, show only the file name (no buttons)
+        if (isRevision) {
+            return `
+                <div class="doc-item">
+                    <strong>${label}</strong>
+                    <div>${info.name}</div>
                 </div>
-            </div>
-        `;
+            `;
+        } else {
+            return `
+                <div class="doc-item">
+                    <strong>${label}</strong>
+                    <div>${info.name}</div>
+                    <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
+                        <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">👁️ View</button>
+                        <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
+                    </div>
+                </div>
+            `;
+        }
     }).join('');
 
     document.getElementById('detailBody').innerHTML = `
@@ -501,7 +512,7 @@ function closeDetailView() {
     document.getElementById('controls').classList.remove('hidden');
 }
 
-// ============ UPDATE DOCUMENTS MODAL (UPDATED with View button) ============
+// ============ UPDATE DOCUMENTS MODAL (with View button) ============
 
 async function openUpdateModal(requestId) {
     currentRequestId = requestId;
@@ -744,7 +755,6 @@ async function submitUpdate() {
                 if (oldPath) {
                     oldPathsToDelete.push(oldPath);
                 }
-                // Update the document object with the new path
                 updatedDocs[key] = newPaths[key];
             }
         }
@@ -755,7 +765,6 @@ async function submitUpdate() {
                 .remove(oldPathsToDelete);
             if (deleteError) {
                 console.error('Error deleting old files:', deleteError);
-                // Continue anyway — the new files are already uploaded
             }
         }
 
@@ -795,7 +804,7 @@ document.getElementById('updateModal').addEventListener('click', function(e) {
     }
 });
 
-// ============ DELETE REQUEST (with better logging) ============
+// ============ DELETE REQUEST ============
 
 async function deleteRequest(requestId) {
     if (!confirm('Are you sure you want to delete this request? This cannot be undone.')) return;

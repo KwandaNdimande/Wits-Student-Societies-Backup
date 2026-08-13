@@ -847,7 +847,7 @@ document.getElementById('updateModal').addEventListener('click', function(e) {
 });
 
 // ================================================================
-// ============ DELETE REQUEST (UPDATED - deletes files from Supabase) ============
+// DELETE REQUEST (UPDATED - with better logging)
 // ================================================================
 
 async function deleteRequest(requestId) {
@@ -870,14 +870,21 @@ async function deleteRequest(requestId) {
         if (documents.meetingMinutes) filePaths.push(documents.meetingMinutes);
         if (documents.vendorQuotation) filePaths.push(documents.vendorQuotation);
 
+        console.log('🔍 File paths to delete:', filePaths); // DEBUG
+
         // 3. Delete files from Supabase Storage (if any exist)
         if (filePaths.length > 0) {
-            const { error } = await window.supabaseClient.storage
+            const { data, error } = await window.supabaseClient.storage
                 .from('documents')
                 .remove(filePaths);
+            
+            console.log('🗑️ Delete response:', { data, error }); // DEBUG
+            
             if (error) {
-                console.error('Error deleting files from Supabase:', error);
-                // Continue deleting the Firestore document even if Supabase fails
+                console.error('❌ Error deleting files from Supabase:', error);
+                alert('⚠️ Failed to delete some files from storage. Check console for details.');
+            } else {
+                console.log('✅ Files successfully deleted:', data);
             }
         }
 
@@ -887,9 +894,9 @@ async function deleteRequest(requestId) {
         // 5. Reload the table
         loadRequests();
         
-        alert('Request and associated files deleted successfully.');
+        alert('✅ Request deleted successfully.');
     } catch (error) {
-        console.error('Error deleting request:', error);
+        console.error('❌ Error deleting request:', error);
         alert('Error deleting request. ' + error.message);
     }
 }

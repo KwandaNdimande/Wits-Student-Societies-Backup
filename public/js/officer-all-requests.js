@@ -350,7 +350,46 @@ function openOfficerNotificationFromUrl() {
 }
 
 // ================================================================
-// DOWNLOAD FILE FROM SUPABASE
+// VIEW FILE IN NEW TAB (UPDATED)
+// ================================================================
+
+async function viewFileFromSupabase(filePath, fileName) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            alert('You must be logged in to view files.');
+            return;
+        }
+
+        const firebaseToken = await user.getIdToken();
+
+        // Try to download the file with the Firebase token
+        const { data, error } = await window.supabaseClient.storage
+            .from('documents')
+            .download(filePath, {
+                headers: {
+                    Authorization: `Bearer ${firebaseToken}`
+                }
+            });
+
+        if (error) {
+            console.error('View error:', error);
+            alert('Failed to view file: ' + error.message);
+            return;
+        }
+
+        const url = URL.createObjectURL(data);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 15000);
+
+    } catch (error) {
+        console.error('View error:', error);
+        alert('An unexpected error occurred: ' + error.message);
+    }
+}
+
+// ================================================================
+// DOWNLOAD FILE FROM SUPABASE (UPDATED)
 // ================================================================
 
 async function downloadFileFromSupabase(filePath, fileName) {
@@ -389,46 +428,6 @@ async function downloadFileFromSupabase(filePath, fileName) {
     } catch (error) {
         console.error('Download error:', error);
         alert('An unexpected error occurred while downloading: ' + error.message);
-    }
-}
-
-// ================================================================
-// VIEW FILE IN NEW TAB (NEW FUNCTION)
-// ================================================================
-
-async function viewFileFromSupabase(filePath, fileName) {
-    try {
-        const user = auth.currentUser;
-        if (!user) {
-            alert('You must be logged in to view files.');
-            return;
-        }
-
-        const firebaseToken = await user.getIdToken();
-
-        const { data, error } = await window.supabaseClient.storage
-            .from('documents')
-            .download(filePath, {
-                headers: {
-                    Authorization: `Bearer ${firebaseToken}`
-                }
-            });
-
-        if (error) {
-            console.error('View error:', error);
-            alert('Failed to view file: ' + error.message);
-            return;
-        }
-
-        const url = URL.createObjectURL(data);
-        window.open(url, '_blank');
-
-        // Clean up the object URL after 15 seconds
-        setTimeout(() => URL.revokeObjectURL(url), 15000);
-
-    } catch (error) {
-        console.error('View error:', error);
-        alert('An unexpected error occurred: ' + error.message);
     }
 }
 

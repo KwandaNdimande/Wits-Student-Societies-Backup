@@ -50,7 +50,46 @@ const docLabels = {
 };
 
 // ================================================================
-// DOWNLOAD FILE FROM SUPABASE
+// VIEW FILE IN NEW TAB (UPDATED)
+// ================================================================
+
+async function viewFileFromSupabase(filePath, fileName) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            alert('You must be logged in to view files.');
+            return;
+        }
+
+        const firebaseToken = await user.getIdToken();
+
+        // Try to download the file with the Firebase token
+        const { data, error } = await window.supabaseClient.storage
+            .from('documents')
+            .download(filePath, {
+                headers: {
+                    Authorization: `Bearer ${firebaseToken}`
+                }
+            });
+
+        if (error) {
+            console.error('View error:', error);
+            alert('Failed to view file: ' + error.message);
+            return;
+        }
+
+        const url = URL.createObjectURL(data);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 15000);
+
+    } catch (error) {
+        console.error('View error:', error);
+        alert('An unexpected error occurred: ' + error.message);
+    }
+}
+
+// ================================================================
+// DOWNLOAD FILE FROM SUPABASE (UPDATED)
 // ================================================================
 
 async function downloadFileFromSupabase(filePath, fileName) {
@@ -89,44 +128,6 @@ async function downloadFileFromSupabase(filePath, fileName) {
     } catch (error) {
         console.error('Download error:', error);
         alert('An unexpected error occurred while downloading: ' + error.message);
-    }
-}
-
-// ================================================================
-// VIEW FILE IN NEW TAB
-// ================================================================
-
-async function viewFileFromSupabase(filePath, fileName) {
-    try {
-        const user = auth.currentUser;
-        if (!user) {
-            alert('You must be logged in to view files.');
-            return;
-        }
-
-        const firebaseToken = await user.getIdToken();
-
-        const { data, error } = await window.supabaseClient.storage
-            .from('documents')
-            .download(filePath, {
-                headers: {
-                    Authorization: `Bearer ${firebaseToken}`
-                }
-            });
-
-        if (error) {
-            console.error('View error:', error);
-            alert('Failed to view file: ' + error.message);
-            return;
-        }
-
-        const url = URL.createObjectURL(data);
-        window.open(url, '_blank');
-        setTimeout(() => URL.revokeObjectURL(url), 15000);
-
-    } catch (error) {
-        console.error('View error:', error);
-        alert('An unexpected error occurred: ' + error.message);
     }
 }
 
@@ -454,12 +455,10 @@ function renderTable() {
                     ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">📝 ${r.officerComment}</span>` : ''}
                 </td>
                 <td>
-                    <!-- "Details" button -->
                     <button class="btn-action btn-details" onclick="openDetailView('${r.id}')" style="margin-right:6px;">
                         📋 Details
                     </button>
                     
-                    <!-- "View Docs" or "No Docs" button -->
                     ${hasDocs 
                         ? `<button class="btn-action btn-docs" onclick="viewLeaderDocuments('${r.id}')" style="margin-right:6px;">📄 View Docs</button>`
                         : `<button class="btn-action btn-no-docs" style="margin-right:6px;" disabled>No Docs</button>`

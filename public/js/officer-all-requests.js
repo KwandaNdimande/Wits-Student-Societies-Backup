@@ -109,7 +109,6 @@ function renderTable() {
     const endIndex = Math.min(startIndex + pageSize, totalItems);
     const pageItems = filteredRequests.slice(startIndex, endIndex);
 
-    // Update results count
     const resultsCount = document.getElementById('resultsCount');
     if (resultsCount) {
         resultsCount.textContent = `Showing ${totalItems > 0 ? startIndex + 1 : 0}-${endIndex} of ${totalItems} requests`;
@@ -350,7 +349,7 @@ function openOfficerNotificationFromUrl() {
 }
 
 // ================================================================
-// VIEW FILE IN NEW TAB (UPDATED)
+// VIEW FILE IN NEW TAB (FIXED - uses signed URL)
 // ================================================================
 
 async function viewFileFromSupabase(filePath, fileName) {
@@ -361,26 +360,22 @@ async function viewFileFromSupabase(filePath, fileName) {
             return;
         }
 
-        const firebaseToken = await user.getIdToken();
-
-        // Try to download the file with the Firebase token
+        // Generate a signed URL (valid for 60 seconds)
         const { data, error } = await window.supabaseClient.storage
             .from('documents')
-            .download(filePath, {
-                headers: {
-                    Authorization: `Bearer ${firebaseToken}`
-                }
-            });
+            .createSignedUrl(filePath, 60);
 
         if (error) {
-            console.error('View error:', error);
+            console.error('Signed URL error:', error);
             alert('Failed to view file: ' + error.message);
             return;
         }
 
-        const url = URL.createObjectURL(data);
-        window.open(url, '_blank');
-        setTimeout(() => URL.revokeObjectURL(url), 15000);
+        if (data && data.signedUrl) {
+            window.open(data.signedUrl, '_blank');
+        } else {
+            alert('Failed to generate view link.');
+        }
 
     } catch (error) {
         console.error('View error:', error);
@@ -389,7 +384,7 @@ async function viewFileFromSupabase(filePath, fileName) {
 }
 
 // ================================================================
-// DOWNLOAD FILE FROM SUPABASE (UPDATED)
+// DOWNLOAD FILE (FIXED - uses signed URL)
 // ================================================================
 
 async function downloadFileFromSupabase(filePath, fileName) {
@@ -400,30 +395,28 @@ async function downloadFileFromSupabase(filePath, fileName) {
             return;
         }
 
-        const firebaseToken = await user.getIdToken();
-
+        // Generate a signed URL (valid for 60 seconds)
         const { data, error } = await window.supabaseClient.storage
             .from('documents')
-            .download(filePath, {
-                headers: {
-                    Authorization: `Bearer ${firebaseToken}`
-                }
-            });
+            .createSignedUrl(filePath, 60);
 
         if (error) {
-            console.error('Download error:', error);
+            console.error('Signed URL error:', error);
             alert('Failed to download file: ' + error.message);
             return;
         }
 
-        const url = URL.createObjectURL(data);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName || filePath.split('/').pop();
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        if (data && data.signedUrl) {
+            // Trigger download from the signed URL
+            const a = document.createElement('a');
+            a.href = data.signedUrl;
+            a.download = fileName || filePath.split('/').pop();
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        } else {
+            alert('Failed to generate download link.');
+        }
 
     } catch (error) {
         console.error('Download error:', error);

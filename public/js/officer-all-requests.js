@@ -349,38 +349,18 @@ function openOfficerNotificationFromUrl() {
 }
 
 // ================================================================
-// VIEW FILE IN NEW TAB (FIXED - with Firebase token set in session)
+// VIEW FILE IN NEW TAB (PUBLIC BUCKET)
 // ================================================================
 
 async function viewFileFromSupabase(filePath, fileName) {
     try {
-        const user = auth.currentUser;
-        if (!user) {
-            alert('You must be logged in to view files.');
-            return;
-        }
-
-        const firebaseToken = await user.getIdToken();
-
-        // Set the Firebase token as the auth token for Supabase
-        await window.supabaseClient.auth.setSession({
-            access_token: firebaseToken,
-            refresh_token: ''
-        });
-
-        // Generate a signed URL (valid for 60 seconds)
-        const { data, error } = await window.supabaseClient.storage
+        // Get the public URL of the file
+        const { data } = window.supabaseClient.storage
             .from('documents')
-            .createSignedUrl(filePath, 60);
+            .getPublicUrl(filePath);
 
-        if (error) {
-            console.error('Signed URL error:', error);
-            alert('Failed to view file: ' + error.message);
-            return;
-        }
-
-        if (data && data.signedUrl) {
-            window.open(data.signedUrl, '_blank');
+        if (data && data.publicUrl) {
+            window.open(data.publicUrl, '_blank');
         } else {
             alert('Failed to generate view link.');
         }
@@ -392,40 +372,20 @@ async function viewFileFromSupabase(filePath, fileName) {
 }
 
 // ================================================================
-// DOWNLOAD FILE (FIXED - with Firebase token set in session)
+// DOWNLOAD FILE (PUBLIC BUCKET)
 // ================================================================
 
 async function downloadFileFromSupabase(filePath, fileName) {
     try {
-        const user = auth.currentUser;
-        if (!user) {
-            alert('You must be logged in to download files.');
-            return;
-        }
-
-        const firebaseToken = await user.getIdToken();
-
-        // Set the Firebase token as the auth token for Supabase
-        await window.supabaseClient.auth.setSession({
-            access_token: firebaseToken,
-            refresh_token: ''
-        });
-
-        // Generate a signed URL (valid for 60 seconds)
-        const { data, error } = await window.supabaseClient.storage
+        // Get the public URL of the file
+        const { data } = window.supabaseClient.storage
             .from('documents')
-            .createSignedUrl(filePath, 60);
+            .getPublicUrl(filePath);
 
-        if (error) {
-            console.error('Signed URL error:', error);
-            alert('Failed to download file: ' + error.message);
-            return;
-        }
-
-        if (data && data.signedUrl) {
-            // Trigger download from the signed URL
+        if (data && data.publicUrl) {
+            // Trigger download from the public URL
             const a = document.createElement('a');
-            a.href = data.signedUrl;
+            a.href = data.publicUrl;
             a.download = fileName || filePath.split('/').pop();
             document.body.appendChild(a);
             a.click();

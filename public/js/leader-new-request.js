@@ -2,7 +2,7 @@
 const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
 
-// Create a global supabase client that all functions can use
+// Create a global supabase client
 window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
 // Firebase configuration
@@ -34,7 +34,6 @@ if (!userUid) {
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user;
-        // Get user data from Firestore
         const userDoc = await db.collection('users').doc(user.uid).get();
         if (userDoc.exists) {
             const userData = userDoc.data();
@@ -45,7 +44,7 @@ auth.onAuthStateChanged(async (user) => {
     }
 });
 
-// Submit request
+// ============ VALIDATION FUNCTIONS ============
 function setFieldError(fieldGroupId, message) {
     const group = document.getElementById(fieldGroupId);
     if (!group) return;
@@ -166,6 +165,7 @@ function handleFileInput(event) {
     validateField();
 }
 
+// ============ RESET FORM (WITH RE-VALIDATION) ============
 function resetForm() {
     document.getElementById('request-type').value = '';
     document.getElementById('item-name').value = '';
@@ -176,19 +176,17 @@ function resetForm() {
     document.getElementById('form-section').classList.remove('hidden');
     document.getElementById('success-section').classList.add('hidden');
     document.getElementById('submit-request').disabled = true;
+    validateField(); // <-- This shows errors again
 }
 
-// ================================================================
-// UPDATED: Cancel button now redirects to Dashboard
-// ================================================================
 function confirmCancel() {
     if (confirm('Are you sure you want to discard this request?')) {
         resetForm();
-        // Redirect to the dashboard after cancelling
         window.location.href = '/leader/dashboard.html';
     }
 }
 
+// ============ EVENT LISTENERS ============
 document.getElementById('request-type').addEventListener('change', validateField);
 document.getElementById('item-name').addEventListener('input', validateField);
 document.getElementById('amount').addEventListener('input', validateField);
@@ -204,10 +202,7 @@ document.getElementById('submit-another').addEventListener('click', function () 
     resetForm();
 });
 
-// ================================================================
-// SUBMIT REQUEST WITH SUPABASE UPLOAD
-// ================================================================
-
+// ============ SUBMIT REQUEST ============
 document.getElementById('submit-request').addEventListener('click', async (e) => {
     e.preventDefault();
     if (!validateField()) {
@@ -229,12 +224,10 @@ document.getElementById('submit-request').addEventListener('click', async (e) =>
     btn.textContent = 'Submitting...';
 
     try {
-        // 1. Get the Firebase JWT token (required for your private bucket)
         const user = auth.currentUser;
         if (!user) throw new Error('User not logged in.');
         const firebaseToken = await user.getIdToken();
 
-        // 2. Helper function to upload one file to Supabase
         const uploadFile = async (file, fileType) => {
             if (!file) return null;
             const timestamp = Date.now();
@@ -249,15 +242,13 @@ document.getElementById('submit-request').addEventListener('click', async (e) =>
                     }
                 });
             if (error) throw new Error(`Failed to upload ${fileType}: ${error.message}`);
-            return data.path; // Returns the file path in Supabase
+            return data.path;
         };
 
-        // 3. Upload all three files to Supabase
         const budgetPath = await uploadFile(budgetForm, 'Budget Form');
         const minutesPath = await uploadFile(meetingMinutes, 'Meeting Minutes');
         const quotationPath = await uploadFile(vendorQuotation, 'Vendor Quotation');
 
-        // 4. Save the request metadata (with file paths) to Firestore
         const requestData = {
             type,
             itemName,
@@ -268,7 +259,7 @@ document.getElementById('submit-request').addEventListener('click', async (e) =>
             submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
             societyName: document.getElementById('society-name').value || 'Your Society',
             documents: {
-                budgetForm: budgetPath,      // Now storing the Supabase path
+                budgetForm: budgetPath,
                 meetingMinutes: minutesPath,
                 vendorQuotation: quotationPath
             }
@@ -288,4 +279,5 @@ document.getElementById('submit-request').addEventListener('click', async (e) =>
     }
 });
 
+// Initial validation on page load
 validateField();

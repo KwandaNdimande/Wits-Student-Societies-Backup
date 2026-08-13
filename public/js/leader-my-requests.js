@@ -93,7 +93,7 @@ async function downloadFileFromSupabase(filePath, fileName) {
 }
 
 // ================================================================
-// VIEW FILE IN NEW TAB (NEW FUNCTION)
+// VIEW FILE IN NEW TAB
 // ================================================================
 
 async function viewFileFromSupabase(filePath, fileName) {
@@ -153,6 +153,76 @@ function getFileInfo(doc) {
     }
     
     return { path: null, name: null };
+}
+
+// ================================================================
+// VIEW DOCUMENTS DIRECTLY FROM TABLE (LEADER)
+// ================================================================
+
+async function viewLeaderDocuments(requestId) {
+    try {
+        const docRef = await db.collection('requests').doc(requestId).get();
+        if (!docRef.exists) {
+            alert('Request not found.');
+            return;
+        }
+
+        const data = docRef.data();
+        const documents = data.documents || {};
+        const itemName = data.itemName || 'Request';
+
+        let modalBody = '';
+
+        if (Object.keys(documents).length === 0) {
+            modalBody = '<p class="no-docs">No documents uploaded for this request.</p>';
+        } else {
+            const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
+            const docLabels = {
+                'budgetForm': 'Budget Form',
+                'meetingMinutes': 'Meeting Minutes',
+                'vendorQuotation': 'Vendor Quotation'
+            };
+
+            modalBody = docOrder.map(key => {
+                const doc = documents[key];
+                if (!doc) {
+                    return `
+                        <div class="doc-item">
+                            <div class="doc-name">${docLabels[key] || key}</div>
+                            <div class="doc-detail">No file uploaded</div>
+                        </div>
+                    `;
+                }
+                const info = getFileInfo(doc);
+                if (!info.path) {
+                    return `
+                        <div class="doc-item">
+                            <div class="doc-name">${docLabels[key] || key}</div>
+                            <div class="doc-detail">${info.name || 'File not found'}</div>
+                        </div>
+                    `;
+                }
+                return `
+                    <div class="doc-item">
+                        <div class="doc-name">${docLabels[key] || key}</div>
+                        <div class="doc-detail">${info.name}</div>
+                        <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
+                            <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">👁️ View</button>
+                            <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('modalTitle').textContent = `Documents - ${itemName}`;
+        document.getElementById('modalBody').innerHTML = modalBody;
+        document.getElementById('updateModal').classList.add('active');
+
+    } catch (error) {
+        console.error('Error viewing documents:', error);
+        alert('Error loading documents. ' + error.message);
+    }
 }
 
 // Load requests
@@ -316,7 +386,10 @@ function searchRequests() {
     renderTable();
 }
 
-// Render table with pagination
+// ================================================================
+// RENDER TABLE (UPDATED: row click removed, "Details" button added)
+// ================================================================
+
 function renderTable() {
     const container = document.getElementById('requests-container');
     const totalItems = filteredRequests.length;
@@ -328,7 +401,6 @@ function renderTable() {
     const endIndex = Math.min(startIndex + pageSize, totalItems);
     const pageItems = filteredRequests.slice(startIndex, endIndex);
 
-    // Update results count
     const resultsCount = document.getElementById('resultsCount');
     if (resultsCount) {
         resultsCount.textContent = `Showing ${totalItems > 0 ? startIndex + 1 : 0}-${endIndex} of ${totalItems} requests`;
@@ -368,9 +440,10 @@ function renderTable() {
         const statusClass = statusColors[r.status] || 'status-submitted';
         const isRevision = r.status === 'Revision Required';
         const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
+        const hasDocs = r.documents && Object.keys(r.documents).length > 0;
         
         html += `
-            <tr class="clickable-row" onclick="openDetailView('${r.id}')">
+            <tr>  <!-- REMOVED: onclick and clickable-row class -->
                 <td style="color:#6c757d;font-weight:500;">${num}</td>
                 <td class="strong">${r.itemName || r.name || 'Untitled'}</td>
                 <td style="color:#6c757d;">${r.type || 'N/A'}</td>
@@ -381,7 +454,16 @@ function renderTable() {
                     ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">📝 ${r.officerComment}</span>` : ''}
                 </td>
                 <td>
-                    ${isRevision ? `<button class="btn-update" onclick="event.stopPropagation(); openUpdateModal('${r.id}')">Update Documents</button>` : '—'}
+                    <!-- NEW "Details" button -->
+                    <button class="btn-view" onclick="openDetailView('${r.id}')" style="margin-right:6px;">
+                        📋 Details
+                    </button>
+                    
+                    <button class="btn-view" onclick="viewLeaderDocuments('${r.id}')" style="margin-right:6px;">
+                        ${hasDocs ? '📄 View Docs' : 'No Docs'}
+                    </button>
+                    
+                    ${isRevision ? `<button class="btn-update" onclick="openUpdateModal('${r.id}')">Update</button>` : ''}
                 </td>
             </tr>
         `;

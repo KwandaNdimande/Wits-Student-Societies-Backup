@@ -55,17 +55,14 @@ const docLabels = {
 
 async function downloadFileFromSupabase(filePath, fileName) {
     try {
-        // 1. Get the logged-in user
         const user = auth.currentUser;
         if (!user) {
             alert('You must be logged in to download files.');
             return;
         }
 
-        // 2. Get the Firebase JWT token
         const firebaseToken = await user.getIdToken();
 
-        // 3. Download the file from Supabase with the Firebase token
         const { data, error } = await window.supabaseClient.storage
             .from('documents')
             .download(filePath, {
@@ -80,7 +77,6 @@ async function downloadFileFromSupabase(filePath, fileName) {
             return;
         }
 
-        // 4. Create a download link for the user
         const url = URL.createObjectURL(data);
         const a = document.createElement('a');
         a.href = url;
@@ -88,8 +84,6 @@ async function downloadFileFromSupabase(filePath, fileName) {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-
-        // 5. Clean up the object URL
         setTimeout(() => URL.revokeObjectURL(url), 10000);
 
     } catch (error) {
@@ -98,16 +92,52 @@ async function downloadFileFromSupabase(filePath, fileName) {
     }
 }
 
+// ================================================================
+// VIEW FILE IN NEW TAB (NEW FUNCTION)
+// ================================================================
+
+async function viewFileFromSupabase(filePath, fileName) {
+    try {
+        const user = auth.currentUser;
+        if (!user) {
+            alert('You must be logged in to view files.');
+            return;
+        }
+
+        const firebaseToken = await user.getIdToken();
+
+        const { data, error } = await window.supabaseClient.storage
+            .from('documents')
+            .download(filePath, {
+                headers: {
+                    Authorization: `Bearer ${firebaseToken}`
+                }
+            });
+
+        if (error) {
+            console.error('View error:', error);
+            alert('Failed to view file: ' + error.message);
+            return;
+        }
+
+        const url = URL.createObjectURL(data);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 15000);
+
+    } catch (error) {
+        console.error('View error:', error);
+        alert('An unexpected error occurred: ' + error.message);
+    }
+}
+
 // Helper: Extract filename and filepath from document object/string
 function getFileInfo(doc) {
     if (!doc) return { path: null, name: null };
     
-    // If doc is a string (the file path)
     if (typeof doc === 'string') {
         return { path: doc, name: doc.split('/').pop() };
     }
     
-    // If doc is an object with filePath or path
     if (doc.filePath) {
         return { path: doc.filePath, name: doc.filePath.split('/').pop() };
     }
@@ -115,7 +145,6 @@ function getFileInfo(doc) {
         return { path: doc.path, name: doc.path.split('/').pop() };
     }
     
-    // If doc has fileName or name
     if (doc.fileName) {
         return { path: doc.filePath || null, name: doc.fileName };
     }
@@ -338,7 +367,6 @@ function renderTable() {
         const num = startIndex + index + 1;
         const statusClass = statusColors[r.status] || 'status-submitted';
         const isRevision = r.status === 'Revision Required';
-        // Only show officer comment when status is Revision Required
         const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
         
         html += `
@@ -408,7 +436,7 @@ function changePage(page) {
 }
 
 // ================================================================
-// OPEN DETAIL VIEW WITH DOWNLOAD BUTTONS
+// OPEN DETAIL VIEW WITH VIEW + DOWNLOAD BUTTONS
 // ================================================================
 
 function openDetailView(requestId) {
@@ -446,7 +474,10 @@ function openDetailView(requestId) {
             <div class="doc-item">
                 <strong>${label}</strong>
                 <div>${info.name}</div>
-                <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
+                <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
+                    <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">👁️ View</button>
+                    <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
+                </div>
             </div>
         `;
     }).join('');
@@ -519,7 +550,6 @@ async function openUpdateModal(requestId) {
             const accept = config.accept;
             const hint = config.hint;
 
-            // Get the current file name from the document data
             const currentFile = data.documents?.[key];
             const info = getFileInfo(currentFile);
             const currentFileName = info.name || 'No file uploaded';
@@ -575,7 +605,6 @@ async function openUpdateModal(requestId) {
         document.getElementById('modalBody').innerHTML = modalBody;
         document.getElementById('updateModal').classList.add('active');
 
-        // Add file validation and live update listeners
         docOrder.forEach(key => {
             const fileInput = document.getElementById(`file_${key}`);
             if (fileInput) {
@@ -595,7 +624,6 @@ async function openUpdateModal(requestId) {
             }
         });
 
-        // Initial validation check
         checkUpdateFormValidity();
 
     } catch (error) {
@@ -654,7 +682,6 @@ function checkUpdateFormValidity() {
         }
     });
     
-    // Enable button if at least one file is selected and no errors
     btn.disabled = !hasFile || hasError;
     btn.style.opacity = btn.disabled ? '0.6' : '1';
     btn.style.cursor = btn.disabled ? 'not-allowed' : 'pointer';
@@ -677,19 +704,16 @@ async function submitUpdate() {
         const currentDocs = data.documents || {};
         const updatedDocs = { ...currentDocs };
 
-        // Get file inputs
         const budgetForm = document.getElementById('file_budgetForm').files[0];
         const meetingMinutes = document.getElementById('file_meetingMinutes').files[0];
         const vendorQuotation = document.getElementById('file_vendorQuotation').files[0];
 
-        // Get the Firebase token
         const user = auth.currentUser;
         if (!user) throw new Error('User not logged in.');
         const firebaseToken = await user.getIdToken();
 
         let hasUpdate = false;
 
-        // Helper to upload a single file
         const uploadFile = async (file, key) => {
             if (!file) return null;
             const timestamp = Date.now();
@@ -707,7 +731,6 @@ async function submitUpdate() {
             return data.path;
         };
 
-        // Upload files if selected
         if (budgetForm) {
             const path = await uploadFile(budgetForm, 'Budget Form');
             updatedDocs.budgetForm = path;
@@ -764,16 +787,12 @@ function closeUpdateModal() {
     currentRequestId = null;
 }
 
-// Close modal on overlay click
 document.getElementById('updateModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeUpdateModal();
     }
 });
 
-// Make search function global
 window.searchRequests = searchRequests;
-
-// ============ LOAD DATA ============
 
 loadRequests();

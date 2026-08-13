@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Supabase SDK (required for uploads and downloads) -->
+    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -508,7 +508,7 @@
         }
 
         /* ================================================================
-           DOCUMENT ITEMS INSIDE MODAL (with Download button)
+           DOCUMENT ITEMS INSIDE MODAL
            ================================================================ */
         .doc-item {
             display: flex;
@@ -524,13 +524,13 @@
         .doc-item:last-child {
             margin-bottom: 0;
         }
-        .doc-item strong {
+        .doc-item .doc-name {
             font-weight: 600;
             color: var(--text-900);
             min-width: 140px;
             font-size: 14px;
         }
-        .doc-item div {
+        .doc-item .doc-detail {
             color: var(--text-500);
             font-size: 13px;
             flex: 1;
@@ -556,11 +556,30 @@
             cursor: pointer;
             font-family: 'Inter', sans-serif;
             transition: background 0.2s ease;
-            margin-left: auto;
             white-space: nowrap;
         }
         .btn-download:hover {
             background: #1B3E73;
+        }
+
+        /* ================================================================
+           VIEW BUTTON (NEW)
+           ================================================================ */
+        .btn-view-doc {
+            padding: 5px 16px;
+            background: #2E6FBA;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: background 0.2s ease;
+            white-space: nowrap;
+        }
+        .btn-view-doc:hover {
+            background: #1B4F8A;
         }
 
         /* ================================================================
@@ -595,13 +614,18 @@
                 flex-wrap: wrap;
                 gap: 8px;
             }
-            .doc-item strong {
+            .doc-item .doc-name {
                 min-width: 100%;
             }
-            .btn-download {
+            .btn-download,
+            .btn-view-doc {
                 margin-left: 0;
                 width: 100%;
                 text-align: center;
+            }
+            .doc-item > div {
+                width: 100%;
+                flex-wrap: wrap;
             }
         }
     </style>
@@ -629,7 +653,7 @@
     <div class="modal-overlay" id="docModal">
         <div class="modal">
             <div class="modal-header">
-                <button class="modal-back" onclick="closeModal()" style="background:none;border:none;cursor:pointer;font-size:14px;margin-right:12px;">← Back to Requests</button>
+                <button class="modal-back" onclick="closeModal()">← Back to Requests</button>
                 <h2 id="modalTitle">Request Documents</h2>
             </div>
             <div id="modalBody">
@@ -642,7 +666,7 @@
     <div class="modal-overlay" id="statusModal">
         <div class="modal">
             <div class="modal-header">
-                <button class="modal-back" onclick="closeStatusModal(true)" style="background:none;border:none;cursor:pointer;font-size:14px;margin-right:12px;">← Back to Requests</button>
+                <button class="modal-back" onclick="closeStatusModal(true)">← Back to Requests</button>
                 <h2 id="statusModalTitle">Update Request Status</h2>
             </div>
             <div class="modal-body" id="statusModalBody">
@@ -662,7 +686,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <!-- Supabase is already loaded in the <head> -->
-    <!-- Your page scripts -->
     <script src="/js/officer-all-requests.js"></script>
     <script src="/js/shared-nav.js"></script>
 </body>

@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Supabase SDK (required for uploads and downloads) -->
+    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -567,11 +567,30 @@
             cursor: pointer;
             font-family: 'Inter', sans-serif;
             transition: background 0.2s ease;
-            margin-left: auto;
             white-space: nowrap;
         }
         .btn-download:hover {
             background: #1B3E73;
+        }
+
+        /* ================================================================
+           VIEW BUTTON (NEW)
+           ================================================================ */
+        .btn-view-doc {
+            padding: 5px 16px;
+            background: #2E6FBA;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: background 0.2s ease;
+            white-space: nowrap;
+        }
+        .btn-view-doc:hover {
+            background: #1B4F8A;
         }
 
         /* ================================================================
@@ -603,10 +622,15 @@
             .detail-docs .doc-item strong {
                 min-width: 100%;
             }
-            .btn-download {
+            .btn-download,
+            .btn-view-doc {
                 margin-left: 0;
                 width: 100%;
                 text-align: center;
+            }
+            .detail-docs .doc-item > div {
+                width: 100%;
+                flex-wrap: wrap;
             }
         }
     </style>
@@ -665,7 +689,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <!-- Supabase is already loaded in the <head> -->
-    <!-- Your page scripts -->
     <script src="/js/leader-my-requests.js"></script>
     <script src="/js/shared-nav.js"></script>
 </body>

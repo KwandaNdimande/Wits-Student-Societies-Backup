@@ -65,7 +65,6 @@ async function viewFileFromSupabase(filePath, fileName) {
         } else {
             alert('Failed to generate view link.');
         }
-
     } catch (error) {
         console.error('View error:', error);
         alert('An unexpected error occurred: ' + error.message);
@@ -78,13 +77,11 @@ async function viewFileFromSupabase(filePath, fileName) {
 
 async function downloadFileFromSupabase(filePath, fileName) {
     try {
-        // Get the public URL of the file
         const { data } = window.supabaseClient.storage
             .from('documents')
             .getPublicUrl(filePath);
 
         if (data && data.publicUrl) {
-            // Trigger download from the public URL
             const a = document.createElement('a');
             a.href = data.publicUrl;
             a.download = fileName || filePath.split('/').pop();
@@ -94,7 +91,6 @@ async function downloadFileFromSupabase(filePath, fileName) {
         } else {
             alert('Failed to generate download link.');
         }
-
     } catch (error) {
         console.error('Download error:', error);
         alert('An unexpected error occurred while downloading: ' + error.message);
@@ -104,25 +100,21 @@ async function downloadFileFromSupabase(filePath, fileName) {
 // Helper: Extract filename and filepath from document object/string
 function getFileInfo(doc) {
     if (!doc) return { path: null, name: null };
-    
     if (typeof doc === 'string') {
         return { path: doc, name: doc.split('/').pop() };
     }
-    
     if (doc.filePath) {
         return { path: doc.filePath, name: doc.filePath.split('/').pop() };
     }
     if (doc.path) {
         return { path: doc.path, name: doc.path.split('/').pop() };
     }
-    
     if (doc.fileName) {
         return { path: doc.filePath || null, name: doc.fileName };
     }
     if (doc.name) {
         return { path: doc.filePath || null, name: doc.name };
     }
-    
     return { path: null, name: null };
 }
 
@@ -137,13 +129,11 @@ async function viewLeaderDocuments(requestId) {
             alert('Request not found.');
             return;
         }
-
         const data = docRef.data();
         const documents = data.documents || {};
         const itemName = data.itemName || 'Request';
 
         let modalBody = '';
-
         if (Object.keys(documents).length === 0) {
             modalBody = '<p class="no-docs">No documents uploaded for this request.</p>';
         } else {
@@ -153,25 +143,14 @@ async function viewLeaderDocuments(requestId) {
                 'meetingMinutes': 'Meeting Minutes',
                 'vendorQuotation': 'Vendor Quotation'
             };
-
             modalBody = docOrder.map(key => {
                 const doc = documents[key];
                 if (!doc) {
-                    return `
-                        <div class="doc-item">
-                            <div class="doc-name">${docLabels[key] || key}</div>
-                            <div class="doc-detail">No file uploaded</div>
-                        </div>
-                    `;
+                    return `<div class="doc-item"><div class="doc-name">${docLabels[key] || key}</div><div class="doc-detail">No file uploaded</div></div>`;
                 }
                 const info = getFileInfo(doc);
                 if (!info.path) {
-                    return `
-                        <div class="doc-item">
-                            <div class="doc-name">${docLabels[key] || key}</div>
-                            <div class="doc-detail">${info.name || 'File not found'}</div>
-                        </div>
-                    `;
+                    return `<div class="doc-item"><div class="doc-name">${docLabels[key] || key}</div><div class="doc-detail">${info.name || 'File not found'}</div></div>`;
                 }
                 return `
                     <div class="doc-item">
@@ -185,11 +164,9 @@ async function viewLeaderDocuments(requestId) {
                 `;
             }).join('');
         }
-
         document.getElementById('modalTitle').textContent = `Documents - ${itemName}`;
         document.getElementById('modalBody').innerHTML = modalBody;
         document.getElementById('updateModal').classList.add('active');
-
     } catch (error) {
         console.error('Error viewing documents:', error);
         alert('Error loading documents. ' + error.message);
@@ -203,20 +180,17 @@ async function loadRequests() {
             .where('submittedBy', '==', userUid)
             .orderBy('submittedAt', 'desc')
             .get();
-
         allRequests = [];
         requestsSnapshot.forEach(doc => {
             allRequests.push({ id: doc.id, ...doc.data() });
         });
-
         filteredRequests = [...allRequests];
         currentPage = 1;
         renderTable();
         renderLeaderNotifications();
         openLeaderNotificationFromUrl();
-
     } catch (error) {
-            console.error('Error loading requests:', error);
+        console.error('Error loading requests:', error);
         document.getElementById('requests-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading requests. Please try again.</p>';
     }
 }
@@ -233,7 +207,6 @@ function getTimestampMs(timestamp) {
 function initLeaderNotificationBell() {
     const navLinks = document.querySelector('.nav-links');
     if (!navLinks || navLinks.querySelector('.nav-bell')) return;
-
     const bell = document.createElement('div');
     bell.className = 'nav-bell';
     bell.innerHTML = `
@@ -243,12 +216,10 @@ function initLeaderNotificationBell() {
         <div id="notificationDropdown" class="notification-dropdown" style="left: 0; right: auto;"></div>
     `;
     navLinks.prepend(bell);
-
     document.getElementById('notificationBell').addEventListener('click', function(event) {
         event.stopPropagation();
         toggleLeaderDropdown();
     });
-
     document.addEventListener('click', function(event) {
         const dropdown = document.getElementById('notificationDropdown');
         const bell = document.getElementById('notificationBell');
@@ -260,10 +231,8 @@ function initLeaderNotificationBell() {
 
 function renderLeaderNotifications() {
     initLeaderNotificationBell();
-
     const lastSeen = parseInt(localStorage.getItem('leaderNotificationsLastSeen') || '0', 10);
     const events = [];
-
     allRequests.forEach(request => {
         const history = request.statusHistory || [];
         history.forEach(entry => {
@@ -273,9 +242,7 @@ function renderLeaderNotifications() {
             events.push({ request, entry, ts });
         });
     });
-
     events.sort((a, b) => b.ts - a.ts);
-
     const badge = document.getElementById('notificationCount');
     if (badge) {
         if (events.length > 0) {
@@ -285,15 +252,12 @@ function renderLeaderNotifications() {
             badge.classList.add('hidden');
         }
     }
-
     const dropdown = document.getElementById('notificationDropdown');
     if (!dropdown) return;
-
     if (events.length === 0) {
         dropdown.innerHTML = '<div class="notification-item empty">No new request updates.</div>';
         return;
     }
-
     dropdown.innerHTML = events.slice(0, 5).map(item => {
         const request = item.request;
         const entry = item.entry;
@@ -342,17 +306,15 @@ function openLeaderNotificationFromUrl() {
 // Search function
 function searchRequests() {
     const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase().trim() || '';
-    
     if (searchTerm === '') {
         filteredRequests = [...allRequests];
     } else {
-        filteredRequests = allRequests.filter(r => 
+        filteredRequests = allRequests.filter(r =>
             (r.itemName && r.itemName.toLowerCase().includes(searchTerm)) ||
             (r.type && r.type.toLowerCase().includes(searchTerm)) ||
             (r.status && r.status.toLowerCase().includes(searchTerm))
         );
     }
-    
     currentPage = 1;
     renderTable();
 }
@@ -365,9 +327,7 @@ function renderTable() {
     const container = document.getElementById('requests-container');
     const totalItems = filteredRequests.length;
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
-    
     if (currentPage > totalPages) currentPage = totalPages;
-    
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = Math.min(startIndex + pageSize, totalItems);
     const pageItems = filteredRequests.slice(startIndex, endIndex);
@@ -412,7 +372,7 @@ function renderTable() {
         const isRevision = r.status === 'Revision Required';
         const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
         const hasDocs = r.documents && Object.keys(r.documents).length > 0;
-        
+
         html += `
             <tr>
                 <td style="color:#6c757d;font-weight:500;">${num}</td>
@@ -428,12 +388,10 @@ function renderTable() {
                     <button class="btn-action btn-details" onclick="openDetailView('${r.id}')" style="margin-right:6px;">
                         📋 Details
                     </button>
-                    
-                    ${hasDocs 
+                    ${hasDocs
                         ? `<button class="btn-action btn-docs" onclick="viewLeaderDocuments('${r.id}')" style="margin-right:6px;">📄 View Docs</button>`
                         : `<button class="btn-action btn-no-docs" style="margin-right:6px;" disabled>No Docs</button>`
                     }
-                    
                     ${isRevision ? `<button class="btn-action btn-update-action" onclick="openUpdateModal('${r.id}')">Update</button>` : ''}
                 </td>
             </tr>
@@ -455,28 +413,23 @@ function renderTable() {
     if (endPage - startPage < maxVisible - 1) {
         startPage = Math.max(1, endPage - maxVisible + 1);
     }
-
     if (startPage > 1) {
         html += `<button onclick="changePage(1)">1</button>`;
         if (startPage > 2) html += `<span class="ellipsis">…</span>`;
     }
-
     for (let i = startPage; i <= endPage; i++) {
         html += `<button class="${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
     }
-
     if (endPage < totalPages) {
         if (endPage < totalPages - 1) html += `<span class="ellipsis">…</span>`;
         html += `<button onclick="changePage(${totalPages})">${totalPages}</button>`;
     }
-
     html += `
                     <button onclick="changePage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>›</button>
                 </div>
             </div>
         </div>
     `;
-
     container.innerHTML = html;
 }
 
@@ -495,7 +448,6 @@ function changePage(page) {
 function openDetailView(requestId) {
     const request = allRequests.find(r => r.id === requestId);
     if (!request) return;
-
     document.getElementById('controls').classList.add('hidden');
     document.getElementById('requests-container').classList.add('hidden');
     document.getElementById('request-detail-view').classList.remove('hidden');
@@ -513,16 +465,13 @@ function openDetailView(requestId) {
     const leaderComment = request.leaderComment ? `<div style="margin-top:12px;color:#2E6FBA;font-size:14px;"><strong>Your comment:</strong> ${request.leaderComment}</div>` : '';
 
     const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
-    
     let docsHtml = docOrder.map(key => {
         const label = docLabels[key] || key;
         const doc = documents[key];
         const info = getFileInfo(doc);
-        
         if (!info.path) {
             return `<div class="doc-item"><strong>${label}</strong><div>No file uploaded</div></div>`;
         }
-        
         return `
             <div class="doc-item">
                 <strong>${label}</strong>
@@ -552,18 +501,16 @@ function closeDetailView() {
     document.getElementById('controls').classList.remove('hidden');
 }
 
-// ============ UPDATE DOCUMENTS MODAL ============
+// ============ UPDATE DOCUMENTS MODAL (UPDATED with View button) ============
 
 async function openUpdateModal(requestId) {
     currentRequestId = requestId;
-    
     try {
         const docRef = await db.collection('requests').doc(requestId).get();
         if (!docRef.exists) {
             alert('Request not found.');
             return;
         }
-
         const data = docRef.data();
         const itemName = data.itemName || 'Request';
         const officerComment = data.officerComment || '';
@@ -606,6 +553,7 @@ async function openUpdateModal(requestId) {
             const currentFile = data.documents?.[key];
             const info = getFileInfo(currentFile);
             const currentFileName = info.name || 'No file uploaded';
+            const currentPath = info.path || '';
 
             modalBody += `
                 <div class="form-group" style="margin-bottom:16px;">
@@ -613,11 +561,9 @@ async function openUpdateModal(requestId) {
                         ${label}
                     </label>
 
-                    <div style="font-size:12px;color:var(--text-500);margin-bottom:4px;">
-                        Current:
-                        <strong id="current_${key}" style="color:${currentFileName === 'No file uploaded' ? '#D64545' : '#2E7D32'};">
-                            ${currentFileName}
-                        </strong>
+                    <div style="font-size:12px;color:var(--text-500);margin-bottom:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <span>Current: <strong id="current_${key}" style="color:${currentFileName === 'No file uploaded' ? '#D64545' : '#2E7D32'};">${currentFileName}</strong></span>
+                        ${currentPath ? `<button class="btn-view-doc" onclick="viewFileFromSupabase('${currentPath}', '${currentFileName}')" style="padding:2px 10px;font-size:12px;">👁️ View</button>` : ''}
                     </div>
 
                     <div class="file-input">
@@ -627,16 +573,10 @@ async function openUpdateModal(requestId) {
                             accept="${accept}"
                             style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;background:var(--surface);"
                         />
-
                         <div style="font-size:12px;color:var(--text-500);margin-top:4px;">
                             Upload new version (${hint})
                         </div>
-
-                        <div
-                            class="form-error"
-                            id="file_${key}_error"
-                            style="font-size:12px;color:#D64545;margin-top:4px;min-height:18px;">
-                        </div>
+                        <div class="form-error" id="file_${key}_error" style="font-size:12px;color:#D64545;margin-top:4px;min-height:18px;"></div>
                     </div>
                 </div>
             `;
@@ -663,22 +603,17 @@ async function openUpdateModal(requestId) {
             if (fileInput) {
                 fileInput.addEventListener('change', function() {
                     validateUpdateFile(key, this);
-
                     const file = this.files[0];
                     const currentFileEl = document.getElementById(`current_${key}`);
-
                     if (file && currentFileEl) {
                         currentFileEl.textContent = file.name;
                         currentFileEl.style.color = '#2E7D32';
                     }
-
                     checkUpdateFormValidity();
                 });
             }
         });
-
         checkUpdateFormValidity();
-
     } catch (error) {
         console.error('Error loading documents:', error);
         alert('Error loading documents. ' + error.message);
@@ -690,22 +625,18 @@ async function openUpdateModal(requestId) {
 function validateUpdateFile(key, input) {
     const errorEl = document.getElementById(`file_${key}_error`);
     if (!errorEl) return;
-    
     const file = input.files[0];
     if (!file) {
         errorEl.textContent = '';
         return;
     }
-    
     const configs = {
         'budgetForm': { accept: ['.xlsx', '.xls'], label: 'Excel' },
         'meetingMinutes': { accept: ['.pdf'], label: 'PDF' },
         'vendorQuotation': { accept: ['.pdf'], label: 'PDF' }
     };
-    
     const config = configs[key];
     if (!config) return;
-    
     const fileExt = '.' + file.name.split('.').pop().toLowerCase();
     if (!config.accept.includes(fileExt)) {
         errorEl.textContent = `Please upload a ${config.label} file (${config.accept.join(', ')}).`;
@@ -719,11 +650,9 @@ function validateUpdateFile(key, input) {
 function checkUpdateFormValidity() {
     const btn = document.getElementById('updateResubmitBtn');
     if (!btn) return;
-    
     const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
     let hasFile = false;
     let hasError = false;
-    
     docOrder.forEach(key => {
         const input = document.getElementById(`file_${key}`);
         const errorEl = document.getElementById(`file_${key}_error`);
@@ -734,13 +663,12 @@ function checkUpdateFormValidity() {
             }
         }
     });
-    
     btn.disabled = !hasFile || hasError;
     btn.style.opacity = btn.disabled ? '0.6' : '1';
     btn.style.cursor = btn.disabled ? 'not-allowed' : 'pointer';
 }
 
-// ============ SUBMIT UPDATE ============
+// ============ SUBMIT UPDATE (SAFE: upload new first, then delete old) ============
 
 async function submitUpdate() {
     if (!currentRequestId) return;
@@ -765,8 +693,7 @@ async function submitUpdate() {
         if (!user) throw new Error('User not logged in.');
         const firebaseToken = await user.getIdToken();
 
-        let hasUpdate = false;
-
+        // 1. Upload new files (only for fields that have a new file)
         const uploadFile = async (file, key) => {
             if (!file) return null;
             const timestamp = Date.now();
@@ -784,19 +711,19 @@ async function submitUpdate() {
             return data.path;
         };
 
+        const newPaths = {};
+        let hasUpdate = false;
+
         if (budgetForm) {
-            const path = await uploadFile(budgetForm, 'Budget Form');
-            updatedDocs.budgetForm = path;
+            newPaths.budgetForm = await uploadFile(budgetForm, 'Budget Form');
             hasUpdate = true;
         }
         if (meetingMinutes) {
-            const path = await uploadFile(meetingMinutes, 'Meeting Minutes');
-            updatedDocs.meetingMinutes = path;
+            newPaths.meetingMinutes = await uploadFile(meetingMinutes, 'Meeting Minutes');
             hasUpdate = true;
         }
         if (vendorQuotation) {
-            const path = await uploadFile(vendorQuotation, 'Vendor Quotation');
-            updatedDocs.vendorQuotation = path;
+            newPaths.vendorQuotation = await uploadFile(vendorQuotation, 'Vendor Quotation');
             hasUpdate = true;
         }
 
@@ -809,8 +736,31 @@ async function submitUpdate() {
             return;
         }
 
-        const comment = document.getElementById('updateComment')?.value || '';
+        // 2. If uploads succeeded, delete old files for the fields that were updated
+        const oldPathsToDelete = [];
+        for (const key of ['budgetForm', 'meetingMinutes', 'vendorQuotation']) {
+            if (newPaths[key]) {
+                const oldPath = currentDocs[key];
+                if (oldPath) {
+                    oldPathsToDelete.push(oldPath);
+                }
+                // Update the document object with the new path
+                updatedDocs[key] = newPaths[key];
+            }
+        }
 
+        if (oldPathsToDelete.length > 0) {
+            const { error: deleteError } = await window.supabaseClient.storage
+                .from('documents')
+                .remove(oldPathsToDelete);
+            if (deleteError) {
+                console.error('Error deleting old files:', deleteError);
+                // Continue anyway — the new files are already uploaded
+            }
+        }
+
+        // 3. Update Firestore
+        const comment = document.getElementById('updateComment')?.value || '';
         await db.collection('requests').doc(currentRequestId).update({
             documents: updatedDocs,
             status: 'Resubmitted',
@@ -821,7 +771,6 @@ async function submitUpdate() {
         closeUpdateModal();
         loadRequests();
         alert('✅ Documents updated successfully. Your request has been resubmitted for review.');
-
     } catch (error) {
         console.error('Error updating documents:', error);
         alert('Error updating documents. ' + error.message);
@@ -846,15 +795,12 @@ document.getElementById('updateModal').addEventListener('click', function(e) {
     }
 });
 
-// ================================================================
-// DELETE REQUEST (UPDATED - with better logging)
-// ================================================================
+// ============ DELETE REQUEST (with better logging) ============
 
 async function deleteRequest(requestId) {
     if (!confirm('Are you sure you want to delete this request? This cannot be undone.')) return;
 
     try {
-        // 1. Get the request data to find the file paths
         const docRef = db.collection('requests').doc(requestId);
         const doc = await docRef.get();
         if (!doc.exists) {
@@ -863,23 +809,19 @@ async function deleteRequest(requestId) {
         }
         const data = doc.data();
         const documents = data.documents || {};
-        
-        // 2. Collect all file paths
+
         const filePaths = [];
         if (documents.budgetForm) filePaths.push(documents.budgetForm);
         if (documents.meetingMinutes) filePaths.push(documents.meetingMinutes);
         if (documents.vendorQuotation) filePaths.push(documents.vendorQuotation);
 
-        console.log('🔍 File paths to delete:', filePaths); // DEBUG
+        console.log('🔍 File paths to delete:', filePaths);
 
-        // 3. Delete files from Supabase Storage (if any exist)
         if (filePaths.length > 0) {
             const { data, error } = await window.supabaseClient.storage
                 .from('documents')
                 .remove(filePaths);
-            
-            console.log('🗑️ Delete response:', { data, error }); // DEBUG
-            
+            console.log('🗑️ Delete response:', { data, error });
             if (error) {
                 console.error('❌ Error deleting files from Supabase:', error);
                 alert('⚠️ Failed to delete some files from storage. Check console for details.');
@@ -888,12 +830,8 @@ async function deleteRequest(requestId) {
             }
         }
 
-        // 4. Delete the Firestore document
         await docRef.delete();
-        
-        // 5. Reload the table
         loadRequests();
-        
         alert('✅ Request deleted successfully.');
     } catch (error) {
         console.error('❌ Error deleting request:', error);
@@ -902,5 +840,4 @@ async function deleteRequest(requestId) {
 }
 
 window.searchRequests = searchRequests;
-
 loadRequests();

@@ -50,7 +50,7 @@ const docLabels = {
 };
 
 // ================================================================
-// VIEW FILE IN NEW TAB (FIXED - with Firebase token)
+// VIEW FILE IN NEW TAB (FIXED - with Firebase token set in session)
 // ================================================================
 
 async function viewFileFromSupabase(filePath, fileName) {
@@ -63,14 +63,16 @@ async function viewFileFromSupabase(filePath, fileName) {
 
         const firebaseToken = await user.getIdToken();
 
-        // Generate a signed URL (valid for 60 seconds) with Firebase token
+        // Set the Firebase token as the auth token for Supabase
+        await window.supabaseClient.auth.setSession({
+            access_token: firebaseToken,
+            refresh_token: ''
+        });
+
+        // Generate a signed URL (valid for 60 seconds)
         const { data, error } = await window.supabaseClient.storage
             .from('documents')
-            .createSignedUrl(filePath, 60, {
-                headers: {
-                    Authorization: `Bearer ${firebaseToken}`
-                }
-            });
+            .createSignedUrl(filePath, 60);
 
         if (error) {
             console.error('Signed URL error:', error);
@@ -91,7 +93,7 @@ async function viewFileFromSupabase(filePath, fileName) {
 }
 
 // ================================================================
-// DOWNLOAD FILE (FIXED - with Firebase token)
+// DOWNLOAD FILE (FIXED - with Firebase token set in session)
 // ================================================================
 
 async function downloadFileFromSupabase(filePath, fileName) {
@@ -104,14 +106,16 @@ async function downloadFileFromSupabase(filePath, fileName) {
 
         const firebaseToken = await user.getIdToken();
 
-        // Generate a signed URL (valid for 60 seconds) with Firebase token
+        // Set the Firebase token as the auth token for Supabase
+        await window.supabaseClient.auth.setSession({
+            access_token: firebaseToken,
+            refresh_token: ''
+        });
+
+        // Generate a signed URL (valid for 60 seconds)
         const { data, error } = await window.supabaseClient.storage
             .from('documents')
-            .createSignedUrl(filePath, 60, {
-                headers: {
-                    Authorization: `Bearer ${firebaseToken}`
-                }
-            });
+            .createSignedUrl(filePath, 60);
 
         if (error) {
             console.error('Signed URL error:', error);

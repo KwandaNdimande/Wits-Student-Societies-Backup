@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Supabase SDK (for consistency) -->
+    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -59,9 +59,7 @@
             margin-top: 4px;
         }
 
-        /* ================================================================
-           CREATE SECTION (MODERN CARD)
-           ================================================================ */
+        /* Create Section */
         .create-section {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -125,6 +123,15 @@
             resize: vertical;
             min-height: 80px;
         }
+        .form-grid .date-error {
+            color: #D64545;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+        .form-grid .date-error.show {
+            display: block;
+        }
 
         .btn-post {
             font-family: 'Inter', sans-serif;
@@ -141,7 +148,7 @@
             grid-column: 1 / -1;
             justify-self: start;
         }
-        .btn-post:hover {
+        .btn-post:hover:not(:disabled) {
             background: var(--navy-800);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
@@ -152,9 +159,7 @@
             transform: none;
         }
 
-        /* ================================================================
-           TOAST NOTIFICATION
-           ================================================================ */
+        /* Toast, cards, modal, etc. (same as before) */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -180,9 +185,7 @@
             transform: translateY(0);
             opacity: 1;
         }
-        .toast .toast-icon {
-            font-size: 20px;
-        }
+        .toast .toast-icon { font-size: 20px; }
         .toast .toast-close {
             background: none;
             border: none;
@@ -191,13 +194,8 @@
             color: var(--text-500);
             padding: 0 4px;
         }
-        .toast .toast-close:hover {
-            color: var(--text-900);
-        }
+        .toast .toast-close:hover { color: var(--text-900); }
 
-        /* ================================================================
-           ANNOUNCEMENT CARDS
-           ================================================================ */
         .announcement-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -207,9 +205,7 @@
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
             transition: box-shadow 0.2s ease;
         }
-        .announcement-card:hover {
-            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-        }
+        .announcement-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
         .announcement-card .card-header {
             display: flex;
             justify-content: space-between;
@@ -218,9 +214,7 @@
             margin-bottom: 6px;
             flex-wrap: wrap;
         }
-        .announcement-card .card-header .title-area {
-            flex: 1;
-        }
+        .announcement-card .card-header .title-area { flex: 1; }
         .announcement-card .card-header .title-area .ann-title {
             font-family: 'Space Grotesk', sans-serif;
             font-size: 18px;
@@ -266,9 +260,6 @@
             padding: 40px 0;
         }
 
-        /* ================================================================
-           BUTTONS
-           ================================================================ */
         .btn-action {
             display: inline-block;
             padding: 4px 14px;
@@ -280,24 +271,11 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .btn-edit {
-            background: var(--navy-900);
-            color: #fff;
-        }
-        .btn-edit:hover {
-            background: var(--navy-800);
-        }
-        .btn-delete {
-            background: var(--danger);
-            color: #fff;
-        }
-        .btn-delete:hover {
-            background: #922B21;
-        }
+        .btn-edit { background: var(--navy-900); color: #fff; }
+        .btn-edit:hover { background: var(--navy-800); }
+        .btn-delete { background: var(--danger); color: #fff; }
+        .btn-delete:hover { background: #922B21; }
 
-        /* ================================================================
-           MODAL STYLES
-           ================================================================ */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -312,9 +290,7 @@
             justify-content: center;
             align-items: center;
         }
-        .modal-overlay.active {
-            display: flex;
-        }
+        .modal-overlay.active { display: flex; }
         .modal {
             background: var(--surface);
             border-radius: var(--radius);
@@ -348,21 +324,14 @@
             padding: 4px 8px;
             font-family: 'Inter', sans-serif;
         }
-        .modal-back:hover {
-            color: var(--text-900);
-        }
-        .modal-body {
-            padding: 4px 0;
-            color: var(--text-900);
-        }
+        .modal-back:hover { color: var(--text-900); }
+        .modal-body { padding: 4px 0; color: var(--text-900); }
         .modal-body .edit-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 14px;
         }
-        .modal-body .edit-grid .full-width {
-            grid-column: 1 / -1;
-        }
+        .modal-body .edit-grid .full-width { grid-column: 1 / -1; }
         .modal-body .edit-grid label {
             display: block;
             font-size: 13px;
@@ -390,10 +359,7 @@
             border-color: var(--navy-900);
             box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
         }
-        .modal-body .edit-grid textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
+        .modal-body .edit-grid textarea { resize: vertical; min-height: 80px; }
         .modal-footer {
             margin-top: 20px;
             padding-top: 16px;
@@ -412,71 +378,41 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .btn-primary {
-            background: var(--navy-900);
-            color: #fff;
-        }
-        .btn-primary:hover {
-            background: var(--navy-800);
-        }
-        .btn-secondary {
-            background: var(--border);
-            color: var(--text-600);
-        }
-        .btn-secondary:hover {
-            background: #d0d7e0;
+        .btn-primary { background: var(--navy-900); color: #fff; }
+        .btn-primary:hover { background: var(--navy-800); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-secondary { background: var(--border); color: var(--text-600); }
+        .btn-secondary:hover { background: #d0d7e0; }
+
+        .wits-badge {
+            text-align: center;
+            margin-top: 28px;
+            font-size: 11px;
+            color: #8FA6CC;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            font-weight: 500;
         }
 
-        /* ================================================================
-           RESPONSIVE
-           ================================================================ */
         @media (max-width: 768px) {
-            body {
-                padding: 80px 16px 20px 16px;
-            }
-            .create-section {
-                padding: 20px;
-            }
-            .form-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            .modal-body .edit-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            .announcement-card .card-header {
-                flex-direction: column;
-                gap: 8px;
-            }
-            .announcement-card .card-header .card-actions {
-                width: 100%;
-                justify-content: flex-start;
-            }
+            body { padding: 80px 16px 20px 16px; }
+            .create-section { padding: 20px; }
+            .form-grid { grid-template-columns: 1fr 1fr; }
+            .modal-body .edit-grid { grid-template-columns: 1fr 1fr; }
+            .announcement-card .card-header { flex-direction: column; gap: 8px; }
+            .announcement-card .card-header .card-actions { width: 100%; justify-content: flex-start; }
+            .toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
         }
         @media (max-width: 480px) {
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-            .modal-body .edit-grid {
-                grid-template-columns: 1fr;
-            }
-            .create-section {
-                padding: 16px;
-            }
-            .announcement-card {
-                padding: 16px;
-            }
-            .toast {
-                left: 16px;
-                right: 16px;
-                bottom: 16px;
-                max-width: none;
-            }
+            .form-grid { grid-template-columns: 1fr; }
+            .modal-body .edit-grid { grid-template-columns: 1fr; }
+            .create-section { padding: 16px; }
+            .announcement-card { padding: 16px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <h1>Announcements</h1>
             <p>Manage announcements for all societies</p>
@@ -485,6 +421,7 @@
         <!-- Create Announcement Card -->
         <div class="create-section">
             <div class="section-header">
+                <span class="icon"></span>
                 <h2>Create Announcement</h2>
             </div>
 
@@ -506,16 +443,16 @@
                 <div>
                     <label for="announcement-date">Date</label>
                     <input id="announcement-date" type="date" />
+                    <div id="date-error" class="date-error">⚠️ Please select a date from today onwards.</div>
                 </div>
                 <div class="full-width">
                     <label for="announcement-body">Message</label>
                     <textarea id="announcement-body" placeholder="Write your announcement message here..." rows="3"></textarea>
                 </div>
-                <button class="btn-post" onclick="postAnnouncement()">Post Announcement</button>
+                <button class="btn-post" id="postButton" onclick="postAnnouncement()">Post Announcement</button>
             </div>
         </div>
 
-        <!-- Announcements List -->
         <div id="announcements-container">
             <div class="no-announcements">Loading announcements...</div>
         </div>
@@ -534,7 +471,7 @@
     <div class="modal-overlay" id="announcementModal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="announcementModalTitle">✏️ Edit Announcement</h2>
+                <h2 id="announcementModalTitle">Edit Announcement</h2>
                 <button class="modal-back" onclick="closeAnnouncementModal()">← Back</button>
             </div>
             <div class="modal-body">
@@ -547,15 +484,16 @@
                         <label for="edit-ann-category">Category</label>
                         <select id="edit-ann-category">
                             <option value="">Select category...</option>
-                            <option value="Upcoming Event">🎉 Upcoming Event</option>
-                            <option value="Training Induction">📚 Training Induction</option>
-                            <option value="General Notice">📋 General Notice</option>
-                            <option value="Deadline Reminder">⏰ Deadline Reminder</option>
+                            <option value="Upcoming Event">Upcoming Event</option>
+                            <option value="Training Induction">Training Induction</option>
+                            <option value="General Notice">General Notice</option>
+                            <option value="Deadline Reminder">Deadline Reminder</option>
                         </select>
                     </div>
                     <div>
                         <label for="edit-ann-date">Date</label>
                         <input id="edit-ann-date" type="date" />
+                        <div id="edit-date-error" class="date-error">⚠️ Please select a date from today onwards.</div>
                     </div>
                     <div class="full-width">
                         <label for="edit-ann-body">Message</label>
@@ -564,7 +502,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-primary" id="saveAnnBtn" onclick="saveAnnouncementEdits()">💾 Save Changes</button>
+                <button class="btn btn-primary" id="saveAnnBtn" onclick="saveAnnouncementEdits()">Save Changes</button>
                 <button class="btn btn-secondary" onclick="closeAnnouncementModal()">Cancel</button>
             </div>
         </div>

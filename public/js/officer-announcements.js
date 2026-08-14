@@ -198,7 +198,7 @@ async function postAnnouncement() {
 
     const btn = document.getElementById('postButton');
     btn.disabled = true;
-    btn.textContent = '⏳ Posting...';
+    btn.textContent = 'Posting...';
 
     try {
         const user = auth.currentUser;
@@ -223,7 +223,7 @@ async function postAnnouncement() {
         showToast('❌ Error posting announcement.', true);
     } finally {
         btn.disabled = false;
-        btn.textContent = '📤 Post Announcement';
+        btn.textContent = 'Post Announcement';
         validateCreateDate(); // re-check date state
     }
 }
@@ -243,7 +243,7 @@ async function openEditAnnouncement(id) {
         document.getElementById('edit-ann-date').value = data.date || '';
         document.getElementById('edit-ann-body').value = data.body || '';
 
-        document.getElementById('announcementModalTitle').textContent = `✏️ Edit: ${data.title || 'Announcement'}`;
+        document.getElementById('announcementModalTitle').textContent = `Edit: ${data.title || 'Announcement'}`;
         document.getElementById('announcementModal').classList.add('active');
         // Validate initial date
         validateEditDate();
@@ -286,7 +286,7 @@ async function saveAnnouncementEdits() {
         showToast('❌ Error saving.', true);
     } finally {
         btn.disabled = false;
-        btn.textContent = '💾 Save Changes';
+        btn.textContent = 'Save Changes';
     }
 }
 
@@ -294,7 +294,7 @@ async function deleteAnnouncement(id) {
     if (!confirm('Delete this announcement?')) return;
     try {
         await db.collection('announcements').doc(id).delete();
-        showToast('🗑️ Deleted.');
+        showToast('Deleted.');
         loadAnnouncements();
     } catch (error) {
         console.error(error);

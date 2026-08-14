@@ -54,6 +54,18 @@ function closeToast() {
 }
 
 // ================================================================
+// HELPER: Force download from URL
+// ================================================================
+function forceDownload(url, fileName) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// ================================================================
 // LOAD DOCUMENTS
 // ================================================================
 
@@ -73,13 +85,17 @@ async function loadDocuments() {
         let html = '';
         docsSnapshot.forEach(doc => {
             const d = doc.data();
-            let downloadUrl = '#';
+            let publicUrl = '#';
+            let fileName = 'file';
             if (d.storagePath) {
                 const { data } = window.supabaseClient.storage
                     .from('documents')
                     .getPublicUrl(d.storagePath);
-                downloadUrl = data.publicUrl;
+                publicUrl = data.publicUrl;
+                fileName = d.storagePath.split('/').pop();
             }
+            const hasFile = publicUrl !== '#';
+
             html += `
                 <div class="doc-card" data-id="${doc.id}">
                     <div class="doc-info">
@@ -87,9 +103,11 @@ async function loadDocuments() {
                         <div class="doc-description">${escapeHtml(d.description || 'No description')}</div>
                     </div>
                     <div class="doc-actions">
-                        <button class="btn-action btn-download-doc" onclick="downloadDocument('${doc.id}')">⬇ Download</button>
+                        <button class="btn-action btn-download-doc" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
+                            ⬇ Download
+                        </button>
                         <button class="btn-action btn-edit-doc" onclick="openEditDocument('${doc.id}')">Edit</button>
-                        <button class="btn-action btn-remove-doc" onclick="removeDocument('${doc.id}')">Remove</button>
+                        <button class="btn-action btn-delete-doc" onclick="deleteDocument('${doc.id}')">Delete</button>
                     </div>
                 </div>
             `;
@@ -101,6 +119,17 @@ async function loadDocuments() {
         console.error('Error loading documents:', error);
         document.getElementById('documents-container').innerHTML =
             `<div class="no-docs" style="color:#dc3545;">⚠️ Error loading documents.</div>`;
+    }
+}
+
+// ================================================================
+// DOWNLOAD: Force download
+// ================================================================
+function downloadDocument(url, fileName) {
+    if (url && url !== '#') {
+        forceDownload(url, fileName);
+    } else {
+        alert('No file available to download.');
     }
 }
 
@@ -187,7 +216,7 @@ async function deleteFileFromSupabase(filePath) {
 }
 
 // ================================================================
-// SUBMIT DOCUMENT (20MB limit)
+// SUBMIT DOCUMENT
 // ================================================================
 
 async function submitDocument() {
@@ -217,7 +246,6 @@ async function submitDocument() {
         }
 
         if (file) {
-            // 20MB limit
             if (file.size > 20 * 1024 * 1024) {
                 showToast('⚠️ File size exceeds 20MB limit.', true);
                 saveBtn.disabled = false;
@@ -280,43 +308,11 @@ async function submitDocument() {
 }
 
 // ================================================================
-// DOWNLOAD DOCUMENT
+// DELETE DOCUMENT (was removeDocument)
 // ================================================================
 
-async function downloadDocument(docId) {
-    try {
-        const doc = await db.collection('documents').doc(docId).get();
-        if (!doc.exists) {
-            showToast('⚠️ Document not found.', true);
-            return;
-        }
-
-        const d = doc.data();
-        if (!d.storagePath) {
-            showToast('⚠️ No file available for this document.', true);
-            return;
-        }
-
-        const { data } = window.supabaseClient.storage
-            .from('documents')
-            .getPublicUrl(d.storagePath);
-        if (data && data.publicUrl) {
-            window.open(data.publicUrl, '_blank');
-        } else {
-            showToast('⚠️ Could not generate download link.', true);
-        }
-    } catch (error) {
-        console.error('Error downloading document:', error);
-        showToast('❌ Error downloading document.', true);
-    }
-}
-
-// ================================================================
-// REMOVE DOCUMENT
-// ================================================================
-
-async function removeDocument(docId) {
-    if (!confirm('Are you sure you want to remove this document? This cannot be undone.')) return;
+async function deleteDocument(docId) {
+    if (!confirm('Are you sure you want to delete this document? This cannot be undone.')) return;
 
     try {
         const doc = await db.collection('documents').doc(docId).get();
@@ -336,12 +332,12 @@ async function removeDocument(docId) {
 
         await db.collection('documents').doc(docId).delete();
 
-        showToast('Document removed successfully!');
+        showToast('Document deleted successfully!');
         loadDocuments();
 
     } catch (error) {
-        console.error('Error removing document:', error);
-        showToast('❌ Error removing document.', true);
+        console.error('Error deleting document:', error);
+        showToast('❌ Error deleting document.', true);
     }
 }
 

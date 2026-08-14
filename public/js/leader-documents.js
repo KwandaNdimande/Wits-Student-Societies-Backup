@@ -18,16 +18,26 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Check authentication
 const userUid = localStorage.getItem('userUid');
 if (!userUid) {
     window.location.href = '/login.html';
 }
 
 // ================================================================
+// HELPER: Force download from URL
+// ================================================================
+function forceDownload(url, fileName) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// ================================================================
 // LOAD DOCUMENTS (READ-ONLY FOR LEADERS)
 // ================================================================
-
 async function loadDocuments() {
     try {
         const docsSnapshot = await db.collection('documents')
@@ -44,22 +54,31 @@ async function loadDocuments() {
         let html = '';
         docsSnapshot.forEach(doc => {
             const d = doc.data();
-            let downloadUrl = '#';
+            let publicUrl = '#';
+            let fileName = 'file';
             if (d.storagePath) {
                 const { data } = window.supabaseClient.storage
                     .from('documents')
                     .getPublicUrl(d.storagePath);
-                downloadUrl = data.publicUrl;
+                publicUrl = data.publicUrl;
+                fileName = d.storagePath.split('/').pop();
             }
+            const hasFile = publicUrl !== '#';
+
             html += `
                 <div class="doc-card">
                     <div class="doc-info">
                         <div class="doc-name">${escapeHtml(d.name)}</div>
                         <div class="doc-description">${escapeHtml(d.description || 'No description')}</div>
                     </div>
-                    <button class="btn-download" onclick="window.open('${downloadUrl}', '_blank')" ${downloadUrl === '#' ? 'disabled' : ''}>
-                        ⬇ Download
-                    </button>
+                    <div class="doc-actions">
+                        <button class="btn-action btn-view" onclick="viewDocument('${publicUrl}')" ${!hasFile ? 'disabled' : ''}>
+                            👁️ View
+                        </button>
+                        <button class="btn-action btn-download" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
+                            ⬇ Download
+                        </button>
+                    </div>
                 </div>
             `;
         });
@@ -74,9 +93,30 @@ async function loadDocuments() {
 }
 
 // ================================================================
+// VIEW: Open in new tab
+// ================================================================
+function viewDocument(url) {
+    if (url && url !== '#') {
+        window.open(url, '_blank');
+    } else {
+        alert('No file available to view.');
+    }
+}
+
+// ================================================================
+// DOWNLOAD: Force download
+// ================================================================
+function downloadDocument(url, fileName) {
+    if (url && url !== '#') {
+        forceDownload(url, fileName);
+    } else {
+        alert('No file available to download.');
+    }
+}
+
+// ================================================================
 // HELPER FUNCTIONS
 // ================================================================
-
 function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -85,5 +125,4 @@ function escapeHtml(str) {
 // ================================================================
 // LOAD DATA
 // ================================================================
-
 loadDocuments();

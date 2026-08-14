@@ -36,7 +36,7 @@
             color: #fff;
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
-            padding: 90px 24px 40px 24px; /* fixed navigation padding */
+            padding: 90px 24px 40px 24px;
         }
         .container {
             max-width: 1000px;
@@ -84,28 +84,41 @@
             color: var(--text-500);
             margin-top: 2px;
         }
-        .btn-download {
+        .doc-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .btn-action {
             font-family: 'Inter', sans-serif;
             font-size: 13px;
             font-weight: 600;
-            padding: 8px 20px;
-            border: 1px solid #003B5C;
-            border-radius: 8px;
-            background: transparent;
-            color: #003B5C;
+            padding: 8px 18px;
+            border: none;
+            border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .btn-download:hover:not(:disabled) {
+        .btn-view {
+            background: #2E6FBA;
+            color: #fff;
+        }
+        .btn-view:hover {
+            background: #1B4F8A;
+        }
+        .btn-download {
             background: #003B5C;
             color: #fff;
         }
-        .btn-download:disabled {
+        .btn-download:hover {
+            background: #1B3E73;
+        }
+        .btn-download:disabled,
+        .btn-view:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            border-color: #6c757d;
-            color: #6c757d;
         }
+
         .no-docs {
             color: #8FA6CC;
             font-size: 14px;
@@ -130,8 +143,11 @@
                 align-items: flex-start;
                 gap: 12px;
             }
-            .btn-download {
+            .doc-actions {
                 width: 100%;
+            }
+            .doc-actions .btn-action {
+                flex: 1;
                 text-align: center;
             }
         }
@@ -156,7 +172,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <!-- Supabase already loaded in head -->
     <script src="/js/leader-documents.js"></script>
     <script src="/js/shared-nav.js"></script>
 </body>

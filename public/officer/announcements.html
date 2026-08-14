@@ -44,6 +44,8 @@
             max-width: 1000px;
             margin: 0 auto;
         }
+
+        /* Header */
         .header {
             margin-bottom: 28px;
         }
@@ -159,7 +161,7 @@
             transform: none;
         }
 
-        /* Toast, cards, modal, etc. (same as before) */
+        /* Toast */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -196,6 +198,7 @@
         }
         .toast .toast-close:hover { color: var(--text-900); }
 
+        /* Announcement Cards */
         .announcement-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -276,6 +279,36 @@
         .btn-delete { background: var(--danger); color: #fff; }
         .btn-delete:hover { background: #922B21; }
 
+        /* Load More Button */
+        .load-more-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn-load-more {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 32px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            background: transparent;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-load-more:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: #fff;
+        }
+        .btn-load-more:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .btn-load-more.hidden {
+            display: none;
+        }
+
+        /* Modal */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -408,6 +441,7 @@
             .modal-body .edit-grid { grid-template-columns: 1fr; }
             .create-section { padding: 16px; }
             .announcement-card { padding: 16px; }
+            .btn-load-more { width: 100%; }
         }
     </style>
 </head>
@@ -421,7 +455,6 @@
         <!-- Create Announcement Card -->
         <div class="create-section">
             <div class="section-header">
-                <span class="icon"></span>
                 <h2>Create Announcement</h2>
             </div>
 
@@ -453,8 +486,14 @@
             </div>
         </div>
 
+        <!-- Announcements List -->
         <div id="announcements-container">
             <div class="no-announcements">Loading announcements...</div>
+        </div>
+
+        <!-- Load More Button -->
+        <div id="load-more-container" class="load-more-container">
+            <button id="load-more-btn" class="btn-load-more">Load More</button>
         </div>
 
         <div class="wits-badge">University of the Witwatersrand</div>

@@ -24,6 +24,7 @@
             --text-500: #5A6B87;
             --border: #E1E7F0;
             --radius: 12px;
+            --primary: #0B1F3A;
         }
         * {
             margin: 0;
@@ -36,7 +37,7 @@
             color: #fff;
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
-            padding: 90px 24px 40px 24px; /* Top padding clears fixed nav */
+            padding: 90px 24px 40px 24px;
         }
         .container {
             max-width: 1000px;
@@ -57,9 +58,7 @@
             margin-top: 4px;
         }
 
-        /* ================================================================
-           ANNOUNCEMENT CARDS
-           ================================================================ */
+        /* Announcement Cards */
         .announcement-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -123,6 +122,35 @@
             padding: 40px 0;
         }
 
+        /* Load More Button */
+        .load-more-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn-load-more {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 32px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            background: transparent;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-load-more:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: #fff;
+        }
+        .btn-load-more:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .btn-load-more.hidden {
+            display: none;
+        }
+
         .wits-badge {
             text-align: center;
             margin-top: 28px;
@@ -133,9 +161,6 @@
             font-weight: 500;
         }
 
-        /* ================================================================
-           RESPONSIVE
-           ================================================================ */
         @media (max-width: 768px) {
             body {
                 padding: 80px 16px 20px 16px;
@@ -154,6 +179,9 @@
                 align-items: flex-start;
                 gap: 4px;
             }
+            .btn-load-more {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -164,8 +192,11 @@
             <p>Society Leader Dashboard</p>
         </div>
 
-        <div id="announcements-container">
-            <div class="no-announcements">Loading announcements...</div>
+        <div id="announcements-container"></div>
+
+        <!-- Load More Button Container -->
+        <div id="load-more-container" class="load-more-container">
+            <button id="load-more-btn" class="btn-load-more">Load More</button>
         </div>
 
         <div class="wits-badge">University of the Witwatersrand</div>
@@ -176,7 +207,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <!-- Supabase is already loaded in the head -->
     <script src="/js/leader-announcements.js"></script>
     <script src="/js/shared-nav.js"></script>
 </body>

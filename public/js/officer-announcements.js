@@ -34,7 +34,19 @@ const categoryColors = {
 };
 
 // ================================================================
-// TOAST
+// PAGINATION STATE
+// ================================================================
+let lastDoc = null;
+let isLoading = false;
+let hasMore = true;
+const PAGE_SIZE = 3;
+let allLoadedCount = 0;
+
+const container = document.getElementById('announcements-container');
+const loadMoreBtn = document.getElementById('load-more-btn');
+
+// ================================================================
+// TOAST (kept for errors and other messages)
 // ================================================================
 function showToast(message, isError = false) {
     const toast = document.getElementById('toast');
@@ -70,15 +82,12 @@ function validateCreateDate() {
     const errorEl = document.getElementById('date-error');
     const postBtn = document.getElementById('postButton');
     const dateVal = dateInput.value;
-
     if (dateVal && !isValidDate(dateVal)) {
         errorEl.classList.add('show');
         postBtn.disabled = true;
         return false;
     } else {
         errorEl.classList.remove('show');
-        // Re-enable only if all other fields are also filled (optional)
-        // We'll just enable if date is valid; other fields validation is done in post
         postBtn.disabled = false;
         return true;
     }
@@ -89,7 +98,6 @@ function validateEditDate() {
     const errorEl = document.getElementById('edit-date-error');
     const saveBtn = document.getElementById('saveAnnBtn');
     const dateVal = dateInput.value;
-
     if (dateVal && !isValidDate(dateVal)) {
         errorEl.classList.add('show');
         saveBtn.disabled = true;
@@ -102,55 +110,153 @@ function validateEditDate() {
 }
 
 // ================================================================
-// LOAD ANNOUNCEMENTS
+// RENDER ANNOUNCEMENT CARDS (with Edit/Delete)
 // ================================================================
-async function loadAnnouncements() {
+function renderAnnouncements(docs, append = false) {
+    if (!append) {
+        container.innerHTML = '';
+        allLoadedCount = 0;
+    }
+
+    if (docs.length === 0 && allLoadedCount === 0) {
+        container.innerHTML = `<div class="no-announcements">📭 No announcements at this time.</div>`;
+        loadMoreBtn.classList.add('hidden');
+        return;
+    }
+
+    let html = '';
+    docs.forEach(doc => {
+        const a = doc.data();
+        const cat = a.category || 'General Notice';
+        const badgeColor = categoryColors[cat] || '#6C757D';
+        const relWhen = a.createdAt ? timeAgo(a.createdAt.seconds * 1000) : 'N/A';
+        const dateStr = a.date || '';
+
+        html += `
+            <div class="announcement-card" data-id="${doc.id}">
+                <div class="card-header">
+                    <div class="title-area">
+                        <div class="ann-title">${escapeHtml(a.title)}</div>
+                        <div class="ann-meta">
+                            <span class="ann-category" style="background:${badgeColor};">${escapeHtml(cat)}</span>
+                            <span class="ann-date">${relWhen}</span>
+                            ${dateStr ? `<span class="ann-date">${escapeHtml(dateStr)}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-action btn-edit" onclick="openEditAnnouncement('${doc.id}')">Edit</button>
+                        <button class="btn-action btn-delete" onclick="deleteAnnouncement('${doc.id}')">Delete</button>
+                    </div>
+                </div>
+                <div class="ann-body">${escapeHtml(a.body)}</div>
+            </div>
+        `;
+    });
+
+    if (append) {
+        container.insertAdjacentHTML('beforeend', html);
+    } else {
+        container.innerHTML = html;
+    }
+
+    allLoadedCount += docs.length;
+}
+
+// ================================================================
+// LOAD ANNOUNCEMENTS (with +1 detection)
+// ================================================================
+async function loadAnnouncements(loadMore = false) {
+    if (isLoading) return;
+    isLoading = true;
+
+    if (!loadMore) {
+        lastDoc = null;
+        hasMore = true;
+        loadMoreBtn.classList.remove('hidden');
+        loadMoreBtn.textContent = 'Loading...';
+        loadMoreBtn.disabled = true;
+    } else {
+        loadMoreBtn.textContent = 'Loading...';
+        loadMoreBtn.disabled = true;
+    }
+
     try {
-        const snapshot = await db.collection('announcements')
+        let query = db.collection('announcements')
             .orderBy('createdAt', 'desc')
-            .get();
-        const container = document.getElementById('announcements-container');
+            .limit(PAGE_SIZE + 1);
+
+        if (lastDoc) {
+            query = query.startAfter(lastDoc);
+        }
+
+        const snapshot = await query.get();
 
         if (snapshot.empty) {
-            container.innerHTML = `<div class="no-announcements">📭 No announcements at this time.</div>`;
+            hasMore = false;
+            loadMoreBtn.classList.add('hidden');
+            if (!loadMore && allLoadedCount === 0) {
+                container.innerHTML = `<div class="no-announcements">📭 No announcements at this time.</div>`;
+            }
+            isLoading = false;
             return;
         }
 
-        const lastSeen = parseInt(localStorage.getItem('leaderAnnouncementsLastSeen') || '0', 10);
-        let unreadCount = 0;
-        let html = '';
+        const allDocs = snapshot.docs;
+        const hasExtra = allDocs.length > PAGE_SIZE;
+        const displayDocs = hasExtra ? allDocs.slice(0, PAGE_SIZE) : allDocs;
 
-        snapshot.forEach(doc => {
+        if (displayDocs.length > 0) {
+            lastDoc = displayDocs[displayDocs.length - 1];
+        }
+
+        renderAnnouncements(displayDocs, loadMore);
+
+        hasMore = hasExtra;
+        if (hasMore) {
+            loadMoreBtn.classList.remove('hidden');
+        } else {
+            loadMoreBtn.classList.add('hidden');
+        }
+
+        // Update unread badge only on initial load
+        if (!loadMore) {
+            updateUnreadBadge();
+        }
+
+    } catch (error) {
+        console.error('Error loading announcements:', error);
+        if (!loadMore) {
+            container.innerHTML = `<div class="no-announcements" style="color:#dc3545;">⚠️ Error loading announcements.</div>`;
+        } else {
+            alert('Failed to load more announcements.');
+        }
+        loadMoreBtn.classList.add('hidden');
+    } finally {
+        isLoading = false;
+        loadMoreBtn.textContent = 'Load More';
+        loadMoreBtn.disabled = false;
+        if (!hasMore) {
+            loadMoreBtn.classList.add('hidden');
+        }
+    }
+}
+
+// ================================================================
+// UPDATE UNREAD BADGE
+// ================================================================
+async function updateUnreadBadge() {
+    try {
+        const lastSeen = parseInt(localStorage.getItem('leaderAnnouncementsLastSeen') || '0', 10);
+        const allSnapshot = await db.collection('announcements')
+            .orderBy('createdAt', 'desc')
+            .get();
+        let unreadCount = 0;
+        allSnapshot.forEach(doc => {
             const a = doc.data();
             const createdMs = a.createdAt ? (a.createdAt.seconds * 1000) : 0;
             if (createdMs > lastSeen) unreadCount++;
-            const cat = a.category || 'General Notice';
-            const badgeColor = categoryColors[cat] || '#6C757D';
-            const relWhen = a.createdAt ? timeAgo(createdMs) : 'N/A';
-            const dateStr = a.date || '';
-
-            html += `
-                <div class="announcement-card" data-id="${doc.id}">
-                    <div class="card-header">
-                        <div class="title-area">
-                            <div class="ann-title">${escapeHtml(a.title)}</div>
-                            <div class="ann-meta">
-                                <span class="ann-category" style="background:${badgeColor};">${escapeHtml(cat)}</span>
-                                <span class="ann-date">${relWhen}</span>
-                                ${dateStr ? `<span class="ann-date"> ${escapeHtml(dateStr)}</span>` : ''}
-                            </div>
-                        </div>
-                        <div class="card-actions">
-                            <button class="btn-action btn-edit" onclick="openEditAnnouncement('${doc.id}')">Edit</button>
-                            <button class="btn-action btn-delete" onclick="deleteAnnouncement('${doc.id}')">Delete</button>
-                        </div>
-                    </div>
-                    <div class="ann-body">${escapeHtml(a.body)}</div>
-                </div>
-            `;
         });
 
-        // Update unread badge
         const navLink = document.querySelector('.nav-links a[href="/officer/announcements.html"]') ||
                         document.querySelector('.nav-links a[href="/leader/announcements.html"]');
         if (navLink) {
@@ -168,17 +274,13 @@ async function loadAnnouncements() {
                 badge.style.display = 'none';
             }
         }
-
-        container.innerHTML = html;
     } catch (error) {
-        console.error('Error loading announcements:', error);
-        document.getElementById('announcements-container').innerHTML =
-            `<div class="no-announcements" style="color:#dc3545;">⚠️ Error loading announcements.</div>`;
+        console.error('Error updating unread badge:', error);
     }
 }
 
 // ================================================================
-// POST ANNOUNCEMENT
+// POST ANNOUNCEMENT (toast removed after success)
 // ================================================================
 async function postAnnouncement() {
     const title = document.getElementById('announcement-title').value.trim();
@@ -190,7 +292,6 @@ async function postAnnouncement() {
         showToast('⚠️ Please fill in all required fields.', true);
         return;
     }
-
     if (!isValidDate(date)) {
         showToast('⚠️ Please select a valid date (today or future).', true);
         return;
@@ -212,24 +313,28 @@ async function postAnnouncement() {
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
+        // Clear form
         document.getElementById('announcement-title').value = '';
         document.getElementById('announcement-category').value = '';
         document.getElementById('announcement-date').value = '';
         document.getElementById('announcement-body').value = '';
-        showToast('✅ Announcement posted!');
-        loadAnnouncements();
+
+        // Toast removed: no success notification after creation
+
+        // Reset pagination and reload
+        loadAnnouncements(false);
     } catch (error) {
         console.error(error);
         showToast('❌ Error posting announcement.', true);
     } finally {
         btn.disabled = false;
-        btn.textContent = 'Post Announcement';
-        validateCreateDate(); // re-check date state
+        btn.textContent = '📤 Post Announcement';
+        validateCreateDate();
     }
 }
 
 // ================================================================
-// EDIT / DELETE
+// OPEN EDIT ANNOUNCEMENT
 // ================================================================
 async function openEditAnnouncement(id) {
     try {
@@ -245,7 +350,6 @@ async function openEditAnnouncement(id) {
 
         document.getElementById('announcementModalTitle').textContent = `Edit: ${data.title || 'Announcement'}`;
         document.getElementById('announcementModal').classList.add('active');
-        // Validate initial date
         validateEditDate();
     } catch (error) {
         console.error(error);
@@ -253,6 +357,9 @@ async function openEditAnnouncement(id) {
     }
 }
 
+// ================================================================
+// SAVE ANNOUNCEMENT EDITS
+// ================================================================
 async function saveAnnouncementEdits() {
     if (!currentEditingId) { showToast('⚠️ No announcement selected.', true); return; }
     const title = document.getElementById('edit-ann-title').value.trim();
@@ -271,7 +378,7 @@ async function saveAnnouncementEdits() {
 
     const btn = document.getElementById('saveAnnBtn');
     btn.disabled = true;
-    btn.textContent = '⏳ Saving...';
+    btn.textContent = 'Saving...';
 
     try {
         await db.collection('announcements').doc(currentEditingId).update({
@@ -280,7 +387,7 @@ async function saveAnnouncementEdits() {
         });
         closeAnnouncementModal();
         showToast('✅ Announcement updated!');
-        loadAnnouncements();
+        loadAnnouncements(false);
     } catch (error) {
         console.error(error);
         showToast('❌ Error saving.', true);
@@ -290,63 +397,30 @@ async function saveAnnouncementEdits() {
     }
 }
 
+// ================================================================
+// DELETE ANNOUNCEMENT
+// ================================================================
 async function deleteAnnouncement(id) {
     if (!confirm('Delete this announcement?')) return;
     try {
         await db.collection('announcements').doc(id).delete();
         showToast('Deleted.');
-        loadAnnouncements();
+        loadAnnouncements(false);
     } catch (error) {
         console.error(error);
         showToast('❌ Error deleting.', true);
     }
 }
 
+// ================================================================
+// CLOSE MODAL
+// ================================================================
 function closeAnnouncementModal() {
     document.getElementById('announcementModal').classList.remove('active');
     currentEditingId = null;
 }
-
 document.getElementById('announcementModal').addEventListener('click', function(e) {
     if (e.target === this) closeAnnouncementModal();
-});
-
-// ================================================================
-// EVENT LISTENERS FOR DATE VALIDATION
-// ================================================================
-document.addEventListener('DOMContentLoaded', function() {
-    const createDate = document.getElementById('announcement-date');
-    const editDate = document.getElementById('edit-ann-date');
-
-    // Set min date to today
-    const today = new Date().toISOString().split('T')[0];
-    if (createDate) createDate.setAttribute('min', today);
-    if (editDate) editDate.setAttribute('min', today);
-
-    // Listen for changes
-    if (createDate) {
-        createDate.addEventListener('change', validateCreateDate);
-        createDate.addEventListener('input', validateCreateDate);
-    }
-    if (editDate) {
-        editDate.addEventListener('change', validateEditDate);
-        editDate.addEventListener('input', validateEditDate);
-    }
-
-    // Initial validation
-    validateCreateDate();
-    validateEditDate();
-
-    // Mark as read
-    setTimeout(() => {
-        localStorage.setItem('leaderAnnouncementsLastSeen', Date.now().toString());
-        const navLink = document.querySelector('.nav-links a[href="/officer/announcements.html"]') ||
-                        document.querySelector('.nav-links a[href="/leader/announcements.html"]');
-        if (navLink) {
-            const badge = navLink.querySelector('.ann-badge');
-            if (badge) badge.style.display = 'none';
-        }
-    }, 500);
 });
 
 // ================================================================
@@ -372,6 +446,46 @@ function timeAgo(ms) {
 }
 
 // ================================================================
-// LOAD
+// EVENT LISTENERS
 // ================================================================
-loadAnnouncements();
+loadMoreBtn.addEventListener('click', function() {
+    if (!isLoading && hasMore) {
+        loadAnnouncements(true);
+    }
+});
+
+// ================================================================
+// MARK AS READ & INIT
+// ================================================================
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    const createDate = document.getElementById('announcement-date');
+    const editDate = document.getElementById('edit-ann-date');
+    if (createDate) createDate.setAttribute('min', today);
+    if (editDate) editDate.setAttribute('min', today);
+    if (createDate) {
+        createDate.addEventListener('change', validateCreateDate);
+        createDate.addEventListener('input', validateCreateDate);
+    }
+    if (editDate) {
+        editDate.addEventListener('change', validateEditDate);
+        editDate.addEventListener('input', validateEditDate);
+    }
+    validateCreateDate();
+    validateEditDate();
+
+    loadAnnouncements(false);
+
+    setTimeout(() => {
+        localStorage.setItem('leaderAnnouncementsLastSeen', Date.now().toString());
+        const navLink = document.querySelector('.nav-links a[href="/officer/announcements.html"]') ||
+                        document.querySelector('.nav-links a[href="/leader/announcements.html"]');
+        if (navLink) {
+            const badge = navLink.querySelector('.ann-badge');
+            if (badge) badge.style.display = 'none';
+        }
+    }, 500);
+});
+
+// Optional: refresh unread badge every 30 seconds
+setInterval(updateUnreadBadge, 30000);

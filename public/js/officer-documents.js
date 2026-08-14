@@ -1,11 +1,9 @@
-// ---------- SUPABASE INITIALIZATION (for consistency) ----------
+// ---------- SUPABASE INITIALIZATION ----------
 const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
-
-// Create a global supabase client
 window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-// Firebase configuration
+// Firebase config
 const firebaseConfig = {
     apiKey: "AIzaSyAsWp91SrNnlVHoyJWJyxjvXgGY6debDLE",
     authDomain: "wits-student-societies-backup.firebaseapp.com",
@@ -75,6 +73,14 @@ async function loadDocuments() {
         let html = '';
         docsSnapshot.forEach(doc => {
             const d = doc.data();
+            // Build public URL from the stored path (if any)
+            let downloadUrl = '#';
+            if (d.storagePath) {
+                const { data } = window.supabaseClient.storage
+                    .from('documents')
+                    .getPublicUrl(d.storagePath);
+                downloadUrl = data.publicUrl;
+            }
             html += `
                 <div class="doc-card" data-id="${doc.id}">
                     <div class="doc-info">
@@ -83,8 +89,8 @@ async function loadDocuments() {
                     </div>
                     <div class="doc-actions">
                         <button class="btn-action btn-download-doc" onclick="downloadDocument('${doc.id}')">⬇ Download</button>
-                        <button class="btn-action btn-edit-doc" onclick="openEditDocument('${doc.id}')">✏️ Edit</button>
-                        <button class="btn-action btn-remove-doc" onclick="removeDocument('${doc.id}')">🗑️ Remove</button>
+                        <button class="btn-action btn-edit-doc" onclick="openEditDocument('${doc.id}')">Edit</button>
+                        <button class="btn-action btn-remove-doc" onclick="removeDocument('${doc.id}')">Remove</button>
                     </div>
                 </div>
             `;
@@ -108,14 +114,15 @@ function openDocumentModal(editingId) {
     const title = document.getElementById('documentModalTitle');
 
     if (editingId) {
-        title.textContent = '✏️ Edit Document';
+        title.textContent = 'Edit Document';
         currentEditingId = editingId;
+        // Load existing data into modal (will be populated by openEditDocument)
     } else {
-        title.textContent = '📤 Upload Document';
+        title.textContent = 'Upload Document';
         currentEditingId = null;
     }
 
-    // Reset form
+    // Reset form (except for edit, we fill later)
     document.getElementById('doc-name').value = '';
     document.getElementById('doc-description').value = '';
     document.getElementById('doc-file').value = null;
@@ -149,11 +156,9 @@ async function openEditDocument(docId) {
 
         const d = doc.data();
         openDocumentModal(docId);
-
         document.getElementById('doc-name').value = d.name || '';
         document.getElementById('doc-description').value = d.description || '';
         // File input cannot be populated for security reasons
-
     } catch (error) {
         console.error('Error opening document for edit:', error);
         showToast('❌ Error loading document.', true);
@@ -161,7 +166,33 @@ async function openEditDocument(docId) {
 }
 
 // ================================================================
-// SUBMIT DOCUMENT (Upload or Edit)
+// UPLOAD FILE TO SUPABASE
+// ================================================================
+
+async function uploadFileToSupabase(file, folder = 'documents') {
+    const timestamp = Date.now();
+    const fileName = `${timestamp}_${file.name}`;
+    const filePath = `${folder}/${fileName}`;
+    const { data, error } = await window.supabaseClient.storage
+        .from('documents')
+        .upload(filePath, file);
+    if (error) throw new Error('Upload failed: ' + error.message);
+    return filePath;
+}
+
+// ================================================================
+// DELETE FILE FROM SUPABASE
+// ================================================================
+
+async function deleteFileFromSupabase(filePath) {
+    const { error } = await window.supabaseClient.storage
+        .from('documents')
+        .remove([filePath]);
+    if (error) throw new Error('Delete failed: ' + error.message);
+}
+
+// ================================================================
+// SUBMIT DOCUMENT (Upload or Edit) - USING SUPABASE
 // ================================================================
 
 async function submitDocument() {
@@ -177,74 +208,69 @@ async function submitDocument() {
 
     const saveBtn = document.getElementById('documentSaveBtn');
     saveBtn.disabled = true;
-    saveBtn.textContent = '⏳ Saving...';
+    saveBtn.textContent = 'Saving...';
 
     try {
         let storagePath = null;
-        let downloadUrl = null;
-        let fileName = null;
+        let oldStoragePath = null;
 
-        // Upload file if provided
+        // If editing, fetch the existing document to get old storage path
+        if (currentEditingId) {
+            const oldDoc = await db.collection('documents').doc(currentEditingId).get();
+            if (oldDoc.exists) {
+                oldStoragePath = oldDoc.data().storagePath;
+            }
+        }
+
+        // Upload new file if provided
         if (file) {
             if (file.type !== 'application/pdf') {
                 showToast('⚠️ Only PDF files are accepted.', true);
                 saveBtn.disabled = false;
-                saveBtn.textContent = '💾 Save';
+                saveBtn.textContent = 'Save';
                 return;
             }
-
-            // Max file size 10MB
             if (file.size > 10 * 1024 * 1024) {
                 showToast('⚠️ File size exceeds 10MB limit.', true);
                 saveBtn.disabled = false;
-                saveBtn.textContent = '💾 Save';
+                saveBtn.textContent = 'Save';
                 return;
             }
-
-            const timestamp = Date.now();
-            fileName = file.name;
-            storagePath = `documents/${timestamp}_${fileName}`;
-            const storageRef = firebase.storage().ref().child(storagePath);
-            const uploadTask = await storageRef.put(file);
-            downloadUrl = await storageRef.getDownloadURL();
+            storagePath = await uploadFileToSupabase(file);
         }
 
         if (currentEditingId) {
-            // Edit existing document
+            // Update existing document
             const updateData = {
                 name,
                 description,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-
-            // Only update file info if a new file was uploaded
             if (storagePath) {
-                // Delete old file from storage if exists
-                const oldDoc = await db.collection('documents').doc(currentEditingId).get();
-                const oldData = oldDoc.data();
-                if (oldData && oldData.storagePath) {
+                updateData.storagePath = storagePath;
+                // Delete old file if it exists
+                if (oldStoragePath) {
                     try {
-                        await firebase.storage().ref().child(oldData.storagePath).delete();
+                        await deleteFileFromSupabase(oldStoragePath);
                     } catch (e) {
-                        console.warn('Old file not found or already deleted:', e);
+                        console.warn('Old file not found:', e);
                     }
                 }
-                updateData.storagePath = storagePath;
-                updateData.fileName = fileName;
-                updateData.downloadUrl = downloadUrl;
             }
-
             await db.collection('documents').doc(currentEditingId).update(updateData);
             showToast('✅ Document updated successfully!');
-
         } else {
             // New document
+            if (!storagePath) {
+                showToast('⚠️ Please select a PDF file to upload.', true);
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save';
+                return;
+            }
             await db.collection('documents').add({
                 name,
                 description,
-                storagePath: storagePath || null,
-                fileName: fileName || null,
-                downloadUrl: downloadUrl || null,
+                storagePath: storagePath,
                 uploadedBy: userUid,
                 uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -259,12 +285,12 @@ async function submitDocument() {
         showToast('❌ Error saving document: ' + error.message, true);
     } finally {
         saveBtn.disabled = false;
-        saveBtn.textContent = '💾 Save';
+        saveBtn.textContent = 'Save';
     }
 }
 
 // ================================================================
-// DOWNLOAD DOCUMENT
+// DOWNLOAD DOCUMENT - USING SUPABASE PUBLIC URL
 // ================================================================
 
 async function downloadDocument(docId) {
@@ -276,22 +302,19 @@ async function downloadDocument(docId) {
         }
 
         const d = doc.data();
-
-        // Try to use stored download URL
-        if (d.downloadUrl) {
-            window.open(d.downloadUrl, '_blank');
+        if (!d.storagePath) {
+            showToast('⚠️ No file available for this document.', true);
             return;
         }
 
-        // Fallback: get from storage path
-        if (d.storagePath) {
-            const url = await firebase.storage().ref().child(d.storagePath).getDownloadURL();
-            window.open(url, '_blank');
-            return;
+        const { data } = window.supabaseClient.storage
+            .from('documents')
+            .getPublicUrl(d.storagePath);
+        if (data && data.publicUrl) {
+            window.open(data.publicUrl, '_blank');
+        } else {
+            showToast('⚠️ Could not generate download link.', true);
         }
-
-        showToast('⚠️ No file available for this document.', true);
-
     } catch (error) {
         console.error('Error downloading document:', error);
         showToast('❌ Error downloading document.', true);
@@ -299,30 +322,35 @@ async function downloadDocument(docId) {
 }
 
 // ================================================================
-// REMOVE DOCUMENT
+// REMOVE DOCUMENT - DELETE FROM SUPABASE AND FIRESTORE
 // ================================================================
 
 async function removeDocument(docId) {
-    if (!confirm('🗑️ Are you sure you want to remove this document? This cannot be undone.')) return;
+    if (!confirm('Are you sure you want to remove this document? This cannot be undone.')) return;
 
     try {
-        // Get document data first to delete file from storage
+        // Get document data to get storage path
         const doc = await db.collection('documents').doc(docId).get();
+        if (!doc.exists) {
+            showToast('⚠️ Document not found.', true);
+            return;
+        }
         const d = doc.data();
 
-        // Delete file from Firebase Storage if exists
-        if (d && d.storagePath) {
+        // Delete file from Supabase if exists
+        if (d.storagePath) {
             try {
-                await firebase.storage().ref().child(d.storagePath).delete();
+                await deleteFileFromSupabase(d.storagePath);
             } catch (e) {
-                console.warn('File not found in storage, proceeding with Firestore deletion:', e);
+                console.warn('File not found in storage:', e);
+                // Continue to delete Firestore document
             }
         }
 
         // Delete Firestore document
         await db.collection('documents').doc(docId).delete();
 
-        showToast('🗑️ Document removed successfully!');
+        showToast('Document removed successfully!');
         loadDocuments();
 
     } catch (error) {

@@ -6,6 +6,10 @@
     <title>Documents - Leader Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --navy-900: #0B1F3A;
@@ -32,7 +36,7 @@
             color: #fff;
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
-            padding: 40px 24px;
+            padding: 90px 24px 40px 24px; /* fixed navigation padding */
         }
         .container {
             max-width: 1000px;
@@ -61,7 +65,11 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 12px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: box-shadow 0.2s ease;
+        }
+        .doc-card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
         }
         .doc-info {
             flex: 1;
@@ -81,23 +89,30 @@
             font-size: 13px;
             font-weight: 600;
             padding: 8px 20px;
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid #003B5C;
             border-radius: 8px;
             background: transparent;
-            color: #8FA6CC;
+            color: #003B5C;
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .btn-download:hover {
-            border-color: #fff;
+        .btn-download:hover:not(:disabled) {
+            background: #003B5C;
             color: #fff;
+        }
+        .btn-download:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: #6c757d;
+            color: #6c757d;
         }
         .no-docs {
             color: #8FA6CC;
             font-size: 14px;
             text-align: center;
             padding: 40px 0;
-        }.wits-badge {
+        }
+        .wits-badge {
             text-align: center;
             margin-top: 28px;
             font-size: 11px;
@@ -106,10 +121,19 @@
             text-transform: uppercase;
             font-weight: 500;
         }
-        @media (max-width: 480px) {
-            body { padding: 20px 16px; }
-            .doc-card { flex-direction: column; align-items: flex-start; gap: 12px; }
-            .btn-download { width: 100%; text-align: center; }
+        @media (max-width: 768px) {
+            body {
+                padding: 80px 16px 20px 16px;
+            }
+            .doc-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .btn-download {
+                width: 100%;
+                text-align: center;
+            }
         }
     </style>
 </head>
@@ -120,7 +144,9 @@
             <p>Society Leader Dashboard</p>
         </div>
 
-        <div id="documents-container"></div>
+        <div id="documents-container">
+            <div class="no-docs">Loading documents...</div>
+        </div>
 
         <div class="wits-badge">University of the Witwatersrand</div>
     </div>
@@ -130,7 +156,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
+    <!-- Supabase already loaded in head -->
     <script src="/js/leader-documents.js"></script>
-<script src="/js/shared-nav.js"></script>
+    <script src="/js/shared-nav.js"></script>
 </body>
 </html>

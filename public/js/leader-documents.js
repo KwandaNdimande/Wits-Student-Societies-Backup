@@ -1,4 +1,9 @@
-// Firebase configuration
+// ---------- SUPABASE INITIALIZATION ----------
+const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
+window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+// Firebase config
 const firebaseConfig = {
     apiKey: "AIzaSyAsWp91SrNnlVHoyJWJyxjvXgGY6debDLE",
     authDomain: "wits-student-societies-backup.firebaseapp.com",
@@ -19,7 +24,10 @@ if (!userUid) {
     window.location.href = '/login.html';
 }
 
-// Load documents
+// ================================================================
+// LOAD DOCUMENTS (READ-ONLY FOR LEADERS)
+// ================================================================
+
 async function loadDocuments() {
     try {
         const docsSnapshot = await db.collection('documents')
@@ -27,22 +35,31 @@ async function loadDocuments() {
             .get();
 
         const container = document.getElementById('documents-container');
-        
+
         if (docsSnapshot.empty) {
-            container.innerHTML = '<p style="color:#6c757d;font-size:14px;">No documents available.</p>';
+            container.innerHTML = `<div class="no-docs">📭 No documents available.</div>`;
             return;
         }
 
         let html = '';
         docsSnapshot.forEach(doc => {
             const d = doc.data();
+            let downloadUrl = '#';
+            if (d.storagePath) {
+                const { data } = window.supabaseClient.storage
+                    .from('documents')
+                    .getPublicUrl(d.storagePath);
+                downloadUrl = data.publicUrl;
+            }
             html += `
-                <div style="border:1px solid #dee2e6;border-radius:8px;padding:16px 20px;background:white;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                    <div style="flex:1;">
-                        <p style="font-weight:500;color:#003B5C;font-size:16px;">${d.name}</p>
-                        <p style="font-size:14px;color:#6c757d;margin-top:2px;">${d.description || ''}</p>
+                <div class="doc-card">
+                    <div class="doc-info">
+                        <div class="doc-name">${escapeHtml(d.name)}</div>
+                        <div class="doc-description">${escapeHtml(d.description || 'No description')}</div>
                     </div>
-                    <button style="padding:6px 16px;border:1px solid #003B5C;border-radius:6px;background:transparent;color:#003B5C;font-size:14px;cursor:pointer;font-family:'Times New Roman',serif;" onclick="downloadDocument('${doc.id}')">Download</button>
+                    <button class="btn-download" onclick="window.open('${downloadUrl}', '_blank')" ${downloadUrl === '#' ? 'disabled' : ''}>
+                        ⬇ Download
+                    </button>
                 </div>
             `;
         });
@@ -51,13 +68,22 @@ async function loadDocuments() {
 
     } catch (error) {
         console.error('Error loading documents:', error);
+        document.getElementById('documents-container').innerHTML =
+            `<div class="no-docs" style="color:#dc3545;">⚠️ Error loading documents.</div>`;
     }
 }
 
-// Download document (placeholder - actual download would use Firebase Storage)
-function downloadDocument(docId) {
-    alert('Download is not available yet.');
+// ================================================================
+// HELPER FUNCTIONS
+// ================================================================
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// Load data
+// ================================================================
+// LOAD DATA
+// ================================================================
+
 loadDocuments();

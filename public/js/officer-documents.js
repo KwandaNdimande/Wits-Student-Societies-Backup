@@ -403,7 +403,7 @@ async function submitDocument() {
 }
 
 // ================================================================
-// DELETE DOCUMENT
+// DELETE DOCUMENT (with delay to ensure Firestore sync)
 // ================================================================
 
 async function deleteDocument(docId) {
@@ -428,8 +428,11 @@ async function deleteDocument(docId) {
         await db.collection('documents').doc(docId).delete();
 
         showToast('Document deleted successfully!');
-        // Reset pagination and reload
-        loadDocuments(false);
+
+        // Small delay to allow Firestore to propagate the deletion
+        setTimeout(() => {
+            loadDocuments(false);
+        }, 250);
 
     } catch (error) {
         console.error('Error deleting document:', error);

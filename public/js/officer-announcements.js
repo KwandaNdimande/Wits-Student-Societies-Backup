@@ -137,12 +137,12 @@ async function loadAnnouncements() {
                             <div class="ann-meta">
                                 <span class="ann-category" style="background:${badgeColor};">${escapeHtml(cat)}</span>
                                 <span class="ann-date">${relWhen}</span>
-                                ${dateStr ? `<span class="ann-date">📅 ${escapeHtml(dateStr)}</span>` : ''}
+                                ${dateStr ? `<span class="ann-date"> ${escapeHtml(dateStr)}</span>` : ''}
                             </div>
                         </div>
                         <div class="card-actions">
-                            <button class="btn-action btn-edit" onclick="openEditAnnouncement('${doc.id}')">✏️ Edit</button>
-                            <button class="btn-action btn-delete" onclick="deleteAnnouncement('${doc.id}')">🗑️ Delete</button>
+                            <button class="btn-action btn-edit" onclick="openEditAnnouncement('${doc.id}')">Edit</button>
+                            <button class="btn-action btn-delete" onclick="deleteAnnouncement('${doc.id}')">Delete</button>
                         </div>
                     </div>
                     <div class="ann-body">${escapeHtml(a.body)}</div>

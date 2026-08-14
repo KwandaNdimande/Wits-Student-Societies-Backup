@@ -163,7 +163,7 @@ function renderAnnouncements(docs, append = false) {
 }
 
 // ================================================================
-// LOAD ANNOUNCEMENTS (with +1 detection)
+// LOAD ANNOUNCEMENTS
 // ================================================================
 async function loadAnnouncements(loadMore = false) {
     if (isLoading) return;
@@ -218,11 +218,6 @@ async function loadAnnouncements(loadMore = false) {
             loadMoreBtn.classList.add('hidden');
         }
 
-        // Update unread badge only on initial load
-        if (!loadMore) {
-            updateUnreadBadge();
-        }
-
     } catch (error) {
         console.error('Error loading announcements:', error);
         if (!loadMore) {
@@ -242,45 +237,7 @@ async function loadAnnouncements(loadMore = false) {
 }
 
 // ================================================================
-// UPDATE UNREAD BADGE
-// ================================================================
-async function updateUnreadBadge() {
-    try {
-        const lastSeen = parseInt(localStorage.getItem('leaderAnnouncementsLastSeen') || '0', 10);
-        const allSnapshot = await db.collection('announcements')
-            .orderBy('createdAt', 'desc')
-            .get();
-        let unreadCount = 0;
-        allSnapshot.forEach(doc => {
-            const a = doc.data();
-            const createdMs = a.createdAt ? (a.createdAt.seconds * 1000) : 0;
-            if (createdMs > lastSeen) unreadCount++;
-        });
-
-        const navLink = document.querySelector('.nav-links a[href="/officer/announcements.html"]') ||
-                        document.querySelector('.nav-links a[href="/leader/announcements.html"]');
-        if (navLink) {
-            let badge = navLink.querySelector('.ann-badge');
-            if (!badge) {
-                badge = document.createElement('span');
-                badge.className = 'ann-badge';
-                badge.style.cssText = 'background:#E53935;color:#fff;border-radius:999px;padding:2px 8px;font-size:12px;margin-left:8px;';
-                navLink.appendChild(badge);
-            }
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount;
-                badge.style.display = 'inline-block';
-            } else {
-                badge.style.display = 'none';
-            }
-        }
-    } catch (error) {
-        console.error('Error updating unread badge:', error);
-    }
-}
-
-// ================================================================
-// POST ANNOUNCEMENT (toast removed + mark as read)
+// POST ANNOUNCEMENT
 // ================================================================
 async function postAnnouncement() {
     const title = document.getElementById('announcement-title').value.trim();
@@ -319,12 +276,8 @@ async function postAnnouncement() {
         document.getElementById('announcement-date').value = '';
         document.getElementById('announcement-body').value = '';
 
-        // Mark the announcement as read immediately (so the badge doesn't appear)
-        localStorage.setItem('leaderAnnouncementsLastSeen', Date.now().toString());
+        // No toast, no badge
 
-        // Toast removed: no success notification after creation
-
-        // Reset pagination and reload
         loadAnnouncements(false);
     } catch (error) {
         console.error(error);
@@ -458,7 +411,7 @@ loadMoreBtn.addEventListener('click', function() {
 });
 
 // ================================================================
-// MARK AS READ & INIT
+// INIT
 // ================================================================
 document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
@@ -478,17 +431,4 @@ document.addEventListener('DOMContentLoaded', function() {
     validateEditDate();
 
     loadAnnouncements(false);
-
-    setTimeout(() => {
-        localStorage.setItem('leaderAnnouncementsLastSeen', Date.now().toString());
-        const navLink = document.querySelector('.nav-links a[href="/officer/announcements.html"]') ||
-                        document.querySelector('.nav-links a[href="/leader/announcements.html"]');
-        if (navLink) {
-            const badge = navLink.querySelector('.ann-badge');
-            if (badge) badge.style.display = 'none';
-        }
-    }, 500);
 });
-
-// Optional: refresh unread badge every 30 seconds
-setInterval(updateUnreadBadge, 30000);

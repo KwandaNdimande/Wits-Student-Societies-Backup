@@ -73,7 +73,6 @@ async function loadDocuments() {
         let html = '';
         docsSnapshot.forEach(doc => {
             const d = doc.data();
-            // Build public URL from the stored path (if any)
             let downloadUrl = '#';
             if (d.storagePath) {
                 const { data } = window.supabaseClient.storage
@@ -116,13 +115,11 @@ function openDocumentModal(editingId) {
     if (editingId) {
         title.textContent = 'Edit Document';
         currentEditingId = editingId;
-        // Load existing data into modal (will be populated by openEditDocument)
     } else {
         title.textContent = 'Upload Document';
         currentEditingId = null;
     }
 
-    // Reset form (except for edit, we fill later)
     document.getElementById('doc-name').value = '';
     document.getElementById('doc-description').value = '';
     document.getElementById('doc-file').value = null;
@@ -135,7 +132,6 @@ function closeDocumentModal() {
     currentEditingId = null;
 }
 
-// Close modal on overlay click
 document.getElementById('documentModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeDocumentModal();
@@ -158,7 +154,6 @@ async function openEditDocument(docId) {
         openDocumentModal(docId);
         document.getElementById('doc-name').value = d.name || '';
         document.getElementById('doc-description').value = d.description || '';
-        // File input cannot be populated for security reasons
     } catch (error) {
         console.error('Error opening document for edit:', error);
         showToast('❌ Error loading document.', true);
@@ -192,7 +187,7 @@ async function deleteFileFromSupabase(filePath) {
 }
 
 // ================================================================
-// SUBMIT DOCUMENT (Upload or Edit) - USING SUPABASE
+// SUBMIT DOCUMENT (20MB limit)
 // ================================================================
 
 async function submitDocument() {
@@ -214,7 +209,6 @@ async function submitDocument() {
         let storagePath = null;
         let oldStoragePath = null;
 
-        // If editing, fetch the existing document to get old storage path
         if (currentEditingId) {
             const oldDoc = await db.collection('documents').doc(currentEditingId).get();
             if (oldDoc.exists) {
@@ -222,25 +216,23 @@ async function submitDocument() {
             }
         }
 
-        // Upload new file if provided
         if (file) {
-            if (file.type !== 'application/pdf') {
-                showToast('⚠️ Only PDF files are accepted.', true);
-                saveBtn.disabled = false;
-                saveBtn.textContent = 'Save';
-                return;
-            }
-            if (file.size > 10 * 1024 * 1024) {
-                showToast('⚠️ File size exceeds 10MB limit.', true);
+            // 20MB limit
+            if (file.size > 20 * 1024 * 1024) {
+                showToast('⚠️ File size exceeds 20MB limit.', true);
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'Save';
                 return;
             }
             storagePath = await uploadFileToSupabase(file);
+        } else if (!currentEditingId) {
+            showToast('⚠️ Please select a file to upload.', true);
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save';
+            return;
         }
 
         if (currentEditingId) {
-            // Update existing document
             const updateData = {
                 name,
                 description,
@@ -248,7 +240,6 @@ async function submitDocument() {
             };
             if (storagePath) {
                 updateData.storagePath = storagePath;
-                // Delete old file if it exists
                 if (oldStoragePath) {
                     try {
                         await deleteFileFromSupabase(oldStoragePath);
@@ -260,9 +251,8 @@ async function submitDocument() {
             await db.collection('documents').doc(currentEditingId).update(updateData);
             showToast('✅ Document updated successfully!');
         } else {
-            // New document
             if (!storagePath) {
-                showToast('⚠️ Please select a PDF file to upload.', true);
+                showToast('⚠️ Please select a file to upload.', true);
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'Save';
                 return;
@@ -290,7 +280,7 @@ async function submitDocument() {
 }
 
 // ================================================================
-// DOWNLOAD DOCUMENT - USING SUPABASE PUBLIC URL
+// DOWNLOAD DOCUMENT
 // ================================================================
 
 async function downloadDocument(docId) {
@@ -322,14 +312,13 @@ async function downloadDocument(docId) {
 }
 
 // ================================================================
-// REMOVE DOCUMENT - DELETE FROM SUPABASE AND FIRESTORE
+// REMOVE DOCUMENT
 // ================================================================
 
 async function removeDocument(docId) {
     if (!confirm('Are you sure you want to remove this document? This cannot be undone.')) return;
 
     try {
-        // Get document data to get storage path
         const doc = await db.collection('documents').doc(docId).get();
         if (!doc.exists) {
             showToast('⚠️ Document not found.', true);
@@ -337,17 +326,14 @@ async function removeDocument(docId) {
         }
         const d = doc.data();
 
-        // Delete file from Supabase if exists
         if (d.storagePath) {
             try {
                 await deleteFileFromSupabase(d.storagePath);
             } catch (e) {
                 console.warn('File not found in storage:', e);
-                // Continue to delete Firestore document
             }
         }
 
-        // Delete Firestore document
         await db.collection('documents').doc(docId).delete();
 
         showToast('Document removed successfully!');

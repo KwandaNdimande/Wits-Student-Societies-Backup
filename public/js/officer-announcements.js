@@ -46,7 +46,7 @@ const container = document.getElementById('announcements-container');
 const loadMoreBtn = document.getElementById('load-more-btn');
 
 // ================================================================
-// TOAST (kept for errors and other messages)
+// TOAST
 // ================================================================
 function showToast(message, isError = false) {
     const toast = document.getElementById('toast');
@@ -280,7 +280,7 @@ async function updateUnreadBadge() {
 }
 
 // ================================================================
-// POST ANNOUNCEMENT (toast removed after success)
+// POST ANNOUNCEMENT (toast removed + mark as read)
 // ================================================================
 async function postAnnouncement() {
     const title = document.getElementById('announcement-title').value.trim();
@@ -319,6 +319,9 @@ async function postAnnouncement() {
         document.getElementById('announcement-date').value = '';
         document.getElementById('announcement-body').value = '';
 
+        // Mark the announcement as read immediately (so the badge doesn't appear)
+        localStorage.setItem('leaderAnnouncementsLastSeen', Date.now().toString());
+
         // Toast removed: no success notification after creation
 
         // Reset pagination and reload
@@ -328,7 +331,7 @@ async function postAnnouncement() {
         showToast('❌ Error posting announcement.', true);
     } finally {
         btn.disabled = false;
-        btn.textContent = '📤 Post Announcement';
+        btn.textContent = 'Post Announcement';
         validateCreateDate();
     }
 }

@@ -6,6 +6,10 @@
     <title>Announcements - Leader Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Supabase SDK (for consistency) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --navy-900: #0B1F3A;
@@ -32,7 +36,7 @@
             color: #fff;
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
-            padding: 40px 24px;
+            padding: 90px 24px 40px 24px; /* Top padding clears fixed nav */
         }
         .container {
             max-width: 1000px;
@@ -52,43 +56,74 @@
             color: #8FA6CC;
             margin-top: 4px;
         }
+
+        /* ================================================================
+           ANNOUNCEMENT CARDS
+           ================================================================ */
         .announcement-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 20px 24px;
             margin-bottom: 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: box-shadow 0.2s ease;
         }
-        .announcement-header {
+        .announcement-card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+        .announcement-card .card-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             gap: 16px;
             margin-bottom: 6px;
+            flex-wrap: wrap;
         }
-        .announcement-title {
+        .announcement-card .card-header .title-area {
+            flex: 1;
+        }
+        .announcement-card .card-header .title-area .ann-title {
             font-family: 'Space Grotesk', sans-serif;
             font-size: 18px;
             font-weight: 600;
             color: var(--navy-900);
         }
-        .announcement-date {
+        .announcement-card .card-header .title-area .ann-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+        .announcement-card .card-header .title-area .ann-category {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .announcement-card .card-header .title-area .ann-date {
             font-size: 13px;
             color: var(--text-500);
-            white-space: nowrap;
         }
-        .announcement-body {
+        .announcement-card .ann-body {
             font-size: 14px;
             color: var(--text-600);
             line-height: 1.6;
+            margin-top: 8px;
         }
         .no-announcements {
             color: var(--text-500);
             font-size: 14px;
             text-align: center;
             padding: 40px 0;
-        }.wits-badge {
+        }
+
+        .wits-badge {
             text-align: center;
             margin-top: 28px;
             font-size: 11px;
@@ -97,10 +132,28 @@
             text-transform: uppercase;
             font-weight: 500;
         }
+
+        /* ================================================================
+           RESPONSIVE
+           ================================================================ */
+        @media (max-width: 768px) {
+            body {
+                padding: 80px 16px 20px 16px;
+            }
+            .announcement-card {
+                padding: 16px;
+            }
+            .announcement-card .card-header {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
         @media (max-width: 480px) {
-            body { padding: 20px 16px; }
-            .announcement-card { padding: 16px; }
-            .announcement-header { flex-direction: column; gap: 4px; }
+            .announcement-card .card-header .title-area .ann-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
         }
     </style>
 </head>
@@ -111,7 +164,9 @@
             <p>Society Leader Dashboard</p>
         </div>
 
-        <div id="announcements-container"></div>
+        <div id="announcements-container">
+            <div class="no-announcements">Loading announcements...</div>
+        </div>
 
         <div class="wits-badge">University of the Witwatersrand</div>
     </div>
@@ -121,7 +176,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
+    <!-- Supabase is already loaded in the head -->
     <script src="/js/leader-announcements.js"></script>
-<script src="/js/shared-nav.js"></script>
+    <script src="/js/shared-nav.js"></script>
 </body>
 </html>

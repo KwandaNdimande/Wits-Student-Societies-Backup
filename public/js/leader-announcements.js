@@ -1,8 +1,6 @@
 // ---------- SUPABASE INITIALIZATION (for consistency) ----------
 const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
-
-// Create a global supabase client
 window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
 // Firebase configuration
@@ -26,8 +24,6 @@ if (!userUid) {
     window.location.href = '/login.html';
 }
 
-let currentEditingId = null;
-
 // Category colors
 const categoryColors = {
     'Upcoming Event': '#2E6FBA',
@@ -37,28 +33,7 @@ const categoryColors = {
 };
 
 // ================================================================
-// TOAST NOTIFICATION
-// ================================================================
-
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    const toastMessage = document.getElementById('toastMessage');
-    toastMessage.textContent = message;
-    toast.classList.add('show');
-    clearTimeout(toast._hideTimeout);
-    toast._hideTimeout = setTimeout(() => {
-        toast.classList.remove('show');
-    }, 4000);
-}
-
-function closeToast() {
-    const toast = document.getElementById('toast');
-    toast.classList.remove('show');
-    clearTimeout(toast._hideTimeout);
-}
-
-// ================================================================
-// LOAD ANNOUNCEMENTS
+// LOAD ANNOUNCEMENTS (READ-ONLY)
 // ================================================================
 
 async function loadAnnouncements() {
@@ -74,7 +49,6 @@ async function loadAnnouncements() {
             return;
         }
 
-        // Compute unread count
         const lastSeen = parseInt(localStorage.getItem('leaderAnnouncementsLastSeen') || '0', 10);
         let unreadCount = 0;
 
@@ -99,10 +73,7 @@ async function loadAnnouncements() {
                                 ${dateStr ? `<span class="ann-date">📅 ${escapeHtml(dateStr)}</span>` : ''}
                             </div>
                         </div>
-                        <div class="card-actions">
-                            <button class="btn-action btn-edit" onclick="openEditAnnouncement('${doc.id}')">✏️ Edit</button>
-                            <button class="btn-action btn-delete" onclick="deleteAnnouncement('${doc.id}')">🗑️ Delete</button>
-                        </div>
+                        <!-- NO EDIT/DELETE BUTTONS FOR LEADERS -->
                     </div>
                     <div class="ann-body">${escapeHtml(a.body)}</div>
                 </div>
@@ -110,8 +81,7 @@ async function loadAnnouncements() {
         });
 
         // Update unread badge on nav link
-        const navLink = document.querySelector('.nav-links a[href="/officer/announcements.html"]') ||
-                        document.querySelector('.nav-links a[href="/leader/announcements.html"]');
+        const navLink = document.querySelector('.nav-links a[href="/leader/announcements.html"]');
         if (navLink) {
             let badge = navLink.querySelector('.ann-badge');
             if (!badge) {
@@ -136,165 +106,6 @@ async function loadAnnouncements() {
             `<div class="no-announcements" style="color:#dc3545;">⚠️ Error loading announcements.</div>`;
     }
 }
-
-// ================================================================
-// POST ANNOUNCEMENT
-// ================================================================
-
-async function postAnnouncement() {
-    const title = document.getElementById('announcement-title').value.trim();
-    const category = document.getElementById('announcement-category').value;
-    const date = document.getElementById('announcement-date').value;
-    const body = document.getElementById('announcement-body').value.trim();
-
-    if (!title || !category || !body) {
-        showToast('⚠️ Please fill in all required fields.');
-        return;
-    }
-
-    const btn = document.querySelector('.btn-post');
-    btn.disabled = true;
-    btn.textContent = '⏳ Posting...';
-
-    try {
-        const user = auth.currentUser;
-        if (!user) throw new Error('User not logged in.');
-
-        await db.collection('announcements').add({
-            title,
-            category,
-            date,
-            body,
-            createdBy: userUid,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        // Clear form
-        document.getElementById('announcement-title').value = '';
-        document.getElementById('announcement-category').value = '';
-        document.getElementById('announcement-date').value = '';
-        document.getElementById('announcement-body').value = '';
-
-        showToast('✅ Announcement posted successfully!');
-        loadAnnouncements();
-
-    } catch (error) {
-        console.error('Error posting announcement:', error);
-        showToast('❌ Error posting announcement. Please try again.');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '📤 Post Announcement';
-    }
-}
-
-// ================================================================
-// OPEN EDIT ANNOUNCEMENT
-// ================================================================
-
-async function openEditAnnouncement(id) {
-    try {
-        const doc = await db.collection('announcements').doc(id).get();
-        if (!doc.exists) {
-            showToast('⚠️ Announcement not found.');
-            return;
-        }
-
-        const data = doc.data();
-        currentEditingId = id;
-
-        document.getElementById('edit-ann-title').value = data.title || '';
-        document.getElementById('edit-ann-category').value = data.category || '';
-        document.getElementById('edit-ann-date').value = data.date || '';
-        document.getElementById('edit-ann-body').value = data.body || '';
-
-        document.getElementById('announcementModalTitle').textContent = `✏️ Edit: ${data.title || 'Announcement'}`;
-        document.getElementById('announcementModal').classList.add('active');
-
-    } catch (error) {
-        console.error('Error loading announcement:', error);
-        showToast('❌ Error loading announcement.');
-    }
-}
-
-// ================================================================
-// SAVE ANNOUNCEMENT EDITS
-// ================================================================
-
-async function saveAnnouncementEdits() {
-    if (!currentEditingId) {
-        showToast('⚠️ No announcement selected.');
-        return;
-    }
-
-    const title = document.getElementById('edit-ann-title').value.trim();
-    const category = document.getElementById('edit-ann-category').value;
-    const date = document.getElementById('edit-ann-date').value;
-    const body = document.getElementById('edit-ann-body').value.trim();
-
-    if (!title || !category || !body) {
-        showToast('⚠️ Please fill in all required fields.');
-        return;
-    }
-
-    const btn = document.getElementById('saveAnnBtn');
-    btn.disabled = true;
-    btn.textContent = '⏳ Saving...';
-
-    try {
-        await db.collection('announcements').doc(currentEditingId).update({
-            title,
-            category,
-            date,
-            body,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        closeAnnouncementModal();
-        showToast('✅ Announcement updated successfully!');
-        loadAnnouncements();
-
-    } catch (error) {
-        console.error('Error saving announcement:', error);
-        showToast('❌ Error saving announcement.');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '💾 Save Changes';
-    }
-}
-
-// ================================================================
-// DELETE ANNOUNCEMENT
-// ================================================================
-
-async function deleteAnnouncement(id) {
-    if (!confirm('Are you sure you want to delete this announcement? This cannot be undone.')) return;
-
-    try {
-        await db.collection('announcements').doc(id).delete();
-        showToast('🗑️ Announcement deleted successfully!');
-        loadAnnouncements();
-
-    } catch (error) {
-        console.error('Error deleting announcement:', error);
-        showToast('❌ Error deleting announcement.');
-    }
-}
-
-// ================================================================
-// CLOSE MODAL
-// ================================================================
-
-function closeAnnouncementModal() {
-    document.getElementById('announcementModal').classList.remove('active');
-    currentEditingId = null;
-}
-
-// Close modal on overlay click
-document.getElementById('announcementModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeAnnouncementModal();
-    }
-});
 
 // ================================================================
 // HELPER FUNCTIONS
@@ -326,8 +137,7 @@ function timeAgo(ms) {
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         localStorage.setItem('leaderAnnouncementsLastSeen', Date.now().toString());
-        const navLink = document.querySelector('.nav-links a[href="/officer/announcements.html"]') ||
-                        document.querySelector('.nav-links a[href="/leader/announcements.html"]');
+        const navLink = document.querySelector('.nav-links a[href="/leader/announcements.html"]');
         if (navLink) {
             const badge = navLink.querySelector('.ann-badge');
             if (badge) badge.style.display = 'none';

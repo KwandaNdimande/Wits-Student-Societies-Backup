@@ -45,9 +45,7 @@
             margin: 0 auto;
         }
 
-        /* ================================================================
-           HEADER
-           ================================================================ */
+        /* Header */
         .header {
             display: flex;
             justify-content: space-between;
@@ -86,9 +84,7 @@
             box-shadow: 0 4px 12px rgba(255,255,255,0.15);
         }
 
-        /* ================================================================
-           DOCUMENT CARDS
-           ================================================================ */
+        /* Document Cards */
         .doc-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -158,6 +154,11 @@
             background: #922B21;
             transform: translateY(-1px);
         }
+        .btn-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
 
         .no-docs {
             color: #8FA6CC;
@@ -166,9 +167,36 @@
             padding: 50px 0;
         }
 
-        /* ================================================================
-           MODAL STYLES
-           ================================================================ */
+        /* Load More Button */
+        .load-more-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn-load-more {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 32px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            background: transparent;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-load-more:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: #fff;
+        }
+        .btn-load-more:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .btn-load-more.hidden {
+            display: none;
+        }
+
+        /* Modal Styles */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -329,9 +357,7 @@
             background: #d0d7e0;
         }
 
-        /* ================================================================
-           TOAST NOTIFICATION
-           ================================================================ */
+        /* Toast */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -382,9 +408,6 @@
             font-weight: 500;
         }
 
-        /* ================================================================
-           RESPONSIVE
-           ================================================================ */
         @media (max-width: 768px) {
             body {
                 padding: 80px 16px 20px 16px;
@@ -432,7 +455,7 @@
         <!-- Header -->
         <div class="header">
             <div class="header-left">
-                <h1>Document Repository</h1>
+                <h1>📄 Document Repository</h1>
                 <p>Manage documents for all societies</p>
             </div>
             <button class="btn-upload" onclick="openDocumentModal()">➕ Upload Document</button>
@@ -441,6 +464,11 @@
         <!-- Documents List -->
         <div id="documents-container">
             <div class="no-docs">📭 No documents available.</div>
+        </div>
+
+        <!-- Load More Button -->
+        <div id="load-more-container" class="load-more-container">
+            <button id="load-more-btn" class="btn-load-more hidden">Load More</button>
         </div>
 
         <div class="wits-badge">University of the Witwatersrand</div>

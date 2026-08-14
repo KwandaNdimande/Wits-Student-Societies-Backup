@@ -113,8 +113,7 @@
         .btn-download:hover {
             background: #1B3E73;
         }
-        .btn-download:disabled,
-        .btn-view:disabled {
+        .btn-action:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
@@ -125,6 +124,35 @@
             text-align: center;
             padding: 40px 0;
         }
+
+        .load-more-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn-load-more {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 32px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            background: transparent;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-load-more:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: #fff;
+        }
+        .btn-load-more:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .btn-load-more.hidden {
+            display: none;
+        }
+
         .wits-badge {
             text-align: center;
             margin-top: 28px;
@@ -134,6 +162,7 @@
             text-transform: uppercase;
             font-weight: 500;
         }
+
         @media (max-width: 768px) {
             body {
                 padding: 80px 16px 20px 16px;
@@ -162,6 +191,11 @@
 
         <div id="documents-container">
             <div class="no-docs">Loading documents...</div>
+        </div>
+
+        <!-- Load More Button -->
+        <div id="load-more-container" class="load-more-container">
+            <button id="load-more-btn" class="btn-load-more hidden">Load More</button>
         </div>
 
         <div class="wits-badge">University of the Witwatersrand</div>

@@ -24,71 +24,166 @@ if (!userUid) {
 }
 
 // ================================================================
-// HELPER: Force download from URL
+// PAGINATION STATE
 // ================================================================
-function forceDownload(url, fileName) {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+let lastDoc = null;
+let isLoading = false;
+let hasMore = true;
+const PAGE_SIZE = 3;
+let allLoadedCount = 0;
+
+const container = document.getElementById('documents-container');
+const loadMoreBtn = document.getElementById('load-more-btn');
+
+// ================================================================
+// FORCE DOWNLOAD (cross-origin compatible)
+// ================================================================
+async function forceDownload(url, fileName) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+    } catch (error) {
+        console.error('Download failed:', error);
+        alert('Failed to download file. Please try again.');
+    }
 }
 
 // ================================================================
-// LOAD DOCUMENTS (READ-ONLY FOR LEADERS)
+// RENDER DOCUMENTS
 // ================================================================
-async function loadDocuments() {
+function renderDocuments(docs, append = false) {
+    if (!append) {
+        container.innerHTML = '';
+        allLoadedCount = 0;
+    }
+
+    if (docs.length === 0 && allLoadedCount === 0) {
+        container.innerHTML = `<div class="no-docs">📭 No documents available.</div>`;
+        loadMoreBtn.classList.add('hidden');
+        return;
+    }
+
+    let html = '';
+    docs.forEach(doc => {
+        const d = doc.data();
+        let publicUrl = '#';
+        let fileName = 'file';
+        if (d.storagePath) {
+            const { data } = window.supabaseClient.storage
+                .from('documents')
+                .getPublicUrl(d.storagePath);
+            publicUrl = data.publicUrl;
+            fileName = d.storagePath.split('/').pop();
+        }
+        const hasFile = publicUrl !== '#';
+
+        html += `
+            <div class="doc-card">
+                <div class="doc-info">
+                    <div class="doc-name">${escapeHtml(d.name)}</div>
+                    <div class="doc-description">${escapeHtml(d.description || 'No description')}</div>
+                </div>
+                <div class="doc-actions">
+                    <button class="btn-action btn-view" onclick="viewDocument('${publicUrl}')" ${!hasFile ? 'disabled' : ''}>
+                        👁️ View
+                    </button>
+                    <button class="btn-action btn-download" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
+                        ⬇ Download
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    if (append) {
+        container.insertAdjacentHTML('beforeend', html);
+    } else {
+        container.innerHTML = html;
+    }
+
+    allLoadedCount += docs.length;
+}
+
+// ================================================================
+// LOAD DOCUMENTS (with +1 detection)
+// ================================================================
+async function loadDocuments(loadMore = false) {
+    if (isLoading) return;
+    isLoading = true;
+
+    if (!loadMore) {
+        lastDoc = null;
+        hasMore = true;
+        loadMoreBtn.classList.remove('hidden');
+        loadMoreBtn.textContent = 'Loading...';
+        loadMoreBtn.disabled = true;
+    } else {
+        loadMoreBtn.textContent = 'Loading...';
+        loadMoreBtn.disabled = true;
+    }
+
     try {
-        const docsSnapshot = await db.collection('documents')
+        let query = db.collection('documents')
             .orderBy('name', 'asc')
-            .get();
+            .limit(PAGE_SIZE + 1);
 
-        const container = document.getElementById('documents-container');
+        if (lastDoc) {
+            query = query.startAfter(lastDoc);
+        }
 
-        if (docsSnapshot.empty) {
-            container.innerHTML = `<div class="no-docs">📭 No documents available.</div>`;
+        const snapshot = await query.get();
+
+        if (snapshot.empty) {
+            hasMore = false;
+            loadMoreBtn.classList.add('hidden');
+            if (!loadMore && allLoadedCount === 0) {
+                container.innerHTML = `<div class="no-docs">📭 No documents available.</div>`;
+            }
+            isLoading = false;
             return;
         }
 
-        let html = '';
-        docsSnapshot.forEach(doc => {
-            const d = doc.data();
-            let publicUrl = '#';
-            let fileName = 'file';
-            if (d.storagePath) {
-                const { data } = window.supabaseClient.storage
-                    .from('documents')
-                    .getPublicUrl(d.storagePath);
-                publicUrl = data.publicUrl;
-                fileName = d.storagePath.split('/').pop();
-            }
-            const hasFile = publicUrl !== '#';
+        const allDocs = snapshot.docs;
+        const hasExtra = allDocs.length > PAGE_SIZE;
+        const displayDocs = hasExtra ? allDocs.slice(0, PAGE_SIZE) : allDocs;
 
-            html += `
-                <div class="doc-card">
-                    <div class="doc-info">
-                        <div class="doc-name">${escapeHtml(d.name)}</div>
-                        <div class="doc-description">${escapeHtml(d.description || 'No description')}</div>
-                    </div>
-                    <div class="doc-actions">
-                        <button class="btn-action btn-view" onclick="viewDocument('${publicUrl}')" ${!hasFile ? 'disabled' : ''}>
-                            👁️ View
-                        </button>
-                        <button class="btn-action btn-download" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
-                            ⬇ Download
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
+        if (displayDocs.length > 0) {
+            lastDoc = displayDocs[displayDocs.length - 1];
+        }
 
-        container.innerHTML = html;
+        renderDocuments(displayDocs, loadMore);
+
+        hasMore = hasExtra;
+        if (hasMore) {
+            loadMoreBtn.classList.remove('hidden');
+        } else {
+            loadMoreBtn.classList.add('hidden');
+        }
 
     } catch (error) {
         console.error('Error loading documents:', error);
-        document.getElementById('documents-container').innerHTML =
-            `<div class="no-docs" style="color:#dc3545;">⚠️ Error loading documents.</div>`;
+        if (!loadMore) {
+            container.innerHTML = `<div class="no-docs" style="color:#dc3545;">⚠️ Error loading documents.</div>`;
+        } else {
+            alert('Failed to load more documents.');
+        }
+        loadMoreBtn.classList.add('hidden');
+    } finally {
+        isLoading = false;
+        loadMoreBtn.textContent = 'Load More';
+        loadMoreBtn.disabled = false;
+        if (!hasMore) {
+            loadMoreBtn.classList.add('hidden');
+        }
     }
 }
 
@@ -123,6 +218,15 @@ function escapeHtml(str) {
 }
 
 // ================================================================
+// EVENT LISTENERS
+// ================================================================
+loadMoreBtn.addEventListener('click', function() {
+    if (!isLoading && hasMore) {
+        loadDocuments(true);
+    }
+});
+
+// ================================================================
 // LOAD DATA
 // ================================================================
-loadDocuments();
+loadDocuments(false);

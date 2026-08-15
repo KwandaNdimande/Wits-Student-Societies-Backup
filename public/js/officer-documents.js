@@ -47,6 +47,13 @@ let currentFileName = null;
 let currentFileSize = null;
 
 // ================================================================
+// EDIT VALIDATION STATE
+// ================================================================
+let initialName = '';
+let initialDescription = '';
+let initialFilePath = ''; // to track if file is being replaced
+
+// ================================================================
 // TOAST NOTIFICATION (FIXED – single icon)
 // ================================================================
 function showToast(message, isError = false) {
@@ -336,8 +343,44 @@ function handleFileChange(input) {
         fileSizeEl.textContent = `(${sizeMB} MB)`;
         currentFilePublicUrl = null;
         indicator.classList.remove('hidden');
+        // Trigger change check
+        checkForChanges();
     } else {
         indicator.classList.add('hidden');
+        // Trigger change check
+        checkForChanges();
+    }
+}
+
+// ================================================================
+// CHECK FOR CHANGES (edit validation)
+// ================================================================
+function checkForChanges() {
+    const name = document.getElementById('doc-name').value.trim();
+    const description = document.getElementById('doc-description').value.trim();
+    const fileInput = document.getElementById('doc-file');
+    const hasNewFile = fileInput.files && fileInput.files.length > 0;
+    const saveBtn = document.getElementById('documentSaveBtn');
+    const warning = document.getElementById('edit-warning');
+
+    // If no editing ID, it's a new upload, so always enable Save
+    if (!currentEditingId) {
+        saveBtn.disabled = false;
+        warning.classList.remove('show');
+        return;
+    }
+
+    // Check if anything changed
+    const nameChanged = name !== initialName;
+    const descChanged = description !== initialDescription;
+    const fileChanged = hasNewFile;
+
+    if (nameChanged || descChanged || fileChanged) {
+        saveBtn.disabled = false;
+        warning.classList.remove('show');
+    } else {
+        saveBtn.disabled = true;
+        warning.classList.add('show');
     }
 }
 
@@ -360,6 +403,11 @@ function openDocumentModal(editingId) {
     document.getElementById('doc-description').value = '';
     document.getElementById('doc-file').value = null;
     document.getElementById('current-file-indicator').classList.add('hidden');
+    // Reset warning and enable Save for new upload
+    const saveBtn = document.getElementById('documentSaveBtn');
+    const warning = document.getElementById('edit-warning');
+    saveBtn.disabled = false;
+    warning.classList.remove('show');
 
     modal.classList.add('active');
 }
@@ -371,6 +419,11 @@ function closeDocumentModal() {
     currentFileName = null;
     currentFileSize = null;
     document.getElementById('current-file-indicator').classList.add('hidden');
+    // Reset validation state
+    const saveBtn = document.getElementById('documentSaveBtn');
+    const warning = document.getElementById('edit-warning');
+    saveBtn.disabled = false;
+    warning.classList.remove('show');
 }
 
 document.getElementById('documentModal').addEventListener('click', function(e) {
@@ -395,6 +448,10 @@ async function openEditDocument(docId) {
         document.getElementById('doc-name').value = d.name || '';
         document.getElementById('doc-description').value = d.description || '';
 
+        // Store initial values for change detection
+        initialName = d.name || '';
+        initialDescription = d.description || '';
+
         const indicator = document.getElementById('current-file-indicator');
         const fileNameEl = document.getElementById('current-file-name');
         const fileSizeEl = document.getElementById('current-file-size');
@@ -405,6 +462,7 @@ async function openEditDocument(docId) {
                 .getPublicUrl(d.storagePath);
             currentFilePublicUrl = data.publicUrl;
             currentFileName = d.storagePath.split('/').pop();
+            initialFilePath = d.storagePath; // store initial path
 
             if (d.fileSize) {
                 const sizeMB = (d.fileSize / (1024 * 1024)).toFixed(2);
@@ -418,7 +476,19 @@ async function openEditDocument(docId) {
             indicator.classList.remove('hidden');
         } else {
             indicator.classList.add('hidden');
+            initialFilePath = '';
         }
+
+        // Disable Save initially for edit mode
+        const saveBtn = document.getElementById('documentSaveBtn');
+        const warning = document.getElementById('edit-warning');
+        saveBtn.disabled = true;
+        warning.classList.add('show');
+
+        // Attach event listeners to name, description, file input
+        document.getElementById('doc-name').addEventListener('input', checkForChanges);
+        document.getElementById('doc-description').addEventListener('input', checkForChanges);
+        // File input already has onchange handler that calls checkForChanges
 
     } catch (error) {
         console.error('Error opening document for edit:', error);
@@ -448,13 +518,26 @@ async function deleteFileFromSupabase(filePath) {
 }
 
 // ================================================================
-// SUBMIT DOCUMENT (with delay and proper modal close)
+// SUBMIT DOCUMENT (with validation)
 // ================================================================
 async function submitDocument() {
     const name = document.getElementById('doc-name').value.trim();
     const description = document.getElementById('doc-description').value.trim();
     const fileInput = document.getElementById('doc-file');
     const file = fileInput.files && fileInput.files[0];
+
+    // If editing, check if any change exists
+    if (currentEditingId) {
+        const nameChanged = name !== initialName;
+        const descChanged = description !== initialDescription;
+        const fileChanged = file !== undefined && file !== null && fileInput.files.length > 0;
+
+        if (!nameChanged && !descChanged && !fileChanged) {
+            // Show warning and disable button (already handled by checkForChanges)
+            showToast('⚠️ No changes made to save.', true);
+            return;
+        }
+    }
 
     if (!name) {
         showToast('⚠️ Please enter a document name.', true);
@@ -607,8 +690,6 @@ async function openInfoModal(docId) {
             dateStr = new Date(ts).toLocaleDateString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric' });
         }
         document.getElementById('info-date').textContent = dateStr;
-
-        // No file size, no uploaded by
 
         document.getElementById('infoModalTitle').textContent = 'Document Details';
         document.getElementById('infoModal').classList.add('active');

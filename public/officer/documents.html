@@ -417,6 +417,17 @@
             background: var(--navy-800);
         }
 
+        /* Edit warning */
+        .edit-warning {
+            color: #D64545;
+            font-size: 13px;
+            margin-top: 8px;
+            display: none;
+        }
+        .edit-warning.show {
+            display: block;
+        }
+
         .modal-footer-edit {
             margin-top: 20px;
             padding-top: 16px;
@@ -620,9 +631,14 @@
                     </div>
                     <div class="file-hint">Any file type is accepted. Max file size: 20MB.</div>
                 </div>
+
+                <!-- Edit warning -->
+                <div id="edit-warning" class="edit-warning">
+                    ⚠️ Please change the document name, description, or upload a new file to save.
+                </div>
             </div>
             <div class="modal-footer-edit">
-                <button class="btn btn-primary" id="documentSaveBtn" onclick="submitDocument()">Save</button>
+                <button class="btn btn-primary" id="documentSaveBtn" onclick="submitDocument()" disabled>Save</button>
                 <button class="btn btn-secondary" onclick="closeDocumentModal()">Cancel</button>
             </div>
         </div>

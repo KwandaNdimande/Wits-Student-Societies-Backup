@@ -306,26 +306,33 @@ async function openInfoModal(docId) {
         const d = doc.data();
         currentInfoDocId = docId;
 
-        // Set modal content
         document.getElementById('info-name').textContent = d.name || '-';
         document.getElementById('info-description').textContent = d.description || 'No description';
-        // Format date
+
+        // Uploaded date
         let dateStr = 'Unknown';
         if (d.uploadedAt) {
             const ts = d.uploadedAt.seconds ? d.uploadedAt.seconds * 1000 : d.uploadedAt;
             dateStr = new Date(ts).toLocaleDateString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric' });
         }
         document.getElementById('info-date').textContent = dateStr;
-        // File size
-        let sizeStr = 'Unknown';
-        if (d.fileSize) {
-            const mb = (d.fileSize / (1024 * 1024)).toFixed(2);
-            sizeStr = `${mb} MB`;
-        } else if (d.storagePath) {
-            // Try to get size from storage? Not easily, so show 'Available'
-            sizeStr = 'Available';
+
+        // Uploaded By (for Leader)
+        let byStr = 'Unknown';
+        if (d.uploadedBy) {
+            try {
+                const userDoc = await db.collection('users').doc(d.uploadedBy).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    byStr = userData.name || userData.email || d.uploadedBy;
+                } else {
+                    byStr = d.uploadedBy;
+                }
+            } catch (e) {
+                byStr = d.uploadedBy;
+            }
         }
-        document.getElementById('info-size').textContent = sizeStr;
+        document.getElementById('info-by').textContent = byStr;
 
         document.getElementById('infoModalTitle').textContent = 'Document Details';
         document.getElementById('infoModal').classList.add('active');

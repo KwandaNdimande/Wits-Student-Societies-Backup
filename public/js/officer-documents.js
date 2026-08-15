@@ -599,6 +599,7 @@ async function openInfoModal(docId) {
         document.getElementById('info-name').textContent = d.name || '-';
         document.getElementById('info-description').textContent = d.description || 'No description';
 
+        // Uploaded date
         let dateStr = 'Unknown';
         if (d.uploadedAt) {
             const ts = d.uploadedAt.seconds ? d.uploadedAt.seconds * 1000 : d.uploadedAt;
@@ -606,31 +607,7 @@ async function openInfoModal(docId) {
         }
         document.getElementById('info-date').textContent = dateStr;
 
-        let sizeStr = 'Unknown';
-        if (d.fileSize) {
-            const mb = (d.fileSize / (1024 * 1024)).toFixed(2);
-            sizeStr = `${mb} MB`;
-        } else if (d.storagePath) {
-            sizeStr = 'Available';
-        }
-        document.getElementById('info-size').textContent = sizeStr;
-
-        // Uploaded By
-        let byStr = 'Unknown';
-        if (d.uploadedBy) {
-            try {
-                const userDoc = await db.collection('users').doc(d.uploadedBy).get();
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    byStr = userData.name || userData.email || d.uploadedBy;
-                } else {
-                    byStr = d.uploadedBy;
-                }
-            } catch (e) {
-                byStr = d.uploadedBy;
-            }
-        }
-        document.getElementById('info-by').textContent = byStr;
+        // No file size, no uploaded by
 
         document.getElementById('infoModalTitle').textContent = 'Document Details';
         document.getElementById('infoModal').classList.add('active');

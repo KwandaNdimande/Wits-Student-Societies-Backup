@@ -569,25 +569,24 @@
     </div>
 
     <!-- Info Modal -->
-    <div class="modal-overlay" id="infoModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="infoModalTitle">Document Details</h2>
-                <button class="modal-back" onclick="closeInfoModal()">← Back</button>
-            </div>
-            <div class="modal-body" id="infoModalBody">
-                <div class="detail-row"><span class="label">Name</span><span class="value" id="info-name">-</span></div>
-                <div class="detail-row"><span class="label">Description</span><span class="value" id="info-description">-</span></div>
-                <div class="detail-row"><span class="label">Uploaded</span><span class="value" id="info-date">-</span></div>
-                <div class="detail-row"><span class="label">File Size</span><span class="value" id="info-size">-</span></div>
-                <div class="detail-row"><span class="label">Uploaded By</span><span class="value" id="info-by">-</span></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeInfoModal()">Close</button>
-            </div>
+    <!-- Info Modal -->
+<div class="modal-overlay" id="infoModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="infoModalTitle">Document Details</h2>
+            <button class="modal-back" onclick="closeInfoModal()">← Back</button>
+        </div>
+        <div class="modal-body" id="infoModalBody">
+            <div class="detail-row"><span class="label">Name</span><span class="value" id="info-name">-</span></div>
+            <div class="detail-row"><span class="label">Description</span><span class="value" id="info-description">-</span></div>
+            <div class="detail-row"><span class="label">Uploaded</span><span class="value" id="info-date">-</span></div>
+            <!-- Uploaded By is removed for Officer -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeInfoModal()">Close</button>
         </div>
     </div>
-
+</div>
     <!-- Toast Notification -->
     <div class="toast" id="toast">
         <span id="toastMessage">Document saved successfully!</span>

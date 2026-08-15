@@ -1,6 +1,6 @@
 // ---------- SUPABASE INITIALIZATION ----------
 const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF0ZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwic2VjcmV0IjoiZXlKMWMyVnlibVJ2SWpvaU1qTTRNakkxT0RFMk1EQTFJaXdpY0hWeWJHUXRJanBjSW5ScFQyNXRaV0YwYVhSbFJ5STZJbXRpZVNJc0luQnliM0p5WkNJNklqQXhNREUwTmpneE1EQXlPQ3dpYVdGMElqb3hOek0zTkRRMk1qSXNJblJ6SWpvaVFXTXlPV1F4Wm1Oa1lqYzVORE5rTVdNeU5XTXpOamc0TWpJd09EazNNVE5qWkNJc0ltVjRZMlVpT2lKaVdYUmhJbjAuY3JzYVJqTzJ3aFZ3S0V5d3Z2YVd3Z0tJbWJwZ2x1V2xjY2tqQ1FjT2p4dW5hS1dKSmVxWlN0T0VjVjB2Q0JxYlJqV1p6R1d6Q1V4bVh0cW1xZ3R0d0hJQk9yV0h5R2x2a3F4dFh4V0hVdGZxZlJpR2t3d3ZQb2R1Y0t0b2d0Zz09IiwiaWF0IjoxNzY2NjM2MDM1LCJleHAiOjIxMDIyMTIwMzV9.ItYeye56cxBqkbaeOVS-66xU-yM9f7T8C0F2tfqB_4';
 window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
 // Firebase config
@@ -502,6 +502,7 @@ async function submitDocument() {
                 description,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
+
             if (storagePath) {
                 updateData.storagePath = storagePath;
                 updateData.fileSize = fileSize;
@@ -513,6 +514,7 @@ async function submitDocument() {
                     }
                 }
             }
+
             await db.collection('documents').doc(currentEditingId).update(updateData);
             showToast('✅ Document updated successfully!');
         } else {
@@ -522,6 +524,7 @@ async function submitDocument() {
                 saveBtn.textContent = 'Save';
                 return;
             }
+
             await db.collection('documents').add({
                 name,
                 description,
@@ -533,7 +536,7 @@ async function submitDocument() {
             showToast('✅ Document uploaded successfully!');
         }
 
-        loadDocuments(false);
+        await loadDocuments(false);
         closeDocumentModal();
 
     } catch (error) {
@@ -557,6 +560,7 @@ async function deleteDocument(docId) {
             showToast('⚠️ Document not found.', true);
             return;
         }
+
         const d = doc.data();
 
         if (d.storagePath) {
@@ -571,9 +575,7 @@ async function deleteDocument(docId) {
 
         showToast('Document deleted successfully!');
 
-        setTimeout(() => {
-            loadDocuments(false);
-        }, 250);
+        await loadDocuments(false);
 
     } catch (error) {
         console.error('Error deleting document:', error);
@@ -593,6 +595,7 @@ async function openInfoModal(docId) {
             alert('Document not found.');
             return;
         }
+
         const d = doc.data();
         currentInfoDocId = docId;
 

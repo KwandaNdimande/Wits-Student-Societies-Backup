@@ -40,6 +40,13 @@ const container = document.getElementById('documents-container');
 const loadMoreBtn = document.getElementById('load-more-btn');
 
 // ================================================================
+// CURRENT FILE STATE (Feature #5)
+// ================================================================
+let currentFilePublicUrl = null;
+let currentFileName = null;
+let currentFileSize = null;
+
+// ================================================================
 // TOAST NOTIFICATION
 // ================================================================
 
@@ -66,7 +73,7 @@ function closeToast() {
 }
 
 // ================================================================
-// FORCE DOWNLOAD (cross-origin compatible)
+// FORCE DOWNLOAD
 // ================================================================
 async function forceDownload(url, fileName) {
     try {
@@ -143,7 +150,7 @@ function renderDocuments(docs, append = false) {
 }
 
 // ================================================================
-// LOAD DOCUMENTS (with +1 detection)
+// LOAD DOCUMENTS
 // ================================================================
 async function loadDocuments(loadMore = false) {
     if (isLoading) return;
@@ -217,7 +224,7 @@ async function loadDocuments(loadMore = false) {
 }
 
 // ================================================================
-// DOWNLOAD: Force download
+// DOWNLOAD
 // ================================================================
 function downloadDocument(url, fileName) {
     if (url && url !== '#') {
@@ -228,9 +235,42 @@ function downloadDocument(url, fileName) {
 }
 
 // ================================================================
+// VIEW CURRENT FILE (Feature #5)
+// ================================================================
+function viewCurrentFile() {
+    if (currentFilePublicUrl && currentFilePublicUrl !== '#') {
+        window.open(currentFilePublicUrl, '_blank');
+    } else {
+        alert('No file available to view.');
+    }
+}
+
+// ================================================================
+// HANDLE FILE CHANGE (Feature #5)
+// ================================================================
+function handleFileChange(input) {
+    const file = input.files && input.files[0];
+    const indicator = document.getElementById('current-file-indicator');
+    const fileNameEl = document.getElementById('current-file-name');
+    const fileSizeEl = document.getElementById('current-file-size');
+
+    if (file) {
+        // User selected a new file — update the indicator to show the new file
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        fileNameEl.textContent = file.name;
+        fileSizeEl.textContent = `(${sizeMB} MB)`;
+        // Clear the stored current file URL since it's being replaced
+        currentFilePublicUrl = null;
+        indicator.classList.remove('hidden');
+    } else {
+        // No file selected — hide the indicator (will be shown again if editing)
+        indicator.classList.add('hidden');
+    }
+}
+
+// ================================================================
 // OPEN MODAL
 // ================================================================
-
 function openDocumentModal(editingId) {
     const modal = document.getElementById('documentModal');
     const title = document.getElementById('documentModalTitle');
@@ -247,12 +287,19 @@ function openDocumentModal(editingId) {
     document.getElementById('doc-description').value = '';
     document.getElementById('doc-file').value = null;
 
+    // Hide current file indicator by default (will be shown in openEditDocument)
+    document.getElementById('current-file-indicator').classList.add('hidden');
+
     modal.classList.add('active');
 }
 
 function closeDocumentModal() {
     document.getElementById('documentModal').classList.remove('active');
     currentEditingId = null;
+    currentFilePublicUrl = null;
+    currentFileName = null;
+    currentFileSize = null;
+    document.getElementById('current-file-indicator').classList.add('hidden');
 }
 
 document.getElementById('documentModal').addEventListener('click', function(e) {
@@ -262,9 +309,8 @@ document.getElementById('documentModal').addEventListener('click', function(e) {
 });
 
 // ================================================================
-// OPEN EDIT DOCUMENT
+// OPEN EDIT DOCUMENT (Feature #5 - shows current file)
 // ================================================================
-
 async function openEditDocument(docId) {
     try {
         const doc = await db.collection('documents').doc(docId).get();
@@ -277,6 +323,34 @@ async function openEditDocument(docId) {
         openDocumentModal(docId);
         document.getElementById('doc-name').value = d.name || '';
         document.getElementById('doc-description').value = d.description || '';
+
+        // --- Feature #5: Show current file indicator ---
+        const indicator = document.getElementById('current-file-indicator');
+        const fileNameEl = document.getElementById('current-file-name');
+        const fileSizeEl = document.getElementById('current-file-size');
+
+        if (d.storagePath) {
+            const { data } = window.supabaseClient.storage
+                .from('documents')
+                .getPublicUrl(d.storagePath);
+            currentFilePublicUrl = data.publicUrl;
+            currentFileName = d.storagePath.split('/').pop();
+
+            // Get file size from stored field or fallback
+            if (d.fileSize) {
+                const sizeMB = (d.fileSize / (1024 * 1024)).toFixed(2);
+                currentFileSize = d.fileSize;
+                fileSizeEl.textContent = `(${sizeMB} MB)`;
+            } else {
+                fileSizeEl.textContent = '';
+            }
+
+            fileNameEl.textContent = currentFileName;
+            indicator.classList.remove('hidden');
+        } else {
+            indicator.classList.add('hidden');
+        }
+
     } catch (error) {
         console.error('Error opening document for edit:', error);
         showToast('❌ Error loading document.', true);
@@ -286,7 +360,6 @@ async function openEditDocument(docId) {
 // ================================================================
 // UPLOAD FILE TO SUPABASE
 // ================================================================
-
 async function uploadFileToSupabase(file, folder = 'documents') {
     const timestamp = Date.now();
     const fileName = `${timestamp}_${file.name}`;
@@ -301,7 +374,6 @@ async function uploadFileToSupabase(file, folder = 'documents') {
 // ================================================================
 // DELETE FILE FROM SUPABASE
 // ================================================================
-
 async function deleteFileFromSupabase(filePath) {
     const { error } = await window.supabaseClient.storage
         .from('documents')
@@ -310,9 +382,8 @@ async function deleteFileFromSupabase(filePath) {
 }
 
 // ================================================================
-// SUBMIT DOCUMENT
+// SUBMIT DOCUMENT (stores fileSize for edit view)
 // ================================================================
-
 async function submitDocument() {
     const name = document.getElementById('doc-name').value.trim();
     const description = document.getElementById('doc-description').value.trim();
@@ -331,6 +402,7 @@ async function submitDocument() {
     try {
         let storagePath = null;
         let oldStoragePath = null;
+        let fileSize = null;
 
         if (currentEditingId) {
             const oldDoc = await db.collection('documents').doc(currentEditingId).get();
@@ -346,6 +418,7 @@ async function submitDocument() {
                 saveBtn.textContent = 'Save';
                 return;
             }
+            fileSize = file.size;
             storagePath = await uploadFileToSupabase(file);
         } else if (!currentEditingId) {
             showToast('⚠️ Please select a file to upload.', true);
@@ -362,6 +435,7 @@ async function submitDocument() {
             };
             if (storagePath) {
                 updateData.storagePath = storagePath;
+                updateData.fileSize = fileSize;
                 if (oldStoragePath) {
                     try {
                         await deleteFileFromSupabase(oldStoragePath);
@@ -383,13 +457,13 @@ async function submitDocument() {
                 name,
                 description,
                 storagePath: storagePath,
+                fileSize: fileSize,
                 uploadedBy: userUid,
                 uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             showToast('✅ Document uploaded successfully!');
         }
 
-        // Reset pagination and reload
         loadDocuments(false);
         closeDocumentModal();
 
@@ -403,9 +477,8 @@ async function submitDocument() {
 }
 
 // ================================================================
-// DELETE DOCUMENT (with delay to ensure Firestore sync)
+// DELETE DOCUMENT
 // ================================================================
-
 async function deleteDocument(docId) {
     if (!confirm('Are you sure you want to delete this document? This cannot be undone.')) return;
 
@@ -429,7 +502,6 @@ async function deleteDocument(docId) {
 
         showToast('Document deleted successfully!');
 
-        // Small delay to allow Firestore to propagate the deletion
         setTimeout(() => {
             loadDocuments(false);
         }, 250);
@@ -443,7 +515,6 @@ async function deleteDocument(docId) {
 // ================================================================
 // HELPER FUNCTIONS
 // ================================================================
-
 function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

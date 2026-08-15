@@ -45,7 +45,6 @@
             margin: 0 auto;
         }
 
-        /* Header */
         .header {
             display: flex;
             justify-content: space-between;
@@ -84,7 +83,6 @@
             box-shadow: 0 4px 12px rgba(255,255,255,0.15);
         }
 
-        /* Document Cards */
         .doc-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -167,7 +165,6 @@
             padding: 50px 0;
         }
 
-        /* Load More Button */
         .load-more-container {
             text-align: center;
             margin-top: 20px;
@@ -196,7 +193,6 @@
             display: none;
         }
 
-        /* Modal Styles */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -286,6 +282,65 @@
             resize: vertical;
             min-height: 80px;
         }
+
+        /* ================================================================
+           CURRENT FILE INDICATOR (Feature #5)
+           ================================================================ */
+        .current-file-indicator {
+            background: #F4F7FB;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .current-file-indicator .file-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-600);
+        }
+        .current-file-indicator .file-info .file-icon {
+            font-size: 20px;
+        }
+        .current-file-indicator .file-info .file-name {
+            font-weight: 600;
+            color: var(--text-900);
+        }
+        .current-file-indicator .file-info .file-size {
+            color: var(--text-500);
+            font-size: 13px;
+        }
+        .current-file-indicator .btn-view-current {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 4px 16px;
+            border: none;
+            border-radius: 6px;
+            background: #2E6FBA;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .current-file-indicator .btn-view-current:hover {
+            background: #1B4F8A;
+        }
+        .current-file-indicator .file-replaced {
+            color: var(--success);
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .current-file-indicator.hidden {
+            display: none;
+        }
+
         .modal-body .form-group .file-hint {
             font-size: 13px;
             color: var(--text-500);
@@ -357,7 +412,6 @@
             background: #d0d7e0;
         }
 
-        /* Toast */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -442,6 +496,10 @@
                 bottom: 16px;
                 max-width: none;
             }
+            .current-file-indicator {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
         @media (max-width: 480px) {
             .doc-actions .btn-action {
@@ -452,21 +510,18 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <div class="header-left">
-                <h1>📄 Document Repository</h1>
+                <h1>Document Repository</h1>
                 <p>Manage documents for all societies</p>
             </div>
             <button class="btn-upload" onclick="openDocumentModal()">➕ Upload Document</button>
         </div>
 
-        <!-- Documents List -->
         <div id="documents-container">
             <div class="no-docs">📭 No documents available.</div>
         </div>
 
-        <!-- Load More Button -->
         <div id="load-more-container" class="load-more-container">
             <button id="load-more-btn" class="btn-load-more hidden">Load More</button>
         </div>
@@ -474,7 +529,6 @@
         <div class="wits-badge">University of the Witwatersrand</div>
     </div>
 
-    <!-- Toast Notification -->
     <div class="toast" id="toast">
         <span class="toast-icon">✅</span>
         <span id="toastMessage">Document saved successfully!</span>
@@ -497,10 +551,21 @@
                     <label for="doc-description">Description</label>
                     <textarea id="doc-description" placeholder="Brief description of the document..." rows="3"></textarea>
                 </div>
+
+                <!-- ================================================================
+                     CURRENT FILE INDICATOR (Feature #5)
+                     ================================================================ -->
                 <div class="form-group">
-                    <label for="doc-file">File</label>
+                    <label>File</label>
+                    <div id="current-file-indicator" class="current-file-indicator hidden">
+                        <div class="file-info">
+                            <span class="file-name" id="current-file-name">file.pdf</span>
+                            <span class="file-size" id="current-file-size">(0 MB)</span>
+                        </div>
+                        <button class="btn-view-current" id="current-file-view-btn" onclick="viewCurrentFile()">👁️ View</button>
+                    </div>
                     <div class="file-input-wrapper">
-                        <input id="doc-file" type="file" />
+                        <input id="doc-file" type="file" onchange="handleFileChange(this)" />
                     </div>
                     <div class="file-hint">Any file type is accepted. Max file size: 20MB.</div>
                 </div>

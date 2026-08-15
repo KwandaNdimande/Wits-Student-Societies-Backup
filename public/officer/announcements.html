@@ -219,13 +219,6 @@
         .btn-view:hover {
             background: #1B4F8A;
         }
-        .btn-edit {
-            background: var(--navy-900);
-            color: #fff;
-        }
-        .btn-edit:hover {
-            background: var(--navy-800);
-        }
         .btn-delete {
             background: var(--danger);
             color: #fff;
@@ -274,7 +267,7 @@
             display: none;
         }
 
-        /* Modal */
+        /* View Modal */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -417,9 +410,6 @@
                 margin-bottom: 4px;
                 text-align: center;
             }
-            .doc-actions {
-                flex-direction: column;
-            }
             .modal-body .detail-row {
                 flex-direction: column;
             }
@@ -500,47 +490,6 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeViewModal()">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Modal (Officer) -->
-    <div class="modal-overlay" id="editModal">
-        <div class="modal" style="max-width:680px;">
-            <div class="modal-header">
-                <h2 id="editModalTitle">Edit Announcement</h2>
-                <button class="modal-back" onclick="closeEditModal()">← Back</button>
-            </div>
-            <div class="modal-body">
-                <div class="edit-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
-                    <div>
-                        <label for="edit-ann-title">Title</label>
-                        <input id="edit-ann-title" placeholder="Enter title..." />
-                    </div>
-                    <div>
-                        <label for="edit-ann-category">Category</label>
-                        <select id="edit-ann-category">
-                            <option value="">Select category...</option>
-                            <option value="Upcoming Event">Upcoming Event</option>
-                            <option value="Training Induction">Training Induction</option>
-                            <option value="General Notice">General Notice</option>
-                            <option value="Deadline Reminder">Deadline Reminder</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="edit-ann-date">Date</label>
-                        <input id="edit-ann-date" type="date" />
-                        <div id="edit-date-error" class="date-error">Please select a date from today onwards.</div>
-                    </div>
-                    <div style="grid-column:1/-1;">
-                        <label for="edit-ann-body">Message</label>
-                        <textarea id="edit-ann-body" placeholder="Write your announcement message here..." rows="4"></textarea>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" id="editSaveBtn" onclick="saveEditAnnouncement()">Save Changes</button>
-                <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
             </div>
         </div>
     </div>

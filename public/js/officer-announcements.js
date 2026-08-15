@@ -23,8 +23,6 @@ if (!userUid) {
     window.location.href = '/login.html';
 }
 
-let currentEditingId = null;
-
 // Category colors (no emoji)
 const categoryColors = {
     'Upcoming Event': '#2E6FBA',
@@ -72,24 +70,8 @@ function validateCreateDate() {
     }
 }
 
-function validateEditDate() {
-    const dateInput = document.getElementById('edit-ann-date');
-    const errorEl = document.getElementById('edit-date-error');
-    const saveBtn = document.getElementById('editSaveBtn');
-    const dateVal = dateInput.value;
-    if (dateVal && !isValidDate(dateVal)) {
-        errorEl.classList.add('show');
-        saveBtn.disabled = true;
-        return false;
-    } else {
-        errorEl.classList.remove('show');
-        saveBtn.disabled = false;
-        return true;
-    }
-}
-
 // ================================================================
-// RENDER ANNOUNCEMENTS (TABLE)
+// RENDER ANNOUNCEMENTS (TABLE - no Edit button)
 // ================================================================
 function renderAnnouncements(docs, append = false) {
     if (!append) {
@@ -137,7 +119,6 @@ function renderAnnouncements(docs, append = false) {
                 <td style="color:#6c757d;">${relWhen}</td>
                 <td>
                     <button class="btn-action btn-view" onclick="viewAnnouncement('${docId}')">View</button>
-                    <button class="btn-action btn-edit" onclick="openEditModal('${docId}')">Edit</button>
                     <button class="btn-action btn-delete" onclick="deleteAnnouncement('${docId}')">Delete</button>
                 </td>
             </tr>
@@ -169,7 +150,6 @@ function renderAnnouncements(docs, append = false) {
                         <td style="color:#6c757d;">${relWhen}</td>
                         <td>
                             <button class="btn-action btn-view" onclick="viewAnnouncement('${docId}')">View</button>
-                            <button class="btn-action btn-edit" onclick="openEditModal('${docId}')">Edit</button>
                             <button class="btn-action btn-delete" onclick="deleteAnnouncement('${docId}')">Delete</button>
                         </td>
                     </tr>
@@ -339,83 +319,6 @@ async function postAnnouncement() {
 }
 
 // ================================================================
-// EDIT MODAL
-// ================================================================
-async function openEditModal(id) {
-    try {
-        const doc = await db.collection('announcements').doc(id).get();
-        if (!doc.exists) {
-            alert('Announcement not found.');
-            return;
-        }
-        const data = doc.data();
-        currentEditingId = id;
-
-        document.getElementById('edit-ann-title').value = data.title || '';
-        document.getElementById('edit-ann-category').value = data.category || '';
-        document.getElementById('edit-ann-date').value = data.date || '';
-        document.getElementById('edit-ann-body').value = data.body || '';
-
-        document.getElementById('editModalTitle').textContent = 'Edit Announcement';
-        document.getElementById('editModal').classList.add('active');
-        validateEditDate();
-    } catch (error) {
-        console.error(error);
-        alert('Error loading announcement.');
-    }
-}
-
-function closeEditModal() {
-    document.getElementById('editModal').classList.remove('active');
-    currentEditingId = null;
-}
-document.getElementById('editModal').addEventListener('click', function(e) {
-    if (e.target === this) closeEditModal();
-});
-
-// ================================================================
-// SAVE EDIT
-// ================================================================
-async function saveEditAnnouncement() {
-    if (!currentEditingId) {
-        alert('No announcement selected.');
-        return;
-    }
-    const title = document.getElementById('edit-ann-title').value.trim();
-    const category = document.getElementById('edit-ann-category').value;
-    const date = document.getElementById('edit-ann-date').value;
-    const body = document.getElementById('edit-ann-body').value.trim();
-
-    if (!title || !category || !body) {
-        alert('Please fill in all required fields.');
-        return;
-    }
-    if (!isValidDate(date)) {
-        alert('Please select a valid date (today or future).');
-        return;
-    }
-
-    const btn = document.getElementById('editSaveBtn');
-    btn.disabled = true;
-    btn.textContent = 'Saving...';
-
-    try {
-        await db.collection('announcements').doc(currentEditingId).update({
-            title, category, date, body,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        closeEditModal();
-        loadAnnouncements(false);
-    } catch (error) {
-        console.error(error);
-        alert('Error saving announcement.');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Save Changes';
-    }
-}
-
-// ================================================================
 // DELETE
 // ================================================================
 async function deleteAnnouncement(id) {
@@ -466,19 +369,12 @@ loadMoreBtn.addEventListener('click', function() {
 document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     const createDate = document.getElementById('announcement-date');
-    const editDate = document.getElementById('edit-ann-date');
     if (createDate) createDate.setAttribute('min', today);
-    if (editDate) editDate.setAttribute('min', today);
     if (createDate) {
         createDate.addEventListener('change', validateCreateDate);
         createDate.addEventListener('input', validateCreateDate);
     }
-    if (editDate) {
-        editDate.addEventListener('change', validateEditDate);
-        editDate.addEventListener('input', validateEditDate);
-    }
     validateCreateDate();
-    validateEditDate();
 
     loadAnnouncements(false);
 });

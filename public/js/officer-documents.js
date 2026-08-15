@@ -54,7 +54,7 @@ function showToast(message, isError = false) {
     const toastMessage = document.getElementById('toastMessage');
 
     const icon = isError ? '❌ ' : '✅ ';
-    toastMessage.textContent = icon + message;
+    toastMessage.textContent = message;
     toast.style.borderLeftColor = isError ? '#C0392B' : '#1E8E5A';
 
     toast.classList.add('show');

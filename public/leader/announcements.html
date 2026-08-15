@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Supabase SDK (for consistency) -->
+    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -24,7 +24,6 @@
             --text-500: #5A6B87;
             --border: #E1E7F0;
             --radius: 12px;
-            --primary: #0B1F3A;
         }
         * {
             margin: 0;
@@ -43,6 +42,7 @@
             max-width: 1000px;
             margin: 0 auto;
         }
+
         .header {
             margin-bottom: 28px;
         }
@@ -58,44 +58,44 @@
             margin-top: 4px;
         }
 
-        /* Announcement Cards */
-        .announcement-card {
+        .table-container {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 20px 24px;
-            margin-bottom: 14px;
+            overflow: hidden;
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            transition: box-shadow 0.2s ease;
         }
-        .announcement-card:hover {
-            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
         }
-        .announcement-card .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-            margin-bottom: 6px;
-            flex-wrap: wrap;
+        thead {
+            background: #FAFBFD;
+            border-bottom: 1px solid var(--border);
         }
-        .announcement-card .card-header .title-area {
-            flex: 1;
-        }
-        .announcement-card .card-header .title-area .ann-title {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 18px;
+        th {
+            padding: 14px 18px;
+            text-align: left;
+            font-size: 12px;
             font-weight: 600;
-            color: var(--navy-900);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-500);
         }
-        .announcement-card .card-header .title-area .ann-meta {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 6px;
-            flex-wrap: wrap;
+        td {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-600);
+            vertical-align: middle;
         }
-        .announcement-card .card-header .title-area .ann-category {
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr:hover {
+            background: #FAFBFD;
+        }
+        .category-badge {
             display: inline-block;
             padding: 3px 12px;
             border-radius: 20px;
@@ -105,24 +105,38 @@
             text-transform: uppercase;
             letter-spacing: 0.03em;
         }
-        .announcement-card .card-header .title-area .ann-date {
-            font-size: 13px;
-            color: var(--text-500);
+        .btn-action {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            display: inline-block;
+            margin-right: 4px;
         }
-        .announcement-card .ann-body {
-            font-size: 14px;
-            color: var(--text-600);
-            line-height: 1.6;
-            margin-top: 8px;
+        .btn-view {
+            background: #2E6FBA;
+            color: #fff;
         }
+        .btn-view:hover {
+            background: #1B4F8A;
+        }
+        .btn-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .no-announcements {
-            color: var(--text-500);
+            color: #8FA6CC;
             font-size: 14px;
             text-align: center;
             padding: 40px 0;
         }
 
-        /* Load More Button */
         .load-more-container {
             text-align: center;
             margin-top: 20px;
@@ -151,6 +165,103 @@
             display: none;
         }
 
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: var(--surface);
+            border-radius: var(--radius);
+            max-width: 500px;
+            width: 90%;
+            padding: 28px 32px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-header h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--navy-900);
+        }
+        .modal-back {
+            background: none;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            color: var(--text-500);
+            padding: 4px 8px;
+            font-family: 'Inter', sans-serif;
+        }
+        .modal-back:hover {
+            color: var(--text-900);
+        }
+        .modal-body .detail-row {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .modal-body .detail-row .label {
+            font-weight: 600;
+            color: var(--text-600);
+            width: 100px;
+            flex-shrink: 0;
+        }
+        .modal-body .detail-row .value {
+            color: var(--text-900);
+            flex: 1;
+        }
+        .modal-body .detail-row:last-child {
+            border-bottom: none;
+        }
+        .modal-footer {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        .btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text-600);
+        }
+        .btn-secondary:hover {
+            background: #d0d7e0;
+        }
+
         .wits-badge {
             text-align: center;
             margin-top: 28px;
@@ -165,19 +276,33 @@
             body {
                 padding: 80px 16px 20px 16px;
             }
-            .announcement-card {
-                padding: 16px;
+            .table-container {
+                overflow-x: auto;
             }
-            .announcement-card .card-header {
-                flex-direction: column;
-                gap: 8px;
+            th, td {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+            .btn-action {
+                font-size: 11px;
+                padding: 4px 10px;
+            }
+            .modal {
+                padding: 20px;
             }
         }
         @media (max-width: 480px) {
-            .announcement-card .card-header .title-area .ann-meta {
+            .btn-action {
+                display: block;
+                width: 100%;
+                margin-bottom: 4px;
+                text-align: center;
+            }
+            .modal-body .detail-row {
                 flex-direction: column;
-                align-items: flex-start;
-                gap: 4px;
+            }
+            .modal-body .detail-row .label {
+                width: auto;
             }
             .btn-load-more {
                 width: 100%;
@@ -192,14 +317,34 @@
             <p>Society Leader Dashboard</p>
         </div>
 
-        <div id="announcements-container"></div>
+        <div id="announcements-container">
+            <div class="no-announcements">Loading announcements...</div>
+        </div>
 
-        <!-- Load More Button Container -->
         <div id="load-more-container" class="load-more-container">
-            <button id="load-more-btn" class="btn-load-more">Load More</button>
+            <button id="load-more-btn" class="btn-load-more hidden">Load More</button>
         </div>
 
         <div class="wits-badge">University of the Witwatersrand</div>
+    </div>
+
+    <!-- View Modal -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="viewModalTitle">Announcement</h2>
+                <button class="modal-back" onclick="closeViewModal()">← Back</button>
+            </div>
+            <div class="modal-body" id="viewModalBody">
+                <div class="detail-row"><span class="label">Title</span><span class="value" id="view-title">-</span></div>
+                <div class="detail-row"><span class="label">Category</span><span class="value" id="view-category">-</span></div>
+                <div class="detail-row"><span class="label">Posted</span><span class="value" id="view-date">-</span></div>
+                <div class="detail-row"><span class="label">Message</span><span class="value" id="view-message">-</span></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeViewModal()">Close</button>
+            </div>
+        </div>
     </div>
 
     <!-- Firebase SDK -->

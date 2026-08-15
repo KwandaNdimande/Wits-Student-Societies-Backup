@@ -70,22 +70,13 @@
             margin-bottom: 28px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.12);
         }
-        .create-section .section-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 18px;
-        }
         .create-section .section-header h2 {
             font-family: 'Space Grotesk', sans-serif;
             font-size: 20px;
             font-weight: 600;
             color: var(--navy-900);
+            margin-bottom: 18px;
         }
-        .create-section .section-header .icon {
-            font-size: 24px;
-        }
-
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -134,7 +125,6 @@
         .form-grid .date-error.show {
             display: block;
         }
-
         .btn-post {
             font-family: 'Inter', sans-serif;
             font-size: 14px;
@@ -161,77 +151,45 @@
             transform: none;
         }
 
-        /* Toast */
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background: var(--surface);
-            color: var(--text-900);
-            padding: 16px 24px;
-            border-radius: var(--radius);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-            border-left: 5px solid var(--success);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            z-index: 2000;
-            transform: translateY(120px);
-            opacity: 0;
-            transition: all 0.4s ease;
-            font-size: 14px;
-            font-weight: 500;
-            max-width: 400px;
-        }
-        .toast.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        .toast .toast-icon { font-size: 20px; }
-        .toast .toast-close {
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            color: var(--text-500);
-            padding: 0 4px;
-        }
-        .toast .toast-close:hover { color: var(--text-900); }
-
-        /* Announcement Cards */
-        .announcement-card {
+        /* Table */
+        .table-container {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 20px 24px;
-            margin-bottom: 14px;
+            overflow: hidden;
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            transition: box-shadow 0.2s ease;
         }
-        .announcement-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
-        .announcement-card .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-            margin-bottom: 6px;
-            flex-wrap: wrap;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
         }
-        .announcement-card .card-header .title-area { flex: 1; }
-        .announcement-card .card-header .title-area .ann-title {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 18px;
+        thead {
+            background: #FAFBFD;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            padding: 14px 18px;
+            text-align: left;
+            font-size: 12px;
             font-weight: 600;
-            color: var(--navy-900);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-500);
         }
-        .announcement-card .card-header .title-area .ann-meta {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 6px;
-            flex-wrap: wrap;
+        td {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-600);
+            vertical-align: middle;
         }
-        .announcement-card .card-header .title-area .ann-category {
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr:hover {
+            background: #FAFBFD;
+        }
+        .category-badge {
             display: inline-block;
             padding: 3px 12px;
             border-radius: 20px;
@@ -241,45 +199,53 @@
             text-transform: uppercase;
             letter-spacing: 0.03em;
         }
-        .announcement-card .card-header .title-area .ann-date {
-            font-size: 13px;
-            color: var(--text-500);
+        .btn-action {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            display: inline-block;
+            margin-right: 4px;
         }
-        .announcement-card .card-header .card-actions {
-            display: flex;
-            gap: 6px;
-            flex-shrink: 0;
+        .btn-view {
+            background: #2E6FBA;
+            color: #fff;
         }
-        .announcement-card .ann-body {
-            font-size: 14px;
-            color: var(--text-600);
-            line-height: 1.6;
-            margin-top: 8px;
+        .btn-view:hover {
+            background: #1B4F8A;
         }
+        .btn-edit {
+            background: var(--navy-900);
+            color: #fff;
+        }
+        .btn-edit:hover {
+            background: var(--navy-800);
+        }
+        .btn-delete {
+            background: var(--danger);
+            color: #fff;
+        }
+        .btn-delete:hover {
+            background: #922B21;
+        }
+        .btn-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .no-announcements {
-            color: var(--text-500);
+            color: #8FA6CC;
             font-size: 14px;
             text-align: center;
             padding: 40px 0;
         }
 
-        .btn-action {
-            display: inline-block;
-            padding: 4px 14px;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .btn-edit { background: var(--navy-900); color: #fff; }
-        .btn-edit:hover { background: var(--navy-800); }
-        .btn-delete { background: var(--danger); color: #fff; }
-        .btn-delete:hover { background: #922B21; }
-
-        /* Load More Button */
+        /* Load More */
         .load-more-container {
             text-align: center;
             margin-top: 20px;
@@ -323,22 +289,24 @@
             justify-content: center;
             align-items: center;
         }
-        .modal-overlay.active { display: flex; }
+        .modal-overlay.active {
+            display: flex;
+        }
         .modal {
             background: var(--surface);
             border-radius: var(--radius);
-            max-width: 680px;
+            max-width: 500px;
             width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
             padding: 28px 32px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            max-height: 80vh;
+            overflow-y: auto;
         }
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             padding-bottom: 12px;
             border-bottom: 1px solid var(--border);
         }
@@ -357,42 +325,27 @@
             padding: 4px 8px;
             font-family: 'Inter', sans-serif;
         }
-        .modal-back:hover { color: var(--text-900); }
-        .modal-body { padding: 4px 0; color: var(--text-900); }
-        .modal-body .edit-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 14px;
+        .modal-back:hover {
+            color: var(--text-900);
         }
-        .modal-body .edit-grid .full-width { grid-column: 1 / -1; }
-        .modal-body .edit-grid label {
-            display: block;
-            font-size: 13px;
+        .modal-body .detail-row {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .modal-body .detail-row .label {
             font-weight: 600;
             color: var(--text-600);
-            margin-bottom: 4px;
+            width: 100px;
+            flex-shrink: 0;
         }
-        .modal-body .edit-grid input,
-        .modal-body .edit-grid select,
-        .modal-body .edit-grid textarea {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: 'Inter', sans-serif;
+        .modal-body .detail-row .value {
             color: var(--text-900);
-            background: var(--surface);
-            transition: border-color 0.2s, box-shadow 0.2s;
+            flex: 1;
         }
-        .modal-body .edit-grid input:focus,
-        .modal-body .edit-grid select:focus,
-        .modal-body .edit-grid textarea:focus {
-            outline: none;
-            border-color: var(--navy-900);
-            box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
+        .modal-body .detail-row:last-child {
+            border-bottom: none;
         }
-        .modal-body .edit-grid textarea { resize: vertical; min-height: 80px; }
         .modal-footer {
             margin-top: 20px;
             padding-top: 16px;
@@ -411,11 +364,13 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .btn-primary { background: var(--navy-900); color: #fff; }
-        .btn-primary:hover { background: var(--navy-800); }
-        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-secondary { background: var(--border); color: var(--text-600); }
-        .btn-secondary:hover { background: #d0d7e0; }
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text-600);
+        }
+        .btn-secondary:hover {
+            background: #d0d7e0;
+        }
 
         .wits-badge {
             text-align: center;
@@ -428,20 +383,52 @@
         }
 
         @media (max-width: 768px) {
-            body { padding: 80px 16px 20px 16px; }
-            .create-section { padding: 20px; }
-            .form-grid { grid-template-columns: 1fr 1fr; }
-            .modal-body .edit-grid { grid-template-columns: 1fr 1fr; }
-            .announcement-card .card-header { flex-direction: column; gap: 8px; }
-            .announcement-card .card-header .card-actions { width: 100%; justify-content: flex-start; }
-            .toast { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+            body {
+                padding: 80px 16px 20px 16px;
+            }
+            .create-section {
+                padding: 20px;
+            }
+            .form-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .table-container {
+                overflow-x: auto;
+            }
+            th, td {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+            .btn-action {
+                font-size: 11px;
+                padding: 4px 10px;
+            }
+            .modal {
+                padding: 20px;
+            }
         }
         @media (max-width: 480px) {
-            .form-grid { grid-template-columns: 1fr; }
-            .modal-body .edit-grid { grid-template-columns: 1fr; }
-            .create-section { padding: 16px; }
-            .announcement-card { padding: 16px; }
-            .btn-load-more { width: 100%; }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .btn-action {
+                display: block;
+                width: 100%;
+                margin-bottom: 4px;
+                text-align: center;
+            }
+            .doc-actions {
+                flex-direction: column;
+            }
+            .modal-body .detail-row {
+                flex-direction: column;
+            }
+            .modal-body .detail-row .label {
+                width: auto;
+            }
+            .btn-load-more {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -452,12 +439,11 @@
             <p>Manage announcements for all societies</p>
         </div>
 
-        <!-- Create Announcement Card -->
+        <!-- Create Section (Officer only) -->
         <div class="create-section">
             <div class="section-header">
                 <h2>Create Announcement</h2>
             </div>
-
             <div class="form-grid">
                 <div>
                     <label for="announcement-title">Title</label>
@@ -476,7 +462,7 @@
                 <div>
                     <label for="announcement-date">Date</label>
                     <input id="announcement-date" type="date" />
-                    <div id="date-error" class="date-error">⚠️ Please select a date from today onwards.</div>
+                    <div id="date-error" class="date-error">Please select a date from today onwards.</div>
                 </div>
                 <div class="full-width">
                     <label for="announcement-body">Message</label>
@@ -486,35 +472,47 @@
             </div>
         </div>
 
-        <!-- Announcements List -->
+        <!-- Announcements Table -->
         <div id="announcements-container">
             <div class="no-announcements">Loading announcements...</div>
         </div>
 
-        <!-- Load More Button -->
+        <!-- Load More -->
         <div id="load-more-container" class="load-more-container">
-            <button id="load-more-btn" class="btn-load-more">Load More</button>
+            <button id="load-more-btn" class="btn-load-more hidden">Load More</button>
         </div>
 
         <div class="wits-badge">University of the Witwatersrand</div>
     </div>
 
-    <!-- Toast Notification -->
-    <div class="toast" id="toast">
-        <span class="toast-icon">✅</span>
-        <span id="toastMessage">Announcement posted successfully!</span>
-        <button class="toast-close" onclick="closeToast()">✕</button>
-    </div>
-
-    <!-- Edit Modal -->
-    <div class="modal-overlay" id="announcementModal">
+    <!-- View Modal -->
+    <div class="modal-overlay" id="viewModal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="announcementModalTitle">Edit Announcement</h2>
-                <button class="modal-back" onclick="closeAnnouncementModal()">← Back</button>
+                <h2 id="viewModalTitle">Announcement</h2>
+                <button class="modal-back" onclick="closeViewModal()">← Back</button>
+            </div>
+            <div class="modal-body" id="viewModalBody">
+                <div class="detail-row"><span class="label">Title</span><span class="value" id="view-title">-</span></div>
+                <div class="detail-row"><span class="label">Category</span><span class="value" id="view-category">-</span></div>
+                <div class="detail-row"><span class="label">Posted</span><span class="value" id="view-date">-</span></div>
+                <div class="detail-row"><span class="label">Message</span><span class="value" id="view-message">-</span></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeViewModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal (Officer) -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal" style="max-width:680px;">
+            <div class="modal-header">
+                <h2 id="editModalTitle">Edit Announcement</h2>
+                <button class="modal-back" onclick="closeEditModal()">← Back</button>
             </div>
             <div class="modal-body">
-                <div class="edit-grid">
+                <div class="edit-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
                     <div>
                         <label for="edit-ann-title">Title</label>
                         <input id="edit-ann-title" placeholder="Enter title..." />
@@ -532,17 +530,17 @@
                     <div>
                         <label for="edit-ann-date">Date</label>
                         <input id="edit-ann-date" type="date" />
-                        <div id="edit-date-error" class="date-error">⚠️ Please select a date from today onwards.</div>
+                        <div id="edit-date-error" class="date-error">Please select a date from today onwards.</div>
                     </div>
-                    <div class="full-width">
+                    <div style="grid-column:1/-1;">
                         <label for="edit-ann-body">Message</label>
                         <textarea id="edit-ann-body" placeholder="Write your announcement message here..." rows="4"></textarea>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-primary" id="saveAnnBtn" onclick="saveAnnouncementEdits()">Save Changes</button>
-                <button class="btn btn-secondary" onclick="closeAnnouncementModal()">Cancel</button>
+                <button class="btn btn-primary" id="editSaveBtn" onclick="saveEditAnnouncement()">Save Changes</button>
+                <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
             </div>
         </div>
     </div>

@@ -23,7 +23,7 @@ if (!userUid) {
     window.location.href = '/login.html';
 }
 
-// Category colors
+// Category colors (no emoji)
 const categoryColors = {
     'Upcoming Event': '#2E6FBA',
     'Training Induction': '#1E8E5A',
@@ -31,7 +31,9 @@ const categoryColors = {
     'Deadline Reminder': '#B9720B'
 };
 
-// Pagination state
+// ================================================================
+// PAGINATION STATE
+// ================================================================
 let lastDoc = null;
 let isLoading = false;
 let hasMore = true;
@@ -42,9 +44,8 @@ const container = document.getElementById('announcements-container');
 const loadMoreBtn = document.getElementById('load-more-btn');
 
 // ================================================================
-// RENDER ANNOUNCEMENT CARDS
+// RENDER ANNOUNCEMENTS (TABLE)
 // ================================================================
-
 function renderAnnouncements(docs, append = false) {
     if (!append) {
         container.innerHTML = '';
@@ -52,41 +53,81 @@ function renderAnnouncements(docs, append = false) {
     }
 
     if (docs.length === 0 && allLoadedCount === 0) {
-        container.innerHTML = `<div class="no-announcements">📭 No announcements at this time.</div>`;
+        container.innerHTML = `<div class="no-announcements">No announcements at this time.</div>`;
         loadMoreBtn.classList.add('hidden');
         return;
     }
 
     let html = '';
-    docs.forEach(doc => {
+    if (!append) {
+        html = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Title</th>
+                            <th>Category</th>
+                            <th>Posted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+    }
+
+    docs.forEach((doc, index) => {
+        const rowNum = allLoadedCount + index + 1;
         const a = doc.data();
         const cat = a.category || 'General Notice';
         const badgeColor = categoryColors[cat] || '#6C757D';
         const relWhen = a.createdAt ? timeAgo(a.createdAt.seconds * 1000) : 'N/A';
-        const dateStr = a.date || '';
+        const docId = doc.id;
 
         html += `
-            <div class="announcement-card" data-id="${doc.id}">
-                <div class="card-header">
-                    <div class="title-area">
-                        <div class="ann-title">${escapeHtml(a.title)}</div>
-                        <div class="ann-meta">
-                            <span class="ann-category" style="background:${badgeColor};">${escapeHtml(cat)}</span>
-                            <span class="ann-date">${relWhen}</span>
-                            ${dateStr ? `<span class="ann-date">${escapeHtml(dateStr)}</span>` : ''}
-                        </div>
-                    </div>
-                    <!-- NO EDIT/DELETE BUTTONS FOR LEADERS -->
-                </div>
-                <div class="ann-body">${escapeHtml(a.body)}</div>
-            </div>
+            <tr>
+                <td style="color:#6c757d;font-weight:500;">${rowNum}</td>
+                <td>${escapeHtml(a.title)}</td>
+                <td><span class="category-badge" style="background:${badgeColor};">${escapeHtml(cat)}</span></td>
+                <td style="color:#6c757d;">${relWhen}</td>
+                <td>
+                    <button class="btn-action btn-view" onclick="viewAnnouncement('${docId}')">View</button>
+                </td>
+            </tr>
         `;
     });
 
-    if (append) {
-        container.insertAdjacentHTML('beforeend', html);
-    } else {
+    if (!append) {
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
         container.innerHTML = html;
+    } else {
+        const tbody = container.querySelector('tbody');
+        if (tbody) {
+            const rowsHtml = docs.map((doc, index) => {
+                const rowNum = allLoadedCount + index + 1;
+                const a = doc.data();
+                const cat = a.category || 'General Notice';
+                const badgeColor = categoryColors[cat] || '#6C757D';
+                const relWhen = a.createdAt ? timeAgo(a.createdAt.seconds * 1000) : 'N/A';
+                const docId = doc.id;
+                return `
+                    <tr>
+                        <td style="color:#6c757d;font-weight:500;">${rowNum}</td>
+                        <td>${escapeHtml(a.title)}</td>
+                        <td><span class="category-badge" style="background:${badgeColor};">${escapeHtml(cat)}</span></td>
+                        <td style="color:#6c757d;">${relWhen}</td>
+                        <td>
+                            <button class="btn-action btn-view" onclick="viewAnnouncement('${docId}')">View</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            tbody.insertAdjacentHTML('beforeend', rowsHtml);
+        }
     }
 
     allLoadedCount += docs.length;
@@ -95,7 +136,6 @@ function renderAnnouncements(docs, append = false) {
 // ================================================================
 // LOAD ANNOUNCEMENTS (with +1 detection)
 // ================================================================
-
 async function loadAnnouncements(loadMore = false) {
     if (isLoading) return;
     isLoading = true;
@@ -112,7 +152,6 @@ async function loadAnnouncements(loadMore = false) {
     }
 
     try {
-        // Fetch PAGE_SIZE + 1 to detect if there is a next page
         let query = db.collection('announcements')
             .orderBy('createdAt', 'desc')
             .limit(PAGE_SIZE + 1);
@@ -123,12 +162,11 @@ async function loadAnnouncements(loadMore = false) {
 
         const snapshot = await query.get();
 
-        // If no documents at all
         if (snapshot.empty) {
             hasMore = false;
             loadMoreBtn.classList.add('hidden');
             if (!loadMore && allLoadedCount === 0) {
-                container.innerHTML = `<div class="no-announcements">📭 No announcements at this time.</div>`;
+                container.innerHTML = `<div class="no-announcements">No announcements at this time.</div>`;
             }
             isLoading = false;
             return;
@@ -136,19 +174,14 @@ async function loadAnnouncements(loadMore = false) {
 
         const allDocs = snapshot.docs;
         const hasExtra = allDocs.length > PAGE_SIZE;
-
-        // The documents to display are the first PAGE_SIZE
         const displayDocs = hasExtra ? allDocs.slice(0, PAGE_SIZE) : allDocs;
 
-        // Update lastDoc to the last displayed document (for next page)
         if (displayDocs.length > 0) {
             lastDoc = displayDocs[displayDocs.length - 1];
         }
 
-        // Render
         renderAnnouncements(displayDocs, loadMore);
 
-        // Determine if there are more
         hasMore = hasExtra;
         if (hasMore) {
             loadMoreBtn.classList.remove('hidden');
@@ -156,15 +189,10 @@ async function loadAnnouncements(loadMore = false) {
             loadMoreBtn.classList.add('hidden');
         }
 
-        // Update unread badge only on initial load
-        if (!loadMore) {
-            updateUnreadBadge();
-        }
-
     } catch (error) {
         console.error('Error loading announcements:', error);
         if (!loadMore) {
-            container.innerHTML = `<div class="no-announcements" style="color:#dc3545;">⚠️ Error loading announcements.</div>`;
+            container.innerHTML = `<div class="no-announcements" style="color:#dc3545;">Error loading announcements.</div>`;
         } else {
             alert('Failed to load more announcements.');
         }
@@ -180,47 +208,39 @@ async function loadAnnouncements(loadMore = false) {
 }
 
 // ================================================================
-// UPDATE UNREAD BADGE (counts all unread)
+// VIEW ANNOUNCEMENT (modal)
 // ================================================================
-
-async function updateUnreadBadge() {
+async function viewAnnouncement(id) {
     try {
-        const lastSeen = parseInt(localStorage.getItem('leaderAnnouncementsLastSeen') || '0', 10);
-        const allSnapshot = await db.collection('announcements')
-            .orderBy('createdAt', 'desc')
-            .get();
-        let unreadCount = 0;
-        allSnapshot.forEach(doc => {
-            const a = doc.data();
-            const createdMs = a.createdAt ? (a.createdAt.seconds * 1000) : 0;
-            if (createdMs > lastSeen) unreadCount++;
-        });
-
-        const navLink = document.querySelector('.nav-links a[href="/leader/announcements.html"]');
-        if (navLink) {
-            let badge = navLink.querySelector('.ann-badge');
-            if (!badge) {
-                badge = document.createElement('span');
-                badge.className = 'ann-badge';
-                badge.style.cssText = 'background:#E53935;color:#fff;border-radius:999px;padding:2px 8px;font-size:12px;margin-left:8px;';
-                navLink.appendChild(badge);
-            }
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount;
-                badge.style.display = 'inline-block';
-            } else {
-                badge.style.display = 'none';
-            }
+        const doc = await db.collection('announcements').doc(id).get();
+        if (!doc.exists) {
+            alert('Announcement not found.');
+            return;
         }
+        const data = doc.data();
+        document.getElementById('view-title').textContent = data.title || '-';
+        document.getElementById('view-category').textContent = data.category || 'General Notice';
+        const dateStr = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown';
+        document.getElementById('view-date').textContent = dateStr;
+        document.getElementById('view-message').textContent = data.body || 'No message.';
+        document.getElementById('viewModalTitle').textContent = 'Announcement';
+        document.getElementById('viewModal').classList.add('active');
     } catch (error) {
-        console.error('Error updating unread badge:', error);
+        console.error('Error loading announcement:', error);
+        alert('Could not load announcement.');
     }
 }
 
-// ================================================================
-// HELPER FUNCTIONS
-// ================================================================
+function closeViewModal() {
+    document.getElementById('viewModal').classList.remove('active');
+}
+document.getElementById('viewModal').addEventListener('click', function(e) {
+    if (e.target === this) closeViewModal();
+});
 
+// ================================================================
+// HELPERS
+// ================================================================
 function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -243,7 +263,6 @@ function timeAgo(ms) {
 // ================================================================
 // EVENT LISTENERS
 // ================================================================
-
 loadMoreBtn.addEventListener('click', function() {
     if (!isLoading && hasMore) {
         loadAnnouncements(true);
@@ -251,21 +270,8 @@ loadMoreBtn.addEventListener('click', function() {
 });
 
 // ================================================================
-// MARK AS READ & INIT
+// INIT
 // ================================================================
-
 document.addEventListener('DOMContentLoaded', function() {
     loadAnnouncements(false);
-
-    setTimeout(() => {
-        localStorage.setItem('leaderAnnouncementsLastSeen', Date.now().toString());
-        const navLink = document.querySelector('.nav-links a[href="/leader/announcements.html"]');
-        if (navLink) {
-            const badge = navLink.querySelector('.ann-badge');
-            if (badge) badge.style.display = 'none';
-        }
-    }, 500);
 });
-
-// Optional: refresh unread badge every 30 seconds
-setInterval(updateUnreadBadge, 30000);

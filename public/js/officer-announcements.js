@@ -25,7 +25,7 @@ if (!userUid) {
 
 let currentEditingId = null;
 
-// Category colors
+// Category colors (no emoji)
 const categoryColors = {
     'Upcoming Event': '#2E6FBA',
     'Training Induction': '#1E8E5A',
@@ -44,27 +44,6 @@ let allLoadedCount = 0;
 
 const container = document.getElementById('announcements-container');
 const loadMoreBtn = document.getElementById('load-more-btn');
-
-// ================================================================
-// TOAST
-// ================================================================
-function showToast(message, isError = false) {
-    const toast = document.getElementById('toast');
-    const toastMessage = document.getElementById('toastMessage');
-    const icon = toast.querySelector('.toast-icon');
-    toastMessage.textContent = message;
-    icon.textContent = isError ? '❌' : '✅';
-    toast.style.borderLeftColor = isError ? '#C0392B' : '#1E8E5A';
-    toast.classList.add('show');
-    clearTimeout(toast._hideTimeout);
-    toast._hideTimeout = setTimeout(() => {
-        toast.classList.remove('show');
-    }, 4000);
-}
-function closeToast() {
-    document.getElementById('toast').classList.remove('show');
-    clearTimeout(document.getElementById('toast')._hideTimeout);
-}
 
 // ================================================================
 // DATE VALIDATION
@@ -96,7 +75,7 @@ function validateCreateDate() {
 function validateEditDate() {
     const dateInput = document.getElementById('edit-ann-date');
     const errorEl = document.getElementById('edit-date-error');
-    const saveBtn = document.getElementById('saveAnnBtn');
+    const saveBtn = document.getElementById('editSaveBtn');
     const dateVal = dateInput.value;
     if (dateVal && !isValidDate(dateVal)) {
         errorEl.classList.add('show');
@@ -110,7 +89,7 @@ function validateEditDate() {
 }
 
 // ================================================================
-// RENDER ANNOUNCEMENT CARDS (with Edit/Delete)
+// RENDER ANNOUNCEMENTS (TABLE)
 // ================================================================
 function renderAnnouncements(docs, append = false) {
     if (!append) {
@@ -119,51 +98,92 @@ function renderAnnouncements(docs, append = false) {
     }
 
     if (docs.length === 0 && allLoadedCount === 0) {
-        container.innerHTML = `<div class="no-announcements">📭 No announcements at this time.</div>`;
+        container.innerHTML = `<div class="no-announcements">No announcements at this time.</div>`;
         loadMoreBtn.classList.add('hidden');
         return;
     }
 
     let html = '';
-    docs.forEach(doc => {
+    if (!append) {
+        html = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Title</th>
+                            <th>Category</th>
+                            <th>Posted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+    }
+
+    docs.forEach((doc, index) => {
+        const rowNum = allLoadedCount + index + 1;
         const a = doc.data();
         const cat = a.category || 'General Notice';
         const badgeColor = categoryColors[cat] || '#6C757D';
         const relWhen = a.createdAt ? timeAgo(a.createdAt.seconds * 1000) : 'N/A';
-        const dateStr = a.date || '';
+        const docId = doc.id;
 
         html += `
-            <div class="announcement-card" data-id="${doc.id}">
-                <div class="card-header">
-                    <div class="title-area">
-                        <div class="ann-title">${escapeHtml(a.title)}</div>
-                        <div class="ann-meta">
-                            <span class="ann-category" style="background:${badgeColor};">${escapeHtml(cat)}</span>
-                            <span class="ann-date">${relWhen}</span>
-                            ${dateStr ? `<span class="ann-date">${escapeHtml(dateStr)}</span>` : ''}
-                        </div>
-                    </div>
-                    <div class="card-actions">
-                        <button class="btn-action btn-edit" onclick="openEditAnnouncement('${doc.id}')">Edit</button>
-                        <button class="btn-action btn-delete" onclick="deleteAnnouncement('${doc.id}')">Delete</button>
-                    </div>
-                </div>
-                <div class="ann-body">${escapeHtml(a.body)}</div>
-            </div>
+            <tr>
+                <td style="color:#6c757d;font-weight:500;">${rowNum}</td>
+                <td>${escapeHtml(a.title)}</td>
+                <td><span class="category-badge" style="background:${badgeColor};">${escapeHtml(cat)}</span></td>
+                <td style="color:#6c757d;">${relWhen}</td>
+                <td>
+                    <button class="btn-action btn-view" onclick="viewAnnouncement('${docId}')">View</button>
+                    <button class="btn-action btn-edit" onclick="openEditModal('${docId}')">Edit</button>
+                    <button class="btn-action btn-delete" onclick="deleteAnnouncement('${docId}')">Delete</button>
+                </td>
+            </tr>
         `;
     });
 
-    if (append) {
-        container.insertAdjacentHTML('beforeend', html);
-    } else {
+    if (!append) {
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
         container.innerHTML = html;
+    } else {
+        const tbody = container.querySelector('tbody');
+        if (tbody) {
+            const rowsHtml = docs.map((doc, index) => {
+                const rowNum = allLoadedCount + index + 1;
+                const a = doc.data();
+                const cat = a.category || 'General Notice';
+                const badgeColor = categoryColors[cat] || '#6C757D';
+                const relWhen = a.createdAt ? timeAgo(a.createdAt.seconds * 1000) : 'N/A';
+                const docId = doc.id;
+                return `
+                    <tr>
+                        <td style="color:#6c757d;font-weight:500;">${rowNum}</td>
+                        <td>${escapeHtml(a.title)}</td>
+                        <td><span class="category-badge" style="background:${badgeColor};">${escapeHtml(cat)}</span></td>
+                        <td style="color:#6c757d;">${relWhen}</td>
+                        <td>
+                            <button class="btn-action btn-view" onclick="viewAnnouncement('${docId}')">View</button>
+                            <button class="btn-action btn-edit" onclick="openEditModal('${docId}')">Edit</button>
+                            <button class="btn-action btn-delete" onclick="deleteAnnouncement('${docId}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            tbody.insertAdjacentHTML('beforeend', rowsHtml);
+        }
     }
 
     allLoadedCount += docs.length;
 }
 
 // ================================================================
-// LOAD ANNOUNCEMENTS
+// LOAD ANNOUNCEMENTS (with +1 detection)
 // ================================================================
 async function loadAnnouncements(loadMore = false) {
     if (isLoading) return;
@@ -195,7 +215,7 @@ async function loadAnnouncements(loadMore = false) {
             hasMore = false;
             loadMoreBtn.classList.add('hidden');
             if (!loadMore && allLoadedCount === 0) {
-                container.innerHTML = `<div class="no-announcements">📭 No announcements at this time.</div>`;
+                container.innerHTML = `<div class="no-announcements">No announcements at this time.</div>`;
             }
             isLoading = false;
             return;
@@ -221,7 +241,7 @@ async function loadAnnouncements(loadMore = false) {
     } catch (error) {
         console.error('Error loading announcements:', error);
         if (!loadMore) {
-            container.innerHTML = `<div class="no-announcements" style="color:#dc3545;">⚠️ Error loading announcements.</div>`;
+            container.innerHTML = `<div class="no-announcements" style="color:#dc3545;">Error loading announcements.</div>`;
         } else {
             alert('Failed to load more announcements.');
         }
@@ -237,6 +257,37 @@ async function loadAnnouncements(loadMore = false) {
 }
 
 // ================================================================
+// VIEW ANNOUNCEMENT (modal)
+// ================================================================
+async function viewAnnouncement(id) {
+    try {
+        const doc = await db.collection('announcements').doc(id).get();
+        if (!doc.exists) {
+            alert('Announcement not found.');
+            return;
+        }
+        const data = doc.data();
+        document.getElementById('view-title').textContent = data.title || '-';
+        document.getElementById('view-category').textContent = data.category || 'General Notice';
+        const dateStr = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown';
+        document.getElementById('view-date').textContent = dateStr;
+        document.getElementById('view-message').textContent = data.body || 'No message.';
+        document.getElementById('viewModalTitle').textContent = 'Announcement';
+        document.getElementById('viewModal').classList.add('active');
+    } catch (error) {
+        console.error('Error loading announcement:', error);
+        alert('Could not load announcement.');
+    }
+}
+
+function closeViewModal() {
+    document.getElementById('viewModal').classList.remove('active');
+}
+document.getElementById('viewModal').addEventListener('click', function(e) {
+    if (e.target === this) closeViewModal();
+});
+
+// ================================================================
 // POST ANNOUNCEMENT
 // ================================================================
 async function postAnnouncement() {
@@ -246,11 +297,11 @@ async function postAnnouncement() {
     const body = document.getElementById('announcement-body').value.trim();
 
     if (!title || !category || !body) {
-        showToast('⚠️ Please fill in all required fields.', true);
+        alert('Please fill in all required fields.');
         return;
     }
     if (!isValidDate(date)) {
-        showToast('⚠️ Please select a valid date (today or future).', true);
+        alert('Please select a valid date (today or future).');
         return;
     }
 
@@ -276,12 +327,10 @@ async function postAnnouncement() {
         document.getElementById('announcement-date').value = '';
         document.getElementById('announcement-body').value = '';
 
-        // No toast, no badge
-
         loadAnnouncements(false);
     } catch (error) {
         console.error(error);
-        showToast('❌ Error posting announcement.', true);
+        alert('Error posting announcement.');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Post Announcement';
@@ -290,12 +339,15 @@ async function postAnnouncement() {
 }
 
 // ================================================================
-// OPEN EDIT ANNOUNCEMENT
+// EDIT MODAL
 // ================================================================
-async function openEditAnnouncement(id) {
+async function openEditModal(id) {
     try {
         const doc = await db.collection('announcements').doc(id).get();
-        if (!doc.exists) { showToast('⚠️ Not found.', true); return; }
+        if (!doc.exists) {
+            alert('Announcement not found.');
+            return;
+        }
         const data = doc.data();
         currentEditingId = id;
 
@@ -304,35 +356,46 @@ async function openEditAnnouncement(id) {
         document.getElementById('edit-ann-date').value = data.date || '';
         document.getElementById('edit-ann-body').value = data.body || '';
 
-        document.getElementById('announcementModalTitle').textContent = `Edit: ${data.title || 'Announcement'}`;
-        document.getElementById('announcementModal').classList.add('active');
+        document.getElementById('editModalTitle').textContent = 'Edit Announcement';
+        document.getElementById('editModal').classList.add('active');
         validateEditDate();
     } catch (error) {
         console.error(error);
-        showToast('❌ Error loading announcement.', true);
+        alert('Error loading announcement.');
     }
 }
 
+function closeEditModal() {
+    document.getElementById('editModal').classList.remove('active');
+    currentEditingId = null;
+}
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+});
+
 // ================================================================
-// SAVE ANNOUNCEMENT EDITS
+// SAVE EDIT
 // ================================================================
-async function saveAnnouncementEdits() {
-    if (!currentEditingId) { showToast('⚠️ No announcement selected.', true); return; }
+async function saveEditAnnouncement() {
+    if (!currentEditingId) {
+        alert('No announcement selected.');
+        return;
+    }
     const title = document.getElementById('edit-ann-title').value.trim();
     const category = document.getElementById('edit-ann-category').value;
     const date = document.getElementById('edit-ann-date').value;
     const body = document.getElementById('edit-ann-body').value.trim();
 
     if (!title || !category || !body) {
-        showToast('⚠️ Please fill in all required fields.', true);
+        alert('Please fill in all required fields.');
         return;
     }
     if (!isValidDate(date)) {
-        showToast('⚠️ Please select a valid date (today or future).', true);
+        alert('Please select a valid date (today or future).');
         return;
     }
 
-    const btn = document.getElementById('saveAnnBtn');
+    const btn = document.getElementById('editSaveBtn');
     btn.disabled = true;
     btn.textContent = 'Saving...';
 
@@ -341,12 +404,11 @@ async function saveAnnouncementEdits() {
             title, category, date, body,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        closeAnnouncementModal();
-        showToast('✅ Announcement updated!');
+        closeEditModal();
         loadAnnouncements(false);
     } catch (error) {
         console.error(error);
-        showToast('❌ Error saving.', true);
+        alert('Error saving announcement.');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Save Changes';
@@ -354,30 +416,18 @@ async function saveAnnouncementEdits() {
 }
 
 // ================================================================
-// DELETE ANNOUNCEMENT
+// DELETE
 // ================================================================
 async function deleteAnnouncement(id) {
     if (!confirm('Delete this announcement?')) return;
     try {
         await db.collection('announcements').doc(id).delete();
-        showToast('Deleted.');
         loadAnnouncements(false);
     } catch (error) {
         console.error(error);
-        showToast('❌ Error deleting.', true);
+        alert('Error deleting announcement.');
     }
 }
-
-// ================================================================
-// CLOSE MODAL
-// ================================================================
-function closeAnnouncementModal() {
-    document.getElementById('announcementModal').classList.remove('active');
-    currentEditingId = null;
-}
-document.getElementById('announcementModal').addEventListener('click', function(e) {
-    if (e.target === this) closeAnnouncementModal();
-});
 
 // ================================================================
 // HELPERS

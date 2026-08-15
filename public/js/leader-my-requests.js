@@ -156,7 +156,7 @@ async function viewLeaderDocuments(requestId) {
                         <div class="doc-name">${docLabels[key] || key}</div>
                         <div class="doc-detail">${info.name}</div>
                         <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
-                            <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">👁️ View</button>
+                            <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
                             <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
                         </div>
                     </div>
@@ -381,15 +381,15 @@ function renderTable() {
                 <td style="color:#6c757d;">${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
                 <td>
                     <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
-                    ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">📝 ${r.officerComment}</span>` : ''}
+                    ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">${r.officerComment}</span>` : ''}
                 </td>
                 <td>
                     <button class="btn-action btn-details" onclick="openDetailView('${r.id}')" style="margin-right:6px;">
-                        📋 Details
+                        Details
                     </button>
                     <!-- Hide "View Docs" for Revision Required -->
                     ${!isRevision && hasDocs
-                        ? `<button class="btn-action btn-docs" onclick="viewLeaderDocuments('${r.id}')" style="margin-right:6px;">📄 View Docs</button>`
+                        ? `<button class="btn-action btn-docs" onclick="viewLeaderDocuments('${r.id}')" style="margin-right:6px;">View Docs</button>`
                         : (!isRevision && !hasDocs ? `<button class="btn-action btn-no-docs" style="margin-right:6px;" disabled>No Docs</button>` : '')
                     }
                     ${isRevision ? `<button class="btn-action btn-update-action" onclick="openUpdateModal('${r.id}')">Update</button>` : ''}
@@ -487,7 +487,7 @@ function openDetailView(requestId) {
                     <strong>${label}</strong>
                     <div>${info.name}</div>
                     <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
-                        <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">👁️ View</button>
+                        <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
                         <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
                     </div>
                 </div>
@@ -536,7 +536,7 @@ async function openUpdateModal(requestId) {
         if (officerComment) {
             modalBody += `
                 <div style="background:#FFF3E0;padding:14px 16px;border-radius:8px;margin-bottom:20px;border-left:4px solid #E65100;">
-                    <strong style="color:#E65100;font-size:13px;">📝 Officer's Feedback</strong>
+                    <strong style="color:#E65100;font-size:13px;">Officer's Feedback</strong>
                     <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${officerComment}</p>
                 </div>
             `;
@@ -574,7 +574,7 @@ async function openUpdateModal(requestId) {
 
                     <div style="font-size:12px;color:var(--text-500);margin-bottom:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                         <span>Current: <strong id="current_${key}" style="color:${currentFileName === 'No file uploaded' ? '#D64545' : '#2E7D32'};">${currentFileName}</strong></span>
-                        ${currentPath ? `<button class="btn-view-doc" onclick="viewFileFromSupabase('${currentPath}', '${currentFileName}')" style="padding:2px 10px;font-size:12px;">👁️ View</button>` : ''}
+                        ${currentPath ? `<button class="btn-view-doc" onclick="viewFileFromSupabase('${currentPath}', '${currentFileName}')" style="padding:2px 10px;font-size:12px;">View</button>` : ''}
                     </div>
 
                     <div class="file-input">
@@ -830,7 +830,7 @@ async function deleteRequest(requestId) {
             const { data, error } = await window.supabaseClient.storage
                 .from('documents')
                 .remove(filePaths);
-            console.log('🗑️ Delete response:', { data, error });
+            console.log('Delete response:', { data, error });
             if (error) {
                 console.error('❌ Error deleting files from Supabase:', error);
                 alert('⚠️ Failed to delete some files from storage. Check console for details.');

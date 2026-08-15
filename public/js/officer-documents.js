@@ -49,7 +49,6 @@ let currentFileSize = null;
 // ================================================================
 // TOAST NOTIFICATION
 // ================================================================
-
 function showToast(message, isError = false) {
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toastMessage');
@@ -73,7 +72,7 @@ function closeToast() {
 }
 
 // ================================================================
-// FORCE DOWNLOAD
+// FORCE DOWNLOAD (cross-origin compatible)
 // ================================================================
 async function forceDownload(url, fileName) {
     try {
@@ -95,7 +94,22 @@ async function forceDownload(url, fileName) {
 }
 
 // ================================================================
-// RENDER DOCUMENTS
+// HELPER: Get file icon
+// ================================================================
+function getFileIcon(fileName) {
+    if (!fileName) return '📄';
+    const ext = fileName.split('.').pop().toLowerCase();
+    if (['pdf'].includes(ext)) return '📄';
+    if (['xlsx', 'xls', 'csv'].includes(ext)) return '📊';
+    if (['doc', 'docx'].includes(ext)) return '📝';
+    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) return '🖼️';
+    if (['zip', 'rar', '7z'].includes(ext)) return '📦';
+    if (['ppt', 'pptx'].includes(ext)) return '📑';
+    return '📁';
+}
+
+// ================================================================
+// RENDER DOCUMENTS (TABLE LAYOUT)
 // ================================================================
 function renderDocuments(docs, append = false) {
     if (!append) {
@@ -110,7 +124,23 @@ function renderDocuments(docs, append = false) {
     }
 
     let html = '';
-    docs.forEach(doc => {
+    if (!append) {
+        html = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Document Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+    }
+
+    docs.forEach((doc, index) => {
+        const rowNum = allLoadedCount + index + 1;
         const d = doc.data();
         let publicUrl = '#';
         let fileName = 'file';
@@ -122,28 +152,79 @@ function renderDocuments(docs, append = false) {
             fileName = d.storagePath.split('/').pop();
         }
         const hasFile = publicUrl !== '#';
+        const fileIcon = getFileIcon(fileName);
 
         html += `
-            <div class="doc-card" data-id="${doc.id}">
-                <div class="doc-info">
-                    <div class="doc-name">${escapeHtml(d.name)}</div>
-                    <div class="doc-description">${escapeHtml(d.description || 'No description')}</div>
-                </div>
-                <div class="doc-actions">
-                    <button class="btn-action btn-download-doc" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
-                        ⬇ Download
-                    </button>
-                    <button class="btn-action btn-edit-doc" onclick="openEditDocument('${doc.id}')">Edit</button>
-                    <button class="btn-action btn-delete-doc" onclick="deleteDocument('${doc.id}')">Delete</button>
-                </div>
-            </div>
+            <tr>
+                <td style="color:#6c757d;font-weight:500;">${rowNum}</td>
+                <td>
+                    <span class="doc-icon">${fileIcon}</span>
+                    <span class="doc-name">${escapeHtml(d.name)}</span>
+                </td>
+                <td>
+                    <div class="doc-actions">
+                        <button class="btn-action btn-download-doc" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
+                            ⬇ Download
+                        </button>
+                        <button class="btn-action btn-edit-doc" onclick="openEditDocument('${doc.id}')">Edit</button>
+                        <button class="btn-action btn-delete-doc" onclick="deleteDocument('${doc.id}')">Delete</button>
+                        <button class="btn-action btn-info" onclick="openInfoModal('${doc.id}')">
+                            ℹInfo
+                        </button>
+                    </div>
+                </td>
+            </tr>
         `;
     });
 
-    if (append) {
-        container.insertAdjacentHTML('beforeend', html);
-    } else {
+    if (!append) {
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
         container.innerHTML = html;
+    } else {
+        const tbody = container.querySelector('tbody');
+        if (tbody) {
+            const rowsHtml = docs.map((doc, index) => {
+                const rowNum = allLoadedCount + index + 1;
+                const d = doc.data();
+                let publicUrl = '#';
+                let fileName = 'file';
+                if (d.storagePath) {
+                    const { data } = window.supabaseClient.storage
+                        .from('documents')
+                        .getPublicUrl(d.storagePath);
+                    publicUrl = data.publicUrl;
+                    fileName = d.storagePath.split('/').pop();
+                }
+                const hasFile = publicUrl !== '#';
+                const fileIcon = getFileIcon(fileName);
+                return `
+                    <tr>
+                        <td style="color:#6c757d;font-weight:500;">${rowNum}</td>
+                        <td>
+                            <span class="doc-icon">${fileIcon}</span>
+                            <span class="doc-name">${escapeHtml(d.name)}</span>
+                        </td>
+                        <td>
+                            <div class="doc-actions">
+                                <button class="btn-action btn-download-doc" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
+                                    ⬇ Download
+                                </button>
+                                <button class="btn-action btn-edit-doc" onclick="openEditDocument('${doc.id}')">Edit</button>
+                                <button class="btn-action btn-delete-doc" onclick="deleteDocument('${doc.id}')">Delete</button>
+                                <button class="btn-action btn-info" onclick="openInfoModal('${doc.id}')">
+                                    ℹInfo
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            tbody.insertAdjacentHTML('beforeend', rowsHtml);
+        }
     }
 
     allLoadedCount += docs.length;
@@ -255,15 +336,12 @@ function handleFileChange(input) {
     const fileSizeEl = document.getElementById('current-file-size');
 
     if (file) {
-        // User selected a new file — update the indicator to show the new file
         const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
         fileNameEl.textContent = file.name;
         fileSizeEl.textContent = `(${sizeMB} MB)`;
-        // Clear the stored current file URL since it's being replaced
         currentFilePublicUrl = null;
         indicator.classList.remove('hidden');
     } else {
-        // No file selected — hide the indicator (will be shown again if editing)
         indicator.classList.add('hidden');
     }
 }
@@ -286,8 +364,6 @@ function openDocumentModal(editingId) {
     document.getElementById('doc-name').value = '';
     document.getElementById('doc-description').value = '';
     document.getElementById('doc-file').value = null;
-
-    // Hide current file indicator by default (will be shown in openEditDocument)
     document.getElementById('current-file-indicator').classList.add('hidden');
 
     modal.classList.add('active');
@@ -324,7 +400,6 @@ async function openEditDocument(docId) {
         document.getElementById('doc-name').value = d.name || '';
         document.getElementById('doc-description').value = d.description || '';
 
-        // --- Feature #5: Show current file indicator ---
         const indicator = document.getElementById('current-file-indicator');
         const fileNameEl = document.getElementById('current-file-name');
         const fileSizeEl = document.getElementById('current-file-size');
@@ -336,7 +411,6 @@ async function openEditDocument(docId) {
             currentFilePublicUrl = data.publicUrl;
             currentFileName = d.storagePath.split('/').pop();
 
-            // Get file size from stored field or fallback
             if (d.fileSize) {
                 const sizeMB = (d.fileSize / (1024 * 1024)).toFixed(2);
                 currentFileSize = d.fileSize;
@@ -358,7 +432,7 @@ async function openEditDocument(docId) {
 }
 
 // ================================================================
-// UPLOAD FILE TO SUPABASE
+// UPLOAD / DELETE
 // ================================================================
 async function uploadFileToSupabase(file, folder = 'documents') {
     const timestamp = Date.now();
@@ -371,9 +445,6 @@ async function uploadFileToSupabase(file, folder = 'documents') {
     return filePath;
 }
 
-// ================================================================
-// DELETE FILE FROM SUPABASE
-// ================================================================
 async function deleteFileFromSupabase(filePath) {
     const { error } = await window.supabaseClient.storage
         .from('documents')
@@ -382,7 +453,7 @@ async function deleteFileFromSupabase(filePath) {
 }
 
 // ================================================================
-// SUBMIT DOCUMENT (stores fileSize for edit view)
+// SUBMIT DOCUMENT
 // ================================================================
 async function submitDocument() {
     const name = document.getElementById('doc-name').value.trim();
@@ -511,6 +582,73 @@ async function deleteDocument(docId) {
         showToast('❌ Error deleting document.', true);
     }
 }
+
+// ================================================================
+// INFO MODAL
+// ================================================================
+let currentInfoDocId = null;
+
+async function openInfoModal(docId) {
+    try {
+        const doc = await db.collection('documents').doc(docId).get();
+        if (!doc.exists) {
+            alert('Document not found.');
+            return;
+        }
+        const d = doc.data();
+        currentInfoDocId = docId;
+
+        document.getElementById('info-name').textContent = d.name || '-';
+        document.getElementById('info-description').textContent = d.description || 'No description';
+
+        let dateStr = 'Unknown';
+        if (d.uploadedAt) {
+            const ts = d.uploadedAt.seconds ? d.uploadedAt.seconds * 1000 : d.uploadedAt;
+            dateStr = new Date(ts).toLocaleDateString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+        document.getElementById('info-date').textContent = dateStr;
+
+        let sizeStr = 'Unknown';
+        if (d.fileSize) {
+            const mb = (d.fileSize / (1024 * 1024)).toFixed(2);
+            sizeStr = `${mb} MB`;
+        } else if (d.storagePath) {
+            sizeStr = 'Available';
+        }
+        document.getElementById('info-size').textContent = sizeStr;
+
+        // Uploaded By
+        let byStr = 'Unknown';
+        if (d.uploadedBy) {
+            try {
+                const userDoc = await db.collection('users').doc(d.uploadedBy).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    byStr = userData.name || userData.email || d.uploadedBy;
+                } else {
+                    byStr = d.uploadedBy;
+                }
+            } catch (e) {
+                byStr = d.uploadedBy;
+            }
+        }
+        document.getElementById('info-by').textContent = byStr;
+
+        document.getElementById('infoModalTitle').textContent = 'Document Details';
+        document.getElementById('infoModal').classList.add('active');
+    } catch (error) {
+        console.error('Error loading document info:', error);
+        alert('Could not load document details.');
+    }
+}
+
+function closeInfoModal() {
+    document.getElementById('infoModal').classList.remove('active');
+    currentInfoDocId = null;
+}
+document.getElementById('infoModal').addEventListener('click', function(e) {
+    if (e.target === this) closeInfoModal();
+});
 
 // ================================================================
 // HELPER FUNCTIONS

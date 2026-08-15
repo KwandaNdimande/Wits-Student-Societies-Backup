@@ -58,7 +58,7 @@ async function forceDownload(url, fileName) {
 }
 
 // ================================================================
-// RENDER DOCUMENTS
+// RENDER DOCUMENTS (TABLE LAYOUT)
 // ================================================================
 function renderDocuments(docs, append = false) {
     if (!append) {
@@ -73,7 +73,23 @@ function renderDocuments(docs, append = false) {
     }
 
     let html = '';
-    docs.forEach(doc => {
+    if (!append) {
+        html = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Document Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+    }
+
+    docs.forEach((doc, index) => {
+        const rowNum = allLoadedCount + index + 1;
         const d = doc.data();
         let publicUrl = '#';
         let fileName = 'file';
@@ -85,36 +101,104 @@ function renderDocuments(docs, append = false) {
             fileName = d.storagePath.split('/').pop();
         }
         const hasFile = publicUrl !== '#';
+        const fileIcon = getFileIcon(fileName);
 
         html += `
-            <div class="doc-card">
-                <div class="doc-info">
-                    <div class="doc-name">${escapeHtml(d.name)}</div>
-                    <div class="doc-description">${escapeHtml(d.description || 'No description')}</div>
-                </div>
-                <div class="doc-actions">
-                    <button class="btn-action btn-view" onclick="viewDocument('${publicUrl}')" ${!hasFile ? 'disabled' : ''}>
-                        👁️ View
-                    </button>
-                    <button class="btn-action btn-download" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
-                        ⬇ Download
-                    </button>
-                </div>
-            </div>
+            <tr>
+                <td style="color:#6c757d;font-weight:500;">${rowNum}</td>
+                <td>
+                    <span class="doc-icon">${fileIcon}</span>
+                    <span class="doc-name">${escapeHtml(d.name)}</span>
+                </td>
+                <td>
+                    <div class="doc-actions">
+                        <button class="btn-action btn-view" onclick="viewDocument('${publicUrl}')" ${!hasFile ? 'disabled' : ''}>
+                            View
+                        </button>
+                        <button class="btn-action btn-download" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
+                            ⬇ Download
+                        </button>
+                        <button class="btn-action btn-info" onclick="openInfoModal('${doc.id}')">
+                            ℹInfo
+                        </button>
+                    </div>
+                </td>
+            </tr>
         `;
     });
 
-    if (append) {
-        container.insertAdjacentHTML('beforeend', html);
-    } else {
+    if (!append) {
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
         container.innerHTML = html;
+    } else {
+        // For append, we need to add rows to existing tbody
+        const tbody = container.querySelector('tbody');
+        if (tbody) {
+            const rowsHtml = docs.map((doc, index) => {
+                const rowNum = allLoadedCount + index + 1;
+                const d = doc.data();
+                let publicUrl = '#';
+                let fileName = 'file';
+                if (d.storagePath) {
+                    const { data } = window.supabaseClient.storage
+                        .from('documents')
+                        .getPublicUrl(d.storagePath);
+                    publicUrl = data.publicUrl;
+                    fileName = d.storagePath.split('/').pop();
+                }
+                const hasFile = publicUrl !== '#';
+                const fileIcon = getFileIcon(fileName);
+                return `
+                    <tr>
+                        <td style="color:#6c757d;font-weight:500;">${rowNum}</td>
+                        <td>
+                            <span class="doc-icon">${fileIcon}</span>
+                            <span class="doc-name">${escapeHtml(d.name)}</span>
+                        </td>
+                        <td>
+                            <div class="doc-actions">
+                                <button class="btn-action btn-view" onclick="viewDocument('${publicUrl}')" ${!hasFile ? 'disabled' : ''}>
+                                    View
+                                </button>
+                                <button class="btn-action btn-download" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
+                                    ⬇ Download
+                                </button>
+                                <button class="btn-action btn-info" onclick="openInfoModal('${doc.id}')">
+                                    ℹInfo
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            tbody.insertAdjacentHTML('beforeend', rowsHtml);
+        }
     }
 
     allLoadedCount += docs.length;
 }
 
 // ================================================================
-// LOAD DOCUMENTS (with +1 detection)
+// HELPER: Get file icon
+// ================================================================
+function getFileIcon(fileName) {
+    if (!fileName) return '📄';
+    const ext = fileName.split('.').pop().toLowerCase();
+    if (['pdf'].includes(ext)) return '📄';
+    if (['xlsx', 'xls', 'csv'].includes(ext)) return '📊';
+    if (['doc', 'docx'].includes(ext)) return '📝';
+    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) return '🖼️';
+    if (['zip', 'rar', '7z'].includes(ext)) return '📦';
+    if (['ppt', 'pptx'].includes(ext)) return '📑';
+    return '📁';
+}
+
+// ================================================================
+// LOAD DOCUMENTS
 // ================================================================
 async function loadDocuments(loadMore = false) {
     if (isLoading) return;
@@ -208,6 +292,58 @@ function downloadDocument(url, fileName) {
         alert('No file available to download.');
     }
 }
+
+// ================================================================
+// INFO MODAL
+// ================================================================
+let currentInfoDocId = null;
+
+async function openInfoModal(docId) {
+    try {
+        const doc = await db.collection('documents').doc(docId).get();
+        if (!doc.exists) {
+            alert('Document not found.');
+            return;
+        }
+        const d = doc.data();
+        currentInfoDocId = docId;
+
+        // Set modal content
+        document.getElementById('info-name').textContent = d.name || '-';
+        document.getElementById('info-description').textContent = d.description || 'No description';
+        // Format date
+        let dateStr = 'Unknown';
+        if (d.uploadedAt) {
+            const ts = d.uploadedAt.seconds ? d.uploadedAt.seconds * 1000 : d.uploadedAt;
+            dateStr = new Date(ts).toLocaleDateString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+        document.getElementById('info-date').textContent = dateStr;
+        // File size
+        let sizeStr = 'Unknown';
+        if (d.fileSize) {
+            const mb = (d.fileSize / (1024 * 1024)).toFixed(2);
+            sizeStr = `${mb} MB`;
+        } else if (d.storagePath) {
+            // Try to get size from storage? Not easily, so show 'Available'
+            sizeStr = 'Available';
+        }
+        document.getElementById('info-size').textContent = sizeStr;
+
+        document.getElementById('infoModalTitle').textContent = 'Document Details';
+        document.getElementById('infoModal').classList.add('active');
+    } catch (error) {
+        console.error('Error loading document info:', error);
+        alert('Could not load document details.');
+    }
+}
+
+function closeInfoModal() {
+    document.getElementById('infoModal').classList.remove('active');
+    currentInfoDocId = null;
+}
+document.getElementById('infoModal').addEventListener('click', function(e) {
+    if (e.target === this) closeInfoModal();
+});
 
 // ================================================================
 // HELPER FUNCTIONS

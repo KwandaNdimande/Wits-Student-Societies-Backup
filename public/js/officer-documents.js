@@ -511,7 +511,7 @@ async function submitDocument() {
                 }
             }
             await db.collection('documents').doc(currentEditingId).update(updateData);
-            showToast('✅ Document updated successfully!');
+            showToast('Document updated successfully!');
         } else {
             if (!storagePath) {
                 showToast('⚠️ Please select a file to upload.', true);

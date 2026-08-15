@@ -107,7 +107,6 @@ function renderDocuments(docs, append = false) {
             <tr>
                 <td style="color:#6c757d;font-weight:500;">${rowNum}</td>
                 <td>
-                    <span class="doc-icon">${fileIcon}</span>
                     <span class="doc-name">${escapeHtml(d.name)}</span>
                 </td>
                 <td>
@@ -119,7 +118,7 @@ function renderDocuments(docs, append = false) {
                             ⬇ Download
                         </button>
                         <button class="btn-action btn-info" onclick="openInfoModal('${doc.id}')">
-                            ℹInfo
+                            Info
                         </button>
                     </div>
                 </td>
@@ -156,7 +155,6 @@ function renderDocuments(docs, append = false) {
                     <tr>
                         <td style="color:#6c757d;font-weight:500;">${rowNum}</td>
                         <td>
-                            <span class="doc-icon">${fileIcon}</span>
                             <span class="doc-name">${escapeHtml(d.name)}</span>
                         </td>
                         <td>
@@ -168,7 +166,7 @@ function renderDocuments(docs, append = false) {
                                     ⬇ Download
                                 </button>
                                 <button class="btn-action btn-info" onclick="openInfoModal('${doc.id}')">
-                                    ℹInfo
+                                    Info
                                 </button>
                             </div>
                         </td>

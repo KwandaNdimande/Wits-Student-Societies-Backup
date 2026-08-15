@@ -125,9 +125,6 @@
             font-weight: 600;
             color: var(--text-900);
         }
-        td .doc-icon {
-            margin-right: 8px;
-        }
         .doc-actions {
             display: flex;
             gap: 6px;
@@ -310,7 +307,7 @@
             background: #d0d7e0;
         }
 
-        /* Edit/Upload Modal (unchanged except we keep it) */
+        /* Upload/Edit Modal */
         .current-file-indicator {
             background: #F4F7FB;
             border: 1px solid var(--border);
@@ -440,6 +437,7 @@
             cursor: not-allowed;
         }
 
+        /* Toast */
         .toast {
             position: fixed;
             bottom: 30px;
@@ -569,31 +567,30 @@
     </div>
 
     <!-- Info Modal -->
-    <!-- Info Modal -->
-<div class="modal-overlay" id="infoModal">
-    <div class="modal">
-        <div class="modal-header">
-            <h2 id="infoModalTitle">Document Details</h2>
-            <button class="modal-back" onclick="closeInfoModal()">← Back</button>
-        </div>
-        <div class="modal-body" id="infoModalBody">
-            <div class="detail-row"><span class="label">Name</span><span class="value" id="info-name">-</span></div>
-            <div class="detail-row"><span class="label">Description</span><span class="value" id="info-description">-</span></div>
-            <div class="detail-row"><span class="label">Uploaded</span><span class="value" id="info-date">-</span></div>
-            <!-- Uploaded By is removed for Officer -->
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeInfoModal()">Close</button>
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="infoModalTitle">Document Details</h2>
+                <button class="modal-back" onclick="closeInfoModal()">← Back</button>
+            </div>
+            <div class="modal-body" id="infoModalBody">
+                <div class="detail-row"><span class="label">Name</span><span class="value" id="info-name">-</span></div>
+                <div class="detail-row"><span class="label">Description</span><span class="value" id="info-description">-</span></div>
+                <div class="detail-row"><span class="label">Uploaded</span><span class="value" id="info-date">-</span></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeInfoModal()">Close</button>
+            </div>
         </div>
     </div>
-</div>
+
     <!-- Toast Notification -->
     <div class="toast" id="toast">
         <span id="toastMessage">Document saved successfully!</span>
         <button class="toast-close" onclick="closeToast()">✕</button>
     </div>
 
-    <!-- Document Upload / Edit Modal (unchanged) -->
+    <!-- Upload / Edit Modal -->
     <div class="modal-overlay" id="documentModal">
         <div class="modal">
             <div class="modal-header">
@@ -616,7 +613,7 @@
                             <span class="file-name" id="current-file-name">file.pdf</span>
                             <span class="file-size" id="current-file-size">(0 MB)</span>
                         </div>
-                        <button class="btn-view-current" id="current-file-view-btn" onclick="viewCurrentFile()">👁️ View</button>
+                        <button class="btn-view-current" id="current-file-view-btn" onclick="viewCurrentFile()">View</button>
                     </div>
                     <div class="file-input-wrapper">
                         <input id="doc-file" type="file" onchange="handleFileChange(this)" />

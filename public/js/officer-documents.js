@@ -1,6 +1,6 @@
 // ---------- SUPABASE INITIALIZATION ----------
 const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF0ZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwic2VjcmV0IjoiZXlKMWMyVnlibVJ2SWpvaU1qTTRNakkxT0RFMk1EQTFJaXdpY0hWeWJHUXRJanBjSW5ScFQyNXRaV0YwYVhSbFJ5STZJbXRpZVNJc0luQnliM0p5WkNJNklqQXhNREUwTmpneE1EQXlPQ3dpYVdGMElqb3hOek0zTkRRMk1qSXNJblJ6SWpvaVFXTXlPV1F4Wm1Oa1lqYzVORE5rTVdNeU5XTXpOamc0TWpJd09EazNNVE5qWkNJc0ltVjRZMlVpT2lKaVdYUmhJbjAuY3JzYVJqTzJ3aFZ3S0V5d3Z2YVd3Z0tJbWJwZ2x1V2xjY2tqQ1FjT2p4dW5hS1dKSmVxWlN0T0VjVjB2Q0JxYlJqV1p6R1d6Q1V4bVh0cW1xZ3R0d0hJQk9yV0h5R2x2a3F4dFh4V0hVdGZxZlJpR2t3d3ZQb2R1Y0t0b2d0Zz09IiwiaWF0IjoxNzY2NjM2MDM1LCJleHAiOjIxMDIyMTIwMzV9.ItYeye56cxBqkbaeOVS-66xU-yM9f7T8C0F2tfqB_4';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
 window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
 // Firebase config
@@ -47,15 +47,14 @@ let currentFileName = null;
 let currentFileSize = null;
 
 // ================================================================
-// TOAST NOTIFICATION
+// TOAST NOTIFICATION (FIXED – single icon)
 // ================================================================
 function showToast(message, isError = false) {
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toastMessage');
-    const toastIcon = toast.querySelector('.toast-icon');
 
-    toastMessage.textContent = message;
-    toastIcon.textContent = isError ? '❌' : '✅';
+    const icon = isError ? '❌ ' : '✅ ';
+    toastMessage.textContent = icon + message;
     toast.style.borderLeftColor = isError ? '#C0392B' : '#1E8E5A';
 
     toast.classList.add('show');
@@ -72,7 +71,7 @@ function closeToast() {
 }
 
 // ================================================================
-// FORCE DOWNLOAD (cross-origin compatible)
+// FORCE DOWNLOAD
 // ================================================================
 async function forceDownload(url, fileName) {
     try {
@@ -94,7 +93,7 @@ async function forceDownload(url, fileName) {
 }
 
 // ================================================================
-// HELPER: Get file icon
+// HELPER: Get file icon (optional – we are not using it in table)
 // ================================================================
 function getFileIcon(fileName) {
     if (!fileName) return '📄';
@@ -152,7 +151,6 @@ function renderDocuments(docs, append = false) {
             fileName = d.storagePath.split('/').pop();
         }
         const hasFile = publicUrl !== '#';
-        const fileIcon = getFileIcon(fileName);
 
         html += `
             <tr>
@@ -199,7 +197,6 @@ function renderDocuments(docs, append = false) {
                     fileName = d.storagePath.split('/').pop();
                 }
                 const hasFile = publicUrl !== '#';
-                const fileIcon = getFileIcon(fileName);
                 return `
                     <tr>
                         <td style="color:#6c757d;font-weight:500;">${rowNum}</td>
@@ -451,7 +448,7 @@ async function deleteFileFromSupabase(filePath) {
 }
 
 // ================================================================
-// SUBMIT DOCUMENT
+// SUBMIT DOCUMENT (with delay and proper modal close)
 // ================================================================
 async function submitDocument() {
     const name = document.getElementById('doc-name').value.trim();
@@ -502,7 +499,6 @@ async function submitDocument() {
                 description,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
-
             if (storagePath) {
                 updateData.storagePath = storagePath;
                 updateData.fileSize = fileSize;
@@ -514,7 +510,6 @@ async function submitDocument() {
                     }
                 }
             }
-
             await db.collection('documents').doc(currentEditingId).update(updateData);
             showToast('✅ Document updated successfully!');
         } else {
@@ -524,7 +519,6 @@ async function submitDocument() {
                 saveBtn.textContent = 'Save';
                 return;
             }
-
             await db.collection('documents').add({
                 name,
                 description,
@@ -536,8 +530,13 @@ async function submitDocument() {
             showToast('✅ Document uploaded successfully!');
         }
 
-        await loadDocuments(false);
+        // Close modal immediately, then reload after a short delay
         closeDocumentModal();
+
+        // Small delay to allow Firestore to sync before reload
+        setTimeout(() => {
+            loadDocuments(false);
+        }, 250);
 
     } catch (error) {
         console.error('Error saving document:', error);
@@ -549,7 +548,7 @@ async function submitDocument() {
 }
 
 // ================================================================
-// DELETE DOCUMENT
+// DELETE DOCUMENT (with delay)
 // ================================================================
 async function deleteDocument(docId) {
     if (!confirm('Are you sure you want to delete this document? This cannot be undone.')) return;
@@ -560,7 +559,6 @@ async function deleteDocument(docId) {
             showToast('⚠️ Document not found.', true);
             return;
         }
-
         const d = doc.data();
 
         if (d.storagePath) {
@@ -575,7 +573,9 @@ async function deleteDocument(docId) {
 
         showToast('Document deleted successfully!');
 
-        await loadDocuments(false);
+        setTimeout(() => {
+            loadDocuments(false);
+        }, 250);
 
     } catch (error) {
         console.error('Error deleting document:', error);
@@ -584,7 +584,7 @@ async function deleteDocument(docId) {
 }
 
 // ================================================================
-// INFO MODAL
+// INFO MODAL (Officer – no Uploaded By)
 // ================================================================
 let currentInfoDocId = null;
 
@@ -595,14 +595,12 @@ async function openInfoModal(docId) {
             alert('Document not found.');
             return;
         }
-
         const d = doc.data();
         currentInfoDocId = docId;
 
         document.getElementById('info-name').textContent = d.name || '-';
         document.getElementById('info-description').textContent = d.description || 'No description';
 
-        // Uploaded date
         let dateStr = 'Unknown';
         if (d.uploadedAt) {
             const ts = d.uploadedAt.seconds ? d.uploadedAt.seconds * 1000 : d.uploadedAt;

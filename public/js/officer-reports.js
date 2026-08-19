@@ -24,8 +24,13 @@ let allRequests = [];
 let allSocieties = [];
 let allUsers = [];
 
-// Filtered data for Report 1 (Budget Request Status)
+// --- Report 1 (Budget Request Status) ---
 let filteredRequests = [];
+
+// --- Report 3 (Financial Allocation) ---
+let filteredApprovedRequests = [];
+let p3CurrentPage = 1;
+const itemsPerPage = 5;
 
 // Status colors for badges
 const statusBadgeMap = {
@@ -36,7 +41,7 @@ const statusBadgeMap = {
     'Revision Required': 'pending'
 };
 
-// ============ FILTER FUNCTIONS ============
+// ============ FILTER FUNCTIONS (Report 1) ============
 
 function toggleFilterInputs() {
     const filterType = document.querySelector('input[name="filterType"]:checked').value;
@@ -49,15 +54,11 @@ function applyDefaultFilter() {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = now.getFullYear();
 
-    // Set the dropdowns to current month/year
     document.getElementById('filterMonth').value = month;
     document.getElementById('filterYear').value = year;
-
-    // Ensure "By Month" is selected
     document.querySelector('input[name="filterType"][value="month"]').checked = true;
     toggleFilterInputs();
 
-    // Filter allRequests by current month
     filteredRequests = allRequests.filter(item => {
         if (!item.submittedAt) return false;
         const date = new Date(item.submittedAt.seconds * 1000);
@@ -108,41 +109,99 @@ function applyFilter() {
 }
 
 function clearFilter() {
-    // Reset to current month (Option B)
     applyDefaultFilter();
     renderReport1();
     showToast('Filter cleared — showing current month.');
 }
 
+// ============ FILTER FUNCTIONS (Report 3) ============
+
+function toggleFilterInputsP3() {
+    const filterType = document.querySelector('input[name="filterTypeP3"]:checked').value;
+    document.getElementById('monthFilterP3').style.display = filterType === 'month' ? 'flex' : 'none';
+    document.getElementById('rangeFilterP3').style.display = filterType === 'range' ? 'flex' : 'none';
+}
+
+function applyFilterP3() {
+    const filterType = document.querySelector('input[name="filterTypeP3"]:checked').value;
+
+    if (filterType === 'month') {
+        const month = document.getElementById('filterMonthP3').value;
+        const year = document.getElementById('filterYearP3').value;
+
+        filteredApprovedRequests = allRequests.filter(item => {
+            if (item.status !== 'Approved') return false;
+            if (!item.submittedAt) return false;
+            const date = new Date(item.submittedAt.seconds * 1000);
+            return date.getMonth() === (parseInt(month) - 1) && date.getFullYear() === parseInt(year);
+        });
+
+        const monthName = document.getElementById('filterMonthP3').selectedOptions[0].text;
+        document.getElementById('p3-title').textContent = `Financial Allocation Report — ${monthName} ${year}`;
+    } else {
+        const start = document.getElementById('startDateP3').value;
+        const end = document.getElementById('endDateP3').value;
+
+        if (!start || !end) {
+            showToast('Please select both start and end dates.');
+            return;
+        }
+
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+
+        filteredApprovedRequests = allRequests.filter(item => {
+            if (item.status !== 'Approved') return false;
+            if (!item.submittedAt) return false;
+            const date = new Date(item.submittedAt.seconds * 1000);
+            return date >= startDate && date <= endDate;
+        });
+
+        document.getElementById('p3-title').textContent = `Financial Allocation Report — ${start} to ${end}`;
+    }
+
+    p3CurrentPage = 1;
+    renderReport3();
+}
+
+function clearFilterP3() {
+    // Reset to ALL approved requests (all-time)
+    filteredApprovedRequests = allRequests.filter(r => r.status === 'Approved');
+    document.getElementById('p3-title').textContent = 'Financial Allocation Report (All Time)';
+    p3CurrentPage = 1;
+    renderReport3();
+    showToast('Filter cleared — showing all approved requests.');
+}
+
 // ============ LOAD DATA ============
 async function loadAllData() {
     try {
-        // Load requests
         const requestsSnapshot = await db.collection('requests').get();
         allRequests = [];
         requestsSnapshot.forEach(doc => {
             allRequests.push({ id: doc.id, ...doc.data() });
         });
 
-        // Load societies
         const societiesSnapshot = await db.collection('societies').get();
         allSocieties = [];
         societiesSnapshot.forEach(doc => {
             allSocieties.push({ id: doc.id, ...doc.data() });
         });
 
-        // Load users
         const usersSnapshot = await db.collection('users').get();
         allUsers = [];
         usersSnapshot.forEach(doc => {
             allUsers.push({ id: doc.id, ...doc.data() });
         });
 
-        // Update last updated time
         document.getElementById('last-updated').textContent = 'Data as of ' + new Date().toLocaleString();
 
-        // Apply default filter (current month) for Report 1
+        // --- Report 1: Default current month ---
         applyDefaultFilter();
+
+        // --- Report 3: Default ALL approved requests ---
+        filteredApprovedRequests = allRequests.filter(r => r.status === 'Approved');
+        document.getElementById('p3-title').textContent = 'Financial Allocation Report (All Time)';
 
         // Render all reports
         renderReport1();
@@ -155,14 +214,13 @@ async function loadAllData() {
     }
 }
 
-// ============ REPORT 1: BUDGET REQUEST STATUS (FILTERED) ============
+// ============ REPORT 1: BUDGET REQUEST STATUS ============
 function renderReport1() {
     const total = filteredRequests.length;
     const approved = filteredRequests.filter(r => r.status === 'Approved').length;
     const review = filteredRequests.filter(r => r.status === 'Under Review' || r.status === 'Submitted').length;
     const rejected = filteredRequests.filter(r => r.status === 'Rejected').length;
 
-    // Stats
     document.getElementById('p1-total').textContent = total;
     document.getElementById('p1-approved').textContent = approved;
     document.getElementById('p1-review').textContent = review;
@@ -171,7 +229,6 @@ function renderReport1() {
     document.getElementById('p1-rejection-rate').textContent = total > 0 ? Math.round((rejected/total)*100) + '% rejection rate' : 'No data';
     document.getElementById('p1-avg-pending').textContent = total > 0 ? 'Avg. pending' : 'No data';
 
-    // Chart
     const chartData = [];
     if (approved > 0) chartData.push({ label: 'Approved', count: approved, color: '#1E8E5A' });
     if (review > 0) chartData.push({ label: 'Under Review', count: review, color: '#2E6FBA' });
@@ -183,7 +240,6 @@ function renderReport1() {
         renderChart('p1-chart', chartData);
     }
 
-    // Table
     const tbody = document.getElementById('p1-table-body');
     const sorted = [...filteredRequests].sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
     const display = sorted.slice(0, 10);
@@ -205,7 +261,7 @@ function renderReport1() {
     document.getElementById('p1-showing').textContent = `Showing ${Math.min(display.length, total)} of ${total} requests`;
 }
 
-// ============ REPORT 2: SOCIETY ACTIVITY (UNCHANGED) ============
+// ============ REPORT 2: SOCIETY ACTIVITY ============
 function renderReport2() {
     const total = allSocieties.length;
     const active = allSocieties.filter(s => {
@@ -227,7 +283,6 @@ function renderReport2() {
     document.getElementById('p2-dormant-rate').textContent = total > 0 ? Math.round((dormant.length/total)*100) + '% dormant' : 'No societies';
     document.getElementById('p2-split').textContent = `${eventCount || 0} : ${regaliaCount || 0}`;
 
-    // Chart - Top active societies
     const societyActivity = allSocieties.map(s => {
         const requests = allRequests.filter(r => r.societyName === s.name);
         return { name: s.name, count: requests.length };
@@ -248,7 +303,6 @@ function renderReport2() {
         }
     }
 
-    // Table
     const tbody = document.getElementById('p2-table-body');
     const sorted = allSocieties.map(s => {
         const requests = allRequests.filter(r => r.societyName === s.name);
@@ -280,9 +334,9 @@ function renderReport2() {
     document.getElementById('p2-showing').textContent = `Showing ${Math.min(display.length, sorted.length)} of ${sorted.length} societies`;
 }
 
-// ============ REPORT 3: FINANCIAL ALLOCATION (UNCHANGED) ============
+// ============ REPORT 3: FINANCIAL ALLOCATION (with Pagination) ============
 function renderReport3() {
-    const approved = allRequests.filter(r => r.status === 'Approved');
+    const approved = filteredApprovedRequests;
     const totalApproved = approved.reduce((sum, r) => sum + (r.amount || 0), 0);
     const eventTotal = approved.filter(r => r.type === 'Event').reduce((sum, r) => sum + (r.amount || 0), 0);
     const regaliaTotal = approved.filter(r => r.type === 'Regalia').reduce((sum, r) => sum + (r.amount || 0), 0);
@@ -304,20 +358,29 @@ function renderReport3() {
     if (otherTotal > 0) chartData.push({ label: 'Other', count: otherTotal, color: '#3E7CB1' });
     
     if (chartData.length === 0) {
-        document.getElementById('p3-chart').innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No approved requests</p>';
+        document.getElementById('p3-chart').innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No approved requests for this period</p>';
     } else {
         renderChart('p3-chart', chartData);
     }
 
-    // Table
+    // Table with Pagination
     const tbody = document.getElementById('p3-table-body');
-    const sorted = approved.sort((a, b) => (b.amount || 0) - (a.amount || 0));
-    const display = sorted.slice(0, 7);
-    
-    if (display.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:#6c757d;">No approved requests yet</td></tr>`;
+    const sorted = [...approved].sort((a, b) => (b.amount || 0) - (a.amount || 0));
+    const totalItems = sorted.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    // Clamp current page
+    if (p3CurrentPage > totalPages) p3CurrentPage = totalPages || 1;
+    if (p3CurrentPage < 1) p3CurrentPage = 1;
+
+    const start = (p3CurrentPage - 1) * itemsPerPage;
+    const end = Math.min(start + itemsPerPage, totalItems);
+    const pageItems = sorted.slice(start, end);
+
+    if (pageItems.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:40px;color:#6c757d;">No approved requests found</td></tr>`;
     } else {
-        tbody.innerHTML = display.map(r => `
+        tbody.innerHTML = pageItems.map(r => `
             <tr>
                 <td class="strong">${r.societyName || 'Unknown'}</td>
                 <td>${r.type || 'N/A'}</td>
@@ -327,12 +390,21 @@ function renderReport3() {
             </tr>
         `).join('');
     }
-    document.getElementById('p3-showing').textContent = `Showing ${Math.min(display.length, sorted.length)} of ${sorted.length} approved requests`;
+
+    // Update table footer with pagination info
+    document.getElementById('p3-showing').textContent = `Showing ${totalItems > 0 ? start + 1 : 0}-${end} of ${totalItems} approved requests`;
+    document.getElementById('p3-page-info').textContent = `Page ${p3CurrentPage} of ${totalPages || 1}`;
+    document.getElementById('p3-prev-btn').disabled = (p3CurrentPage <= 1);
+    document.getElementById('p3-next-btn').disabled = (p3CurrentPage >= totalPages);
 }
 
-// ============ REPORT 4: INCORRECT SUBMISSION (UNCHANGED) ============
+function changePageP3(delta) {
+    p3CurrentPage += delta;
+    renderReport3();
+}
+
+// ============ REPORT 4: INCORRECT SUBMISSION ============
 function renderReport4() {
-    // Only show requests with status 'Revision Required' as flagged
     const flagged = allRequests.filter(r => r.status === 'Revision Required');
     const total = flagged.length;
 
@@ -345,7 +417,6 @@ function renderReport4() {
     document.getElementById('p4-resolved-rate').textContent = '0% resolved';
     document.getElementById('p4-avg-open').textContent = total > 0 ? 'Awaiting review' : 'No data';
 
-    // Chart - show status distribution of flagged items
     if (total === 0) {
         document.getElementById('p4-chart').innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No flagged submissions</p>';
     } else {
@@ -355,7 +426,6 @@ function renderReport4() {
         renderChart('p4-chart', chartData);
     }
 
-    // Table
     const tbody = document.getElementById('p4-table-body');
     const display = flagged.slice(0, 6);
     
@@ -393,25 +463,21 @@ function renderChart(containerId, data) {
     `).join('');
 }
 
-// ============ EXPORT FUNCTIONS (UNCHANGED — they read the DOM) ============
+// ============ EXPORT FUNCTIONS (unchanged) ============
 
-// Export CSV
 function exportCSV(panelId) {
     const panel = document.getElementById(panelId);
     if (!panel) return;
 
-    // Find the table in the panel
     const table = panel.querySelector('table');
     if (!table) {
         alert('No data to export.');
         return;
     }
 
-    // Get table data
     const headers = [];
     const rows = [];
     
-    // Get headers
     const thead = table.querySelector('thead');
     if (thead) {
         const headerCells = thead.querySelectorAll('th');
@@ -420,7 +486,6 @@ function exportCSV(panelId) {
         });
     }
 
-    // Get rows
     const tbody = table.querySelector('tbody');
     if (tbody) {
         const trs = tbody.querySelectorAll('tr');
@@ -442,15 +507,11 @@ function exportCSV(panelId) {
         return;
     }
 
-    // Build CSV content
     let csvContent = '';
-    
-    // Add headers
     if (headers.length > 0) {
         csvContent += headers.join(',') + '\n';
     }
 
-    // Add rows
     rows.forEach(row => {
         const escapedRow = row.map(cell => {
             if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n'))) {
@@ -461,7 +522,6 @@ function exportCSV(panelId) {
         csvContent += escapedRow.join(',') + '\n';
     });
 
-    // Download CSV
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -475,7 +535,6 @@ function exportCSV(panelId) {
     showToast('CSV exported successfully!');
 }
 
-// Export PDF
 function exportPDF(panelId) {
     const panel = document.getElementById(panelId);
     if (!panel) {
@@ -483,13 +542,10 @@ function exportPDF(panelId) {
         return;
     }
 
-    // Check if jsPDF is loaded
     if (typeof window.jspdf === 'undefined') {
-        // Load jsPDF dynamically
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
         script.onload = function() {
-            // Load html2canvas
             const script2 = document.createElement('script');
             script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
             script2.onload = function() {
@@ -508,21 +564,16 @@ function exportPDF(panelId) {
 function generatePDF(panel, panelId) {
     const { jsPDF } = window.jspdf;
     
-    // Create a clone of the panel to render
     const clone = panel.cloneNode(true);
-    
-    // Remove export buttons from clone
     const actions = clone.querySelector('.report-actions');
     if (actions) actions.remove();
 
-    // Style the clone for PDF
     clone.style.padding = '20px';
     clone.style.background = '#FFFFFF';
     clone.style.borderRadius = '0';
     clone.style.display = 'block';
     clone.style.maxWidth = '100%';
     
-    // Append to body temporarily
     const container = document.createElement('div');
     container.style.position = 'fixed';
     container.style.left = '-9999px';
@@ -533,7 +584,6 @@ function generatePDF(panel, panelId) {
     container.appendChild(clone);
     document.body.appendChild(container);
 
-    // Add title
     const titleDiv = document.createElement('div');
     titleDiv.style.textAlign = 'center';
     titleDiv.style.marginBottom = '20px';
@@ -544,7 +594,6 @@ function generatePDF(panel, panelId) {
     titleDiv.textContent = document.querySelector('.report-head h2')?.textContent || 'Report';
     clone.prepend(titleDiv);
 
-    // Add date
     const dateDiv = document.createElement('div');
     dateDiv.style.textAlign = 'center';
     dateDiv.style.marginBottom = '20px';
@@ -553,7 +602,6 @@ function generatePDF(panel, panelId) {
     dateDiv.textContent = `Generated: ${new Date().toLocaleString()}`;
     clone.prepend(dateDiv);
 
-    // Add Wits branding
     const brandDiv = document.createElement('div');
     brandDiv.style.textAlign = 'center';
     brandDiv.style.marginBottom = '30px';
@@ -565,7 +613,6 @@ function generatePDF(panel, panelId) {
     brandDiv.textContent = 'University of the Witwatersrand - SGO Digital Operations';
     clone.prepend(brandDiv);
 
-    // Use html2canvas to render
     html2canvas(container, {
         scale: 2,
         useCORS: true,
@@ -581,11 +628,9 @@ function generatePDF(panel, panelId) {
         let heightLeft = pdfHeight;
         let position = 0;
 
-        // Add first page
         pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
         heightLeft -= pdf.internal.pageSize.getHeight();
 
-        // Add more pages if needed
         while (heightLeft > 0) {
             position = heightLeft - pdfHeight;
             pdf.addPage();
@@ -594,8 +639,6 @@ function generatePDF(panel, panelId) {
         }
 
         pdf.save(`report_${panelId}_${new Date().toISOString().slice(0,10)}.pdf`);
-        
-        // Clean up
         document.body.removeChild(container);
         showToast('PDF exported successfully!');
     }).catch((error) => {

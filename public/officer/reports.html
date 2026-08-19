@@ -7,6 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* ... (ALL YOUR EXISTING CSS, plus the .filter-bar styles from the previous message) ... */
+        /* I'll include the full CSS below for completeness */
         :root {
             --navy-900: #0B1F3A;
             --navy-800: #13315C;
@@ -375,6 +377,32 @@
             color: var(--text-500);
             border-top: 1px solid var(--border);
             background: #FAFBFD;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .table-foot .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .table-foot .pagination-controls button {
+            padding: 4px 12px;
+            border: 1px solid var(--border);
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-600);
+            font-weight: 600;
+        }
+        .table-foot .pagination-controls button:hover:not(:disabled) {
+            background: var(--navy-700);
+            color: #fff;
+            border-color: var(--navy-700);
+        }
+        .table-foot .pagination-controls button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         .wits-badge {
             text-align: center;
@@ -386,7 +414,7 @@
             font-weight: 500;
         }
 
-        /* ===== NEW FILTER BAR STYLES ===== */
+        /* Filter Bar Styles */
         .filter-bar {
             background: #fff;
             border: 1px solid var(--border);
@@ -493,6 +521,14 @@
             .filter-bar select {
                 flex: 1;
             }
+            .table-foot {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+            .table-foot .pagination-controls {
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -524,7 +560,6 @@
                 </div>
             </div>
 
-            <!-- ===== NEW FILTER BAR ===== -->
             <div class="filter-bar">
                 <div class="filter-group">
                     <label>
@@ -534,7 +569,6 @@
                         <input type="radio" name="filterType" value="range" onchange="toggleFilterInputs()"> By Date Range
                     </label>
                 </div>
-
                 <div class="filter-group" id="monthFilter">
                     <select id="filterMonth">
                         <option value="01">January</option>
@@ -552,12 +586,10 @@
                     </select>
                     <input type="number" id="filterYear" value="2026">
                 </div>
-
                 <div class="filter-group" id="rangeFilter" style="display: none;">
                     <label>From: <input type="date" id="startDate"></label>
                     <label>To: <input type="date" id="endDate"></label>
                 </div>
-
                 <div class="filter-group">
                     <button class="btn btn-primary" onclick="applyFilter()">Apply</button>
                     <button class="btn" onclick="clearFilter()">Clear</button>
@@ -623,16 +655,53 @@
             </div>
         </section>
 
-        <!-- ============ REPORT 3: FINANCIAL ALLOCATION ============ -->
+        <!-- ============ REPORT 3: FINANCIAL ALLOCATION (with Filter + Pagination) ============ -->
         <section class="panel" id="p3">
             <div class="report-head">
                 <div>
-                    <h2>Financial Allocation Report</h2>
+                    <h2 id="p3-title">Financial Allocation Report (All Time)</h2>
                     <div class="sub">Approved budget distribution by spending category and society, supporting oversight, auditing and financial summaries.</div>
                 </div>
                 <div class="report-actions">
                     <button class="btn" onclick="exportCSV('p3')">Export CSV</button>
                     <button class="btn btn-primary" onclick="exportPDF('p3')">Export PDF</button>
+                </div>
+            </div>
+
+            <!-- Filter Bar for Report 3 -->
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label>
+                        <input type="radio" name="filterTypeP3" value="month" checked onchange="toggleFilterInputsP3()"> By Month
+                    </label>
+                    <label>
+                        <input type="radio" name="filterTypeP3" value="range" onchange="toggleFilterInputsP3()"> By Date Range
+                    </label>
+                </div>
+                <div class="filter-group" id="monthFilterP3">
+                    <select id="filterMonthP3">
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                        <option value="09">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <input type="number" id="filterYearP3" value="2026">
+                </div>
+                <div class="filter-group" id="rangeFilterP3" style="display: none;">
+                    <label>From: <input type="date" id="startDateP3"></label>
+                    <label>To: <input type="date" id="endDateP3"></label>
+                </div>
+                <div class="filter-group">
+                    <button class="btn btn-primary" onclick="applyFilterP3()">Apply</button>
+                    <button class="btn" onclick="clearFilterP3()">Clear</button>
                 </div>
             </div>
 
@@ -655,7 +724,15 @@
                     </thead>
                     <tbody id="p3-table-body"></tbody>
                 </table>
-                <div class="table-foot"><span id="p3-showing">Showing 0 requests</span><span>Sorted by approved amount, descending</span></div>
+                <div class="table-foot">
+                    <span id="p3-showing">Showing 0 approved requests</span>
+                    <div class="pagination-controls">
+                        <button id="p3-prev-btn" onclick="changePageP3(-1)">Prev</button>
+                        <span id="p3-page-info">Page 1 of 1</span>
+                        <button id="p3-next-btn" onclick="changePageP3(1)">Next</button>
+                    </div>
+                    <span>Sorted by approved amount, descending</span>
+                </div>
             </div>
         </section>
 

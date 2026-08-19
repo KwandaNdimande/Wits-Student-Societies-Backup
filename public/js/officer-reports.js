@@ -34,6 +34,11 @@ let filteredApprovedRequests = [];
 let p3CurrentPage = 1;
 const p3ItemsPerPage = 5;
 
+// --- Report 4 (Incorrect Submission) ---
+let filteredFlaggedRequests = [];
+let p4CurrentPage = 1;
+const p4ItemsPerPage = 5;
+
 // Status colors for badges
 const statusBadgeMap = {
     'Submitted': 'pending',
@@ -69,7 +74,7 @@ function applyDefaultFilter() {
 
     const monthName = document.getElementById('filterMonth').selectedOptions[0].text;
     document.getElementById('p1-title').textContent = `Report for the month of ${monthName} ${year}`;
-    p1CurrentPage = 1; // reset to first page
+    p1CurrentPage = 1;
 }
 
 function applyFilter() {
@@ -169,12 +174,89 @@ function applyFilterP3() {
 }
 
 function clearFilterP3() {
-    // Reset to ALL approved requests (all-time)
     filteredApprovedRequests = allRequests.filter(r => r.status === 'Approved');
     document.getElementById('p3-title').textContent = 'Financial Allocation Report (All Time)';
     p3CurrentPage = 1;
     renderReport3();
     showToast('Filter cleared — showing all approved requests.');
+}
+
+// ============ FILTER FUNCTIONS (Report 4) ============
+
+function toggleFilterInputsP4() {
+    const filterType = document.querySelector('input[name="filterTypeP4"]:checked').value;
+    document.getElementById('monthFilterP4').style.display = filterType === 'month' ? 'flex' : 'none';
+    document.getElementById('rangeFilterP4').style.display = filterType === 'range' ? 'flex' : 'none';
+}
+
+function applyDefaultFilterP4() {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+
+    document.getElementById('filterMonthP4').value = month;
+    document.getElementById('filterYearP4').value = year;
+    document.querySelector('input[name="filterTypeP4"][value="month"]').checked = true;
+    toggleFilterInputsP4();
+
+    filteredFlaggedRequests = allRequests.filter(item => {
+        if (item.status !== 'Revision Required') return false;
+        if (!item.submittedAt) return false;
+        const date = new Date(item.submittedAt.seconds * 1000);
+        return date.getMonth() === (parseInt(month) - 1) && date.getFullYear() === parseInt(year);
+    });
+
+    const monthName = document.getElementById('filterMonthP4').selectedOptions[0].text;
+    document.getElementById('p4-title').textContent = `Incorrect Submission Report — ${monthName} ${year}`;
+    p4CurrentPage = 1;
+}
+
+function applyFilterP4() {
+    const filterType = document.querySelector('input[name="filterTypeP4"]:checked').value;
+
+    if (filterType === 'month') {
+        const month = document.getElementById('filterMonthP4').value;
+        const year = document.getElementById('filterYearP4').value;
+
+        filteredFlaggedRequests = allRequests.filter(item => {
+            if (item.status !== 'Revision Required') return false;
+            if (!item.submittedAt) return false;
+            const date = new Date(item.submittedAt.seconds * 1000);
+            return date.getMonth() === (parseInt(month) - 1) && date.getFullYear() === parseInt(year);
+        });
+
+        const monthName = document.getElementById('filterMonthP4').selectedOptions[0].text;
+        document.getElementById('p4-title').textContent = `Incorrect Submission Report — ${monthName} ${year}`;
+    } else {
+        const start = document.getElementById('startDateP4').value;
+        const end = document.getElementById('endDateP4').value;
+
+        if (!start || !end) {
+            showToast('Please select both start and end dates.');
+            return;
+        }
+
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+
+        filteredFlaggedRequests = allRequests.filter(item => {
+            if (item.status !== 'Revision Required') return false;
+            if (!item.submittedAt) return false;
+            const date = new Date(item.submittedAt.seconds * 1000);
+            return date >= startDate && date <= endDate;
+        });
+
+        document.getElementById('p4-title').textContent = `Incorrect Submission Report — ${start} to ${end}`;
+    }
+
+    p4CurrentPage = 1;
+    renderReport4();
+}
+
+function clearFilterP4() {
+    applyDefaultFilterP4();
+    renderReport4();
+    showToast('Filter cleared — showing current month.');
 }
 
 // ============ LOAD DATA ============
@@ -207,6 +289,9 @@ async function loadAllData() {
         filteredApprovedRequests = allRequests.filter(r => r.status === 'Approved');
         document.getElementById('p3-title').textContent = 'Financial Allocation Report (All Time)';
 
+        // --- Report 4: Default current month ---
+        applyDefaultFilterP4();
+
         // Render all reports
         renderReport1();
         renderReport2();
@@ -225,7 +310,6 @@ function renderReport1() {
     const review = filteredRequests.filter(r => r.status === 'Under Review' || r.status === 'Submitted').length;
     const rejected = filteredRequests.filter(r => r.status === 'Rejected').length;
 
-    // Stats
     document.getElementById('p1-total').textContent = total;
     document.getElementById('p1-approved').textContent = approved;
     document.getElementById('p1-review').textContent = review;
@@ -234,7 +318,6 @@ function renderReport1() {
     document.getElementById('p1-rejection-rate').textContent = total > 0 ? Math.round((rejected/total)*100) + '% rejection rate' : 'No data';
     document.getElementById('p1-avg-pending').textContent = total > 0 ? 'Avg. pending' : 'No data';
 
-    // Chart
     const chartData = [];
     if (approved > 0) chartData.push({ label: 'Approved', count: approved, color: '#1E8E5A' });
     if (review > 0) chartData.push({ label: 'Under Review', count: review, color: '#2E6FBA' });
@@ -246,13 +329,11 @@ function renderReport1() {
         renderChart('p1-chart', chartData);
     }
 
-    // Table with Pagination
     const tbody = document.getElementById('p1-table-body');
     const sorted = [...filteredRequests].sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
     const totalItems = sorted.length;
     const totalPages = Math.ceil(totalItems / p1ItemsPerPage);
 
-    // Clamp current page
     if (p1CurrentPage > totalPages) p1CurrentPage = totalPages || 1;
     if (p1CurrentPage < 1) p1CurrentPage = 1;
 
@@ -275,7 +356,6 @@ function renderReport1() {
         `).join('');
     }
 
-    // Update table footer with pagination info
     document.getElementById('p1-showing').textContent = `Showing ${totalItems > 0 ? start + 1 : 0}-${end} of ${totalItems} requests`;
     document.getElementById('p1-page-info').textContent = `Page ${p1CurrentPage} of ${totalPages || 1}`;
     document.getElementById('p1-prev-btn').disabled = (p1CurrentPage <= 1);
@@ -360,7 +440,7 @@ function renderReport2() {
     document.getElementById('p2-showing').textContent = `Showing ${Math.min(display.length, sorted.length)} of ${sorted.length} societies`;
 }
 
-// ============ REPORT 3: FINANCIAL ALLOCATION (with Pagination) ============
+// ============ REPORT 3: FINANCIAL ALLOCATION ============
 function renderReport3() {
     const approved = filteredApprovedRequests;
     const totalApproved = approved.reduce((sum, r) => sum + (r.amount || 0), 0);
@@ -377,7 +457,6 @@ function renderReport3() {
     document.getElementById('p3-regalia-pct').textContent = totalApproved > 0 ? Math.round((regaliaTotal/totalApproved)*100) + '% of total' : '0%';
     document.getElementById('p3-other-pct').textContent = totalApproved > 0 ? Math.round((otherTotal/totalApproved)*100) + '% of total' : '0%';
 
-    // Chart
     const chartData = [];
     if (eventTotal > 0) chartData.push({ label: 'Events', count: eventTotal, color: '#1B3E73' });
     if (regaliaTotal > 0) chartData.push({ label: 'Regalia', count: regaliaTotal, color: '#2E6FBA' });
@@ -389,13 +468,11 @@ function renderReport3() {
         renderChart('p3-chart', chartData);
     }
 
-    // Table with Pagination
     const tbody = document.getElementById('p3-table-body');
     const sorted = [...approved].sort((a, b) => (b.amount || 0) - (a.amount || 0));
     const totalItems = sorted.length;
     const totalPages = Math.ceil(totalItems / p3ItemsPerPage);
 
-    // Clamp current page
     if (p3CurrentPage > totalPages) p3CurrentPage = totalPages || 1;
     if (p3CurrentPage < 1) p3CurrentPage = 1;
 
@@ -417,7 +494,6 @@ function renderReport3() {
         `).join('');
     }
 
-    // Update table footer with pagination info
     document.getElementById('p3-showing').textContent = `Showing ${totalItems > 0 ? start + 1 : 0}-${end} of ${totalItems} approved requests`;
     document.getElementById('p3-page-info').textContent = `Page ${p3CurrentPage} of ${totalPages || 1}`;
     document.getElementById('p3-prev-btn').disabled = (p3CurrentPage <= 1);
@@ -429,11 +505,12 @@ function changePageP3(delta) {
     renderReport3();
 }
 
-// ============ REPORT 4: INCORRECT SUBMISSION ============
+// ============ REPORT 4: INCORRECT SUBMISSION (with Filter + Pagination) ============
 function renderReport4() {
-    const flagged = allRequests.filter(r => r.status === 'Revision Required');
+    const flagged = filteredFlaggedRequests;
     const total = flagged.length;
 
+    // Stats
     document.getElementById('p4-total').textContent = total;
     document.getElementById('p4-top-issue').textContent = total > 0 ? 'Revision Required' : 'None';
     document.getElementById('p4-top-count').textContent = total > 0 ? total + ' requests' : 'No flagged requests';
@@ -443,8 +520,9 @@ function renderReport4() {
     document.getElementById('p4-resolved-rate').textContent = '0% resolved';
     document.getElementById('p4-avg-open').textContent = total > 0 ? 'Awaiting review' : 'No data';
 
+    // Chart
     if (total === 0) {
-        document.getElementById('p4-chart').innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No flagged submissions</p>';
+        document.getElementById('p4-chart').innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No flagged submissions for this period</p>';
     } else {
         const chartData = [
             { label: 'Needs Revision', count: total, color: '#B9720B' }
@@ -452,13 +530,23 @@ function renderReport4() {
         renderChart('p4-chart', chartData);
     }
 
+    // Table with Pagination
     const tbody = document.getElementById('p4-table-body');
-    const display = flagged.slice(0, 6);
-    
-    if (display.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:#6c757d;">No flagged submissions</td></tr>`;
+    const sorted = [...flagged].sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
+    const totalItems = sorted.length;
+    const totalPages = Math.ceil(totalItems / p4ItemsPerPage);
+
+    if (p4CurrentPage > totalPages) p4CurrentPage = totalPages || 1;
+    if (p4CurrentPage < 1) p4CurrentPage = 1;
+
+    const start = (p4CurrentPage - 1) * p4ItemsPerPage;
+    const end = Math.min(start + p4ItemsPerPage, totalItems);
+    const pageItems = sorted.slice(start, end);
+
+    if (pageItems.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:#6c757d;">No flagged submissions for this period</td></tr>`;
     } else {
-        tbody.innerHTML = display.map(r => `
+        tbody.innerHTML = pageItems.map(r => `
             <tr>
                 <td class="strong">REQ-${String(r.id).slice(0, 8)}</td>
                 <td>${r.societyName || 'Unknown'}</td>
@@ -469,7 +557,17 @@ function renderReport4() {
             </tr>
         `).join('');
     }
-    document.getElementById('p4-showing').textContent = `Showing ${Math.min(display.length, flagged.length)} of ${flagged.length} flagged submissions`;
+
+    // Update table footer with pagination info
+    document.getElementById('p4-showing').textContent = `Showing ${totalItems > 0 ? start + 1 : 0}-${end} of ${totalItems} flagged submissions`;
+    document.getElementById('p4-page-info').textContent = `Page ${p4CurrentPage} of ${totalPages || 1}`;
+    document.getElementById('p4-prev-btn').disabled = (p4CurrentPage <= 1);
+    document.getElementById('p4-next-btn').disabled = (p4CurrentPage >= totalPages);
+}
+
+function changePageP4(delta) {
+    p4CurrentPage += delta;
+    renderReport4();
 }
 
 // ============ CHART RENDERER ============
@@ -489,7 +587,7 @@ function renderChart(containerId, data) {
     `).join('');
 }
 
-// ============ EXPORT FUNCTIONS (unchanged) ============
+// ============ EXPORT FUNCTIONS ============
 
 function exportCSV(panelId) {
     const panel = document.getElementById(panelId);

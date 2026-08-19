@@ -745,12 +745,49 @@
         <section class="panel" id="p4">
             <div class="report-head">
                 <div>
-                    <h2>Incorrect Submission Report</h2>
+                    <h2 id="p4-title">Incorrect Submission Report</h2>
                     <div class="sub">Requests flagged for missing, incorrect, or outdated documentation, used to identify recurring submission errors.</div>
                 </div>
                 <div class="report-actions">
                     <button class="btn" onclick="exportCSV('p4')">Export CSV</button>
                     <button class="btn btn-primary" onclick="exportPDF('p4')">Export PDF</button>
+                </div>
+            </div>
+
+            <!-- Filter Bar for Report 4 -->
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label>
+                        <input type="radio" name="filterTypeP4" value="month" checked onchange="toggleFilterInputsP4()"> By Month
+                    </label>
+                    <label>
+                        <input type="radio" name="filterTypeP4" value="range" onchange="toggleFilterInputsP4()"> By Date Range
+                    </label>
+                </div>
+                <div class="filter-group" id="monthFilterP4">
+                    <select id="filterMonthP4">
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                        <option value="09">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <input type="number" id="filterYearP4" value="2026">
+                </div>
+                <div class="filter-group" id="rangeFilterP4" style="display: none;">
+                    <label>From: <input type="date" id="startDateP4"></label>
+                    <label>To: <input type="date" id="endDateP4"></label>
+                </div>
+                <div class="filter-group">
+                    <button class="btn btn-primary" onclick="applyFilterP4()">Apply</button>
+                    <button class="btn" onclick="clearFilterP4()">Clear</button>
                 </div>
             </div>
 
@@ -773,7 +810,15 @@
                     </thead>
                     <tbody id="p4-table-body"></tbody>
                 </table>
-                <div class="table-foot"><span id="p4-showing">Showing 0 flagged submissions</span><span>Sorted by date flagged, most recent first</span></div>
+                <div class="table-foot">
+                    <span id="p4-showing">Showing 0 flagged submissions</span>
+                    <div class="pagination-controls">
+                        <button id="p4-prev-btn" onclick="changePageP4(-1)">Prev</button>
+                        <span id="p4-page-info">Page 1 of 1</span>
+                        <button id="p4-next-btn" onclick="changePageP4(1)">Next</button>
+                    </div>
+                    <span>Sorted by date flagged, most recent first</span>
+                </div>
             </div>
         </section>
 

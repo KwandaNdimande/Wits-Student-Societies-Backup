@@ -7,8 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* ... (ALL YOUR EXISTING CSS, plus the .filter-bar styles from the previous message) ... */
-        /* I'll include the full CSS below for completeness */
         :root {
             --navy-900: #0B1F3A;
             --navy-800: #13315C;
@@ -615,7 +613,15 @@
                     </thead>
                     <tbody id="p1-table-body"></tbody>
                 </table>
-                <div class="table-foot"><span id="p1-showing">Showing 0 requests</span><span>Sorted by submission date</span></div>
+                <div class="table-foot">
+                    <span id="p1-showing">Showing 0 requests</span>
+                    <div class="pagination-controls">
+                        <button id="p1-prev-btn" onclick="changePageP1(-1)">Prev</button>
+                        <span id="p1-page-info">Page 1 of 1</span>
+                        <button id="p1-next-btn" onclick="changePageP1(1)">Next</button>
+                    </div>
+                    <span>Sorted by submission date</span>
+                </div>
             </div>
         </section>
 
@@ -655,7 +661,7 @@
             </div>
         </section>
 
-        <!-- ============ REPORT 3: FINANCIAL ALLOCATION (with Filter + Pagination) ============ -->
+        <!-- ============ REPORT 3: FINANCIAL ALLOCATION ============ -->
         <section class="panel" id="p3">
             <div class="report-head">
                 <div>
@@ -668,7 +674,6 @@
                 </div>
             </div>
 
-            <!-- Filter Bar for Report 3 -->
             <div class="filter-bar">
                 <div class="filter-group">
                     <label>

@@ -26,11 +26,13 @@ let allUsers = [];
 
 // --- Report 1 (Budget Request Status) ---
 let filteredRequests = [];
+let p1CurrentPage = 1;
+const p1ItemsPerPage = 5;
 
 // --- Report 3 (Financial Allocation) ---
 let filteredApprovedRequests = [];
 let p3CurrentPage = 1;
-const itemsPerPage = 5;
+const p3ItemsPerPage = 5;
 
 // Status colors for badges
 const statusBadgeMap = {
@@ -67,6 +69,7 @@ function applyDefaultFilter() {
 
     const monthName = document.getElementById('filterMonth').selectedOptions[0].text;
     document.getElementById('p1-title').textContent = `Report for the month of ${monthName} ${year}`;
+    p1CurrentPage = 1; // reset to first page
 }
 
 function applyFilter() {
@@ -105,6 +108,7 @@ function applyFilter() {
         document.getElementById('p1-title').textContent = `Report from ${start} to ${end}`;
     }
 
+    p1CurrentPage = 1;
     renderReport1();
 }
 
@@ -214,13 +218,14 @@ async function loadAllData() {
     }
 }
 
-// ============ REPORT 1: BUDGET REQUEST STATUS ============
+// ============ REPORT 1: BUDGET REQUEST STATUS (with Pagination) ============
 function renderReport1() {
     const total = filteredRequests.length;
     const approved = filteredRequests.filter(r => r.status === 'Approved').length;
     const review = filteredRequests.filter(r => r.status === 'Under Review' || r.status === 'Submitted').length;
     const rejected = filteredRequests.filter(r => r.status === 'Rejected').length;
 
+    // Stats
     document.getElementById('p1-total').textContent = total;
     document.getElementById('p1-approved').textContent = approved;
     document.getElementById('p1-review').textContent = review;
@@ -229,6 +234,7 @@ function renderReport1() {
     document.getElementById('p1-rejection-rate').textContent = total > 0 ? Math.round((rejected/total)*100) + '% rejection rate' : 'No data';
     document.getElementById('p1-avg-pending').textContent = total > 0 ? 'Avg. pending' : 'No data';
 
+    // Chart
     const chartData = [];
     if (approved > 0) chartData.push({ label: 'Approved', count: approved, color: '#1E8E5A' });
     if (review > 0) chartData.push({ label: 'Under Review', count: review, color: '#2E6FBA' });
@@ -240,14 +246,24 @@ function renderReport1() {
         renderChart('p1-chart', chartData);
     }
 
+    // Table with Pagination
     const tbody = document.getElementById('p1-table-body');
     const sorted = [...filteredRequests].sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
-    const display = sorted.slice(0, 10);
-    
-    if (display.length === 0) {
+    const totalItems = sorted.length;
+    const totalPages = Math.ceil(totalItems / p1ItemsPerPage);
+
+    // Clamp current page
+    if (p1CurrentPage > totalPages) p1CurrentPage = totalPages || 1;
+    if (p1CurrentPage < 1) p1CurrentPage = 1;
+
+    const start = (p1CurrentPage - 1) * p1ItemsPerPage;
+    const end = Math.min(start + p1ItemsPerPage, totalItems);
+    const pageItems = sorted.slice(start, end);
+
+    if (pageItems.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:#6c757d;">No requests submitted for this period</td></tr>`;
     } else {
-        tbody.innerHTML = display.map(r => `
+        tbody.innerHTML = pageItems.map(r => `
             <tr>
                 <td class="strong">REQ-${String(r.id).slice(0, 8)}</td>
                 <td>${r.societyName || 'Unknown'}</td>
@@ -258,7 +274,17 @@ function renderReport1() {
             </tr>
         `).join('');
     }
-    document.getElementById('p1-showing').textContent = `Showing ${Math.min(display.length, total)} of ${total} requests`;
+
+    // Update table footer with pagination info
+    document.getElementById('p1-showing').textContent = `Showing ${totalItems > 0 ? start + 1 : 0}-${end} of ${totalItems} requests`;
+    document.getElementById('p1-page-info').textContent = `Page ${p1CurrentPage} of ${totalPages || 1}`;
+    document.getElementById('p1-prev-btn').disabled = (p1CurrentPage <= 1);
+    document.getElementById('p1-next-btn').disabled = (p1CurrentPage >= totalPages);
+}
+
+function changePageP1(delta) {
+    p1CurrentPage += delta;
+    renderReport1();
 }
 
 // ============ REPORT 2: SOCIETY ACTIVITY ============
@@ -367,14 +393,14 @@ function renderReport3() {
     const tbody = document.getElementById('p3-table-body');
     const sorted = [...approved].sort((a, b) => (b.amount || 0) - (a.amount || 0));
     const totalItems = sorted.length;
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const totalPages = Math.ceil(totalItems / p3ItemsPerPage);
 
     // Clamp current page
     if (p3CurrentPage > totalPages) p3CurrentPage = totalPages || 1;
     if (p3CurrentPage < 1) p3CurrentPage = 1;
 
-    const start = (p3CurrentPage - 1) * itemsPerPage;
-    const end = Math.min(start + itemsPerPage, totalItems);
+    const start = (p3CurrentPage - 1) * p3ItemsPerPage;
+    const end = Math.min(start + p3ItemsPerPage, totalItems);
     const pageItems = sorted.slice(start, end);
 
     if (pageItems.length === 0) {

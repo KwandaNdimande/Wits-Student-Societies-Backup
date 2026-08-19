@@ -24,6 +24,9 @@ let allRequests = [];
 let allSocieties = [];
 let allUsers = [];
 
+// Filtered data for Report 1 (Budget Request Status)
+let filteredRequests = [];
+
 // Status colors for badges
 const statusBadgeMap = {
     'Submitted': 'pending',
@@ -32,6 +35,84 @@ const statusBadgeMap = {
     'Rejected': 'rejected',
     'Revision Required': 'pending'
 };
+
+// ============ FILTER FUNCTIONS ============
+
+function toggleFilterInputs() {
+    const filterType = document.querySelector('input[name="filterType"]:checked').value;
+    document.getElementById('monthFilter').style.display = filterType === 'month' ? 'flex' : 'none';
+    document.getElementById('rangeFilter').style.display = filterType === 'range' ? 'flex' : 'none';
+}
+
+function applyDefaultFilter() {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+
+    // Set the dropdowns to current month/year
+    document.getElementById('filterMonth').value = month;
+    document.getElementById('filterYear').value = year;
+
+    // Ensure "By Month" is selected
+    document.querySelector('input[name="filterType"][value="month"]').checked = true;
+    toggleFilterInputs();
+
+    // Filter allRequests by current month
+    filteredRequests = allRequests.filter(item => {
+        if (!item.submittedAt) return false;
+        const date = new Date(item.submittedAt.seconds * 1000);
+        return date.getMonth() === (parseInt(month) - 1) && date.getFullYear() === parseInt(year);
+    });
+
+    const monthName = document.getElementById('filterMonth').selectedOptions[0].text;
+    document.getElementById('p1-title').textContent = `Report for the month of ${monthName} ${year}`;
+}
+
+function applyFilter() {
+    const filterType = document.querySelector('input[name="filterType"]:checked').value;
+
+    if (filterType === 'month') {
+        const month = document.getElementById('filterMonth').value;
+        const year = document.getElementById('filterYear').value;
+
+        filteredRequests = allRequests.filter(item => {
+            if (!item.submittedAt) return false;
+            const date = new Date(item.submittedAt.seconds * 1000);
+            return date.getMonth() === (parseInt(month) - 1) && date.getFullYear() === parseInt(year);
+        });
+
+        const monthName = document.getElementById('filterMonth').selectedOptions[0].text;
+        document.getElementById('p1-title').textContent = `Report for the month of ${monthName} ${year}`;
+    } else {
+        const start = document.getElementById('startDate').value;
+        const end = document.getElementById('endDate').value;
+
+        if (!start || !end) {
+            showToast('Please select both start and end dates.');
+            return;
+        }
+
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+
+        filteredRequests = allRequests.filter(item => {
+            if (!item.submittedAt) return false;
+            const date = new Date(item.submittedAt.seconds * 1000);
+            return date >= startDate && date <= endDate;
+        });
+
+        document.getElementById('p1-title').textContent = `Report from ${start} to ${end}`;
+    }
+
+    renderReport1();
+}
+
+function clearFilter() {
+    // Reset to current month (Option B)
+    applyDefaultFilter();
+    renderReport1();
+    showToast('Filter cleared — showing current month.');
+}
 
 // ============ LOAD DATA ============
 async function loadAllData() {
@@ -60,6 +141,9 @@ async function loadAllData() {
         // Update last updated time
         document.getElementById('last-updated').textContent = 'Data as of ' + new Date().toLocaleString();
 
+        // Apply default filter (current month) for Report 1
+        applyDefaultFilter();
+
         // Render all reports
         renderReport1();
         renderReport2();
@@ -71,12 +155,12 @@ async function loadAllData() {
     }
 }
 
-// ============ REPORT 1: BUDGET REQUEST STATUS ============
+// ============ REPORT 1: BUDGET REQUEST STATUS (FILTERED) ============
 function renderReport1() {
-    const total = allRequests.length;
-    const approved = allRequests.filter(r => r.status === 'Approved').length;
-    const review = allRequests.filter(r => r.status === 'Under Review' || r.status === 'Submitted').length;
-    const rejected = allRequests.filter(r => r.status === 'Rejected').length;
+    const total = filteredRequests.length;
+    const approved = filteredRequests.filter(r => r.status === 'Approved').length;
+    const review = filteredRequests.filter(r => r.status === 'Under Review' || r.status === 'Submitted').length;
+    const rejected = filteredRequests.filter(r => r.status === 'Rejected').length;
 
     // Stats
     document.getElementById('p1-total').textContent = total;
@@ -94,18 +178,18 @@ function renderReport1() {
     if (rejected > 0) chartData.push({ label: 'Rejected', count: rejected, color: '#C0392B' });
     
     if (chartData.length === 0) {
-        document.getElementById('p1-chart').innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No data available</p>';
+        document.getElementById('p1-chart').innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No data available for this period</p>';
     } else {
         renderChart('p1-chart', chartData);
     }
 
     // Table
     const tbody = document.getElementById('p1-table-body');
-    const sorted = [...allRequests].sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
+    const sorted = [...filteredRequests].sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
     const display = sorted.slice(0, 10);
     
     if (display.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:#6c757d;">No requests submitted yet</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:#6c757d;">No requests submitted for this period</td></tr>`;
     } else {
         tbody.innerHTML = display.map(r => `
             <tr>
@@ -121,7 +205,7 @@ function renderReport1() {
     document.getElementById('p1-showing').textContent = `Showing ${Math.min(display.length, total)} of ${total} requests`;
 }
 
-// ============ REPORT 2: SOCIETY ACTIVITY ============
+// ============ REPORT 2: SOCIETY ACTIVITY (UNCHANGED) ============
 function renderReport2() {
     const total = allSocieties.length;
     const active = allSocieties.filter(s => {
@@ -196,7 +280,7 @@ function renderReport2() {
     document.getElementById('p2-showing').textContent = `Showing ${Math.min(display.length, sorted.length)} of ${sorted.length} societies`;
 }
 
-// ============ REPORT 3: FINANCIAL ALLOCATION ============
+// ============ REPORT 3: FINANCIAL ALLOCATION (UNCHANGED) ============
 function renderReport3() {
     const approved = allRequests.filter(r => r.status === 'Approved');
     const totalApproved = approved.reduce((sum, r) => sum + (r.amount || 0), 0);
@@ -246,7 +330,7 @@ function renderReport3() {
     document.getElementById('p3-showing').textContent = `Showing ${Math.min(display.length, sorted.length)} of ${sorted.length} approved requests`;
 }
 
-// ============ REPORT 4: INCORRECT SUBMISSION ============
+// ============ REPORT 4: INCORRECT SUBMISSION (UNCHANGED) ============
 function renderReport4() {
     // Only show requests with status 'Revision Required' as flagged
     const flagged = allRequests.filter(r => r.status === 'Revision Required');
@@ -309,7 +393,7 @@ function renderChart(containerId, data) {
     `).join('');
 }
 
-// ============ EXPORT FUNCTIONS ============
+// ============ EXPORT FUNCTIONS (UNCHANGED — they read the DOM) ============
 
 // Export CSV
 function exportCSV(panelId) {

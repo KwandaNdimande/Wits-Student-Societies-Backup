@@ -375,7 +375,8 @@
             color: var(--text-500);
             border-top: 1px solid var(--border);
             background: #FAFBFD;
-        }.wits-badge {
+        }
+        .wits-badge {
             text-align: center;
             margin-top: 28px;
             font-size: 11px;
@@ -384,6 +385,70 @@
             text-transform: uppercase;
             font-weight: 500;
         }
+
+        /* ===== NEW FILTER BAR STYLES ===== */
+        .filter-bar {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+        .filter-bar .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+        }
+        .filter-bar label {
+            font-size: 13px;
+            color: var(--text-600);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .filter-bar input[type="radio"] {
+            accent-color: var(--navy-700);
+            width: 16px;
+            height: 16px;
+        }
+        .filter-bar select,
+        .filter-bar input[type="number"],
+        .filter-bar input[type="date"] {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+            color: var(--text-900);
+            background: #fff;
+            font-family: 'Inter', sans-serif;
+        }
+        .filter-bar input[type="number"] {
+            width: 80px;
+        }
+        .filter-bar input[type="date"] {
+            width: 150px;
+        }
+        .filter-bar .btn {
+            padding: 6px 16px;
+            font-size: 13px;
+        }
+        .filter-bar .btn-primary {
+            background: var(--navy-700);
+            border-color: var(--navy-700);
+            color: #fff;
+        }
+        .filter-bar .btn-primary:hover {
+            background: var(--navy-800);
+            border-color: var(--navy-800);
+        }
+
         @media (max-width: 768px) {
             .stats {
                 grid-template-columns: repeat(2, 1fr);
@@ -392,6 +457,16 @@
                 width: 120px;
             }
             body { padding: 20px 16px; }
+            .filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .filter-bar .filter-group {
+                flex-wrap: wrap;
+            }
+            .filter-bar input[type="date"] {
+                width: 100%;
+            }
         }
         @media (max-width: 480px) {
             .stats {
@@ -415,6 +490,9 @@
                 text-align: center;
                 justify-content: center;
             }
+            .filter-bar select {
+                flex: 1;
+            }
         }
     </style>
 </head>
@@ -437,12 +515,52 @@
         <section class="panel active" id="p1">
             <div class="report-head">
                 <div>
-                    <h2>Budget Request Status Report</h2>
+                    <h2 id="p1-title">Budget Request Status Report</h2>
                     <div class="sub">Live status of every budget request submitted across all registered societies, covering the current semester's Event and Regalia requests.</div>
                 </div>
                 <div class="report-actions">
                     <button class="btn" onclick="exportCSV('p1')">Export CSV</button>
                     <button class="btn btn-primary" onclick="exportPDF('p1')">Export PDF</button>
+                </div>
+            </div>
+
+            <!-- ===== NEW FILTER BAR ===== -->
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label>
+                        <input type="radio" name="filterType" value="month" checked onchange="toggleFilterInputs()"> By Month
+                    </label>
+                    <label>
+                        <input type="radio" name="filterType" value="range" onchange="toggleFilterInputs()"> By Date Range
+                    </label>
+                </div>
+
+                <div class="filter-group" id="monthFilter">
+                    <select id="filterMonth">
+                        <option value="01">January</option>
+                        <option value="02">February</option>
+                        <option value="03">March</option>
+                        <option value="04">April</option>
+                        <option value="05">May</option>
+                        <option value="06">June</option>
+                        <option value="07">July</option>
+                        <option value="08">August</option>
+                        <option value="09">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <input type="number" id="filterYear" value="2026">
+                </div>
+
+                <div class="filter-group" id="rangeFilter" style="display: none;">
+                    <label>From: <input type="date" id="startDate"></label>
+                    <label>To: <input type="date" id="endDate"></label>
+                </div>
+
+                <div class="filter-group">
+                    <button class="btn btn-primary" onclick="applyFilter()">Apply</button>
+                    <button class="btn" onclick="clearFilter()">Clear</button>
                 </div>
             </div>
 
@@ -587,6 +705,6 @@
 
     <!-- Custom JS -->
     <script src="/js/officer-reports.js"></script>
-<script src="/js/shared-nav.js"></script>
+    <script src="/js/shared-nav.js"></script>
 </body>
 </html>

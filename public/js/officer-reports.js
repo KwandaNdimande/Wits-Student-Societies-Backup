@@ -72,7 +72,8 @@ function computeFilteredRequests() {
         });
 
         const monthName = document.getElementById('filterMonth').selectedOptions[0].text;
-        titleSuffix = ` for the month of ${monthName} ${year}`;
+        // --- SHORT TITLE FORMAT ---
+        titleSuffix = ` — ${monthName} ${year}`;
     } else {
         const start = document.getElementById('startDate').value;
         const end = document.getElementById('endDate').value;
@@ -91,7 +92,7 @@ function computeFilteredRequests() {
             return date >= startDate && date <= endDate;
         });
 
-        titleSuffix = ` from ${start} to ${end}`;
+        titleSuffix = ` — ${start} to ${end}`;
     }
 
     const status = document.getElementById('p1-status-filter').value;
@@ -354,7 +355,7 @@ async function loadAllData() {
         // --- Report 1: Default current month ---
         applyDefaultFilter();
 
-        // --- Report 3: Default current month (now matches Report 1 & 4) ---
+        // --- Report 3: Default current month ---
         applyDefaultFilterP3();
 
         // --- Report 4: Default current month ---

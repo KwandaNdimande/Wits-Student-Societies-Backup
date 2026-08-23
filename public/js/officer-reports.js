@@ -180,6 +180,28 @@ function toggleFilterInputsP3() {
     document.getElementById('rangeFilterP3').style.display = filterType === 'range' ? 'flex' : 'none';
 }
 
+function applyDefaultFilterP3() {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+
+    document.getElementById('filterMonthP3').value = month;
+    document.getElementById('filterYearP3').value = year;
+    document.querySelector('input[name="filterTypeP3"][value="month"]').checked = true;
+    toggleFilterInputsP3();
+
+    filteredApprovedRequests = allRequests.filter(item => {
+        if (item.status !== 'Approved') return false;
+        if (!item.submittedAt) return false;
+        const date = new Date(item.submittedAt.seconds * 1000);
+        return date.getMonth() === (parseInt(month) - 1) && date.getFullYear() === parseInt(year);
+    });
+
+    const monthName = document.getElementById('filterMonthP3').selectedOptions[0].text;
+    document.getElementById('p3-title').textContent = `Financial Allocation Report — ${monthName} ${year}`;
+    p3CurrentPage = 1;
+}
+
 function applyFilterP3() {
     const filterType = document.querySelector('input[name="filterTypeP3"]:checked').value;
 
@@ -223,11 +245,9 @@ function applyFilterP3() {
 }
 
 function clearFilterP3() {
-    filteredApprovedRequests = allRequests.filter(r => r.status === 'Approved');
-    document.getElementById('p3-title').textContent = 'Financial Allocation Report (All Time)';
-    p3CurrentPage = 1;
+    applyDefaultFilterP3();
     renderReport3();
-    showToast('Filter cleared — showing all approved requests.');
+    showToast('Filter cleared — showing current month.');
 }
 
 // ============ FILTER FUNCTIONS (Report 4) ============
@@ -334,9 +354,8 @@ async function loadAllData() {
         // --- Report 1: Default current month ---
         applyDefaultFilter();
 
-        // --- Report 3: Default ALL approved requests ---
-        filteredApprovedRequests = allRequests.filter(r => r.status === 'Approved');
-        document.getElementById('p3-title').textContent = 'Financial Allocation Report (All Time)';
+        // --- Report 3: Default current month (now matches Report 1 & 4) ---
+        applyDefaultFilterP3();
 
         // --- Report 4: Default current month ---
         applyDefaultFilterP4();

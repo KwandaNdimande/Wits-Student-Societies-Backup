@@ -56,42 +56,25 @@ function toggleFilterInputs() {
     document.getElementById('rangeFilter').style.display = filterType === 'range' ? 'flex' : 'none';
 }
 
-function applyDefaultFilter() {
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-
-    document.getElementById('filterMonth').value = month;
-    document.getElementById('filterYear').value = year;
-    document.querySelector('input[name="filterType"][value="month"]').checked = true;
-    toggleFilterInputs();
-
-    filteredRequests = allRequests.filter(item => {
-        if (!item.submittedAt) return false;
-        const date = new Date(item.submittedAt.seconds * 1000);
-        return date.getMonth() === (parseInt(month) - 1) && date.getFullYear() === parseInt(year);
-    });
-
-    const monthName = document.getElementById('filterMonth').selectedOptions[0].text;
-    document.getElementById('p1-title').textContent = `Report for the month of ${monthName} ${year}`;
-    p1CurrentPage = 1;
-}
-
-function applyFilter() {
+// New unified filter function for Report 1
+function computeFilteredRequests() {
     const filterType = document.querySelector('input[name="filterType"]:checked').value;
+    let dateFiltered = [];
+    let titleSuffix = '';
 
+    // 1. Date filter
     if (filterType === 'month') {
         const month = document.getElementById('filterMonth').value;
         const year = document.getElementById('filterYear').value;
 
-        filteredRequests = allRequests.filter(item => {
+        dateFiltered = allRequests.filter(item => {
             if (!item.submittedAt) return false;
             const date = new Date(item.submittedAt.seconds * 1000);
             return date.getMonth() === (parseInt(month) - 1) && date.getFullYear() === parseInt(year);
         });
 
         const monthName = document.getElementById('filterMonth').selectedOptions[0].text;
-        document.getElementById('p1-title').textContent = `Report for the month of ${monthName} ${year}`;
+        titleSuffix = ` for the month of ${monthName} ${year}`;
     } else {
         const start = document.getElementById('startDate').value;
         const end = document.getElementById('endDate').value;
@@ -104,23 +87,86 @@ function applyFilter() {
         const startDate = new Date(start);
         const endDate = new Date(end);
 
-        filteredRequests = allRequests.filter(item => {
+        dateFiltered = allRequests.filter(item => {
             if (!item.submittedAt) return false;
             const date = new Date(item.submittedAt.seconds * 1000);
             return date >= startDate && date <= endDate;
         });
 
-        document.getElementById('p1-title').textContent = `Report from ${start} to ${end}`;
+        titleSuffix = ` from ${start} to ${end}`;
     }
+
+    // 2. Status filter
+    const status = document.getElementById('p1-status-filter').value;
+    // 3. Society filter
+    const societyQuery = document.getElementById('p1-society-search').value.trim().toLowerCase();
+
+    let filtered = dateFiltered;
+    if (status !== 'All') {
+        filtered = filtered.filter(r => r.status === status);
+    }
+    if (societyQuery !== '') {
+        filtered = filtered.filter(r => (r.societyName || '').toLowerCase().includes(societyQuery));
+    }
+
+    filteredRequests = filtered;
+
+    // Update title
+    let title = 'Budget Request Status Report';
+    if (titleSuffix) {
+        title += titleSuffix;
+    }
+    if (status !== 'All') {
+        title += ` (Status: ${status})`;
+    }
+    if (societyQuery !== '') {
+        // display the original input value (not lowercased)
+        const originalQuery = document.getElementById('p1-society-search').value.trim();
+        title += ` (Society: ${originalQuery})`;
+    }
+    document.getElementById('p1-title').textContent = title;
 
     p1CurrentPage = 1;
     renderReport1();
 }
 
+function applyDefaultFilter() {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+
+    document.getElementById('filterMonth').value = month;
+    document.getElementById('filterYear').value = year;
+    document.querySelector('input[name="filterType"][value="month"]').checked = true;
+    toggleFilterInputs();
+
+    // Reset new filters to default
+    document.getElementById('p1-status-filter').value = 'All';
+    document.getElementById('p1-society-search').value = '';
+
+    computeFilteredRequests();
+}
+
+function applyFilter() {
+    computeFilteredRequests();
+}
+
 function clearFilter() {
-    applyDefaultFilter();
-    renderReport1();
-    showToast('Filter cleared — showing current month.');
+    // Reset date to current month
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    document.getElementById('filterMonth').value = month;
+    document.getElementById('filterYear').value = year;
+    document.querySelector('input[name="filterType"][value="month"]').checked = true;
+    toggleFilterInputs();
+
+    // Reset new filters
+    document.getElementById('p1-status-filter').value = 'All';
+    document.getElementById('p1-society-search').value = '';
+
+    computeFilteredRequests();
+    showToast('Filter cleared — showing current month with all statuses.');
 }
 
 // ============ FILTER FUNCTIONS (Report 3) ============
@@ -317,6 +363,18 @@ function renderReport1() {
     document.getElementById('p1-approval-rate').textContent = total > 0 ? Math.round((approved/total)*100) + '% approval rate' : 'No data';
     document.getElementById('p1-rejection-rate').textContent = total > 0 ? Math.round((rejected/total)*100) + '% rejection rate' : 'No data';
     document.getElementById('p1-avg-pending').textContent = total > 0 ? 'Avg. pending' : 'No data';
+
+    // Show/hide stats and chart based on status filter
+    const status = document.getElementById('p1-status-filter').value;
+    const statsDiv = document.getElementById('p1-stats');
+    const chartCard = document.getElementById('p1-chart-card');
+    if (status === 'All') {
+        statsDiv.style.display = '';
+        chartCard.style.display = '';
+    } else {
+        statsDiv.style.display = 'none';
+        chartCard.style.display = 'none';
+    }
 
     const chartData = [];
     if (approved > 0) chartData.push({ label: 'Approved', count: approved, color: '#1E8E5A' });

@@ -446,7 +446,8 @@
         }
         .filter-bar select,
         .filter-bar input[type="number"],
-        .filter-bar input[type="date"] {
+        .filter-bar input[type="date"],
+        .filter-bar input[type="text"] {
             padding: 6px 10px;
             border-radius: 6px;
             border: 1px solid var(--border);
@@ -460,6 +461,9 @@
         }
         .filter-bar input[type="date"] {
             width: 150px;
+        }
+        .filter-bar input[type="text"] {
+            width: 180px;
         }
         .filter-bar .btn {
             padding: 6px 16px;
@@ -490,7 +494,8 @@
             .filter-bar .filter-group {
                 flex-wrap: wrap;
             }
-            .filter-bar input[type="date"] {
+            .filter-bar input[type="date"],
+            .filter-bar input[type="text"] {
                 width: 100%;
             }
         }
@@ -588,6 +593,24 @@
                     <label>From: <input type="date" id="startDate"></label>
                     <label>To: <input type="date" id="endDate"></label>
                 </div>
+
+                <!-- NEW: Status & Society filters -->
+                <div class="filter-group">
+                    <label for="p1-status-filter">Status:</label>
+                    <select id="p1-status-filter">
+                        <option value="All">All</option>
+                        <option value="Submitted">Submitted</option>
+                        <option value="Under Review">Under Review</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                        <option value="Revision Required">Revision Required</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="p1-society-search">Society:</label>
+                    <input type="text" id="p1-society-search" placeholder="Search society name" />
+                </div>
+
                 <div class="filter-group">
                     <button class="btn btn-primary" onclick="applyFilter()">Apply</button>
                     <button class="btn" onclick="clearFilter()">Clear</button>
@@ -601,7 +624,7 @@
                 <div class="stat"><div class="label">Rejected</div><div class="value" id="p1-rejected">-</div><div class="delta bad" id="p1-rejection-rate">-</div></div>
             </div>
 
-            <div class="chart-card">
+            <div class="chart-card" id="p1-chart-card">
                 <h3>Requests by status</h3>
                 <div id="p1-chart"></div>
             </div>

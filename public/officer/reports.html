@@ -594,7 +594,7 @@
                     <label>To: <input type="date" id="endDate"></label>
                 </div>
 
-                <!-- NEW: Status & Society filters -->
+                <!-- Status & Society filters for Report 1 -->
                 <div class="filter-group">
                     <label for="p1-status-filter">Status:</label>
                     <select id="p1-status-filter">
@@ -653,7 +653,7 @@
             <div class="report-head">
                 <div>
                     <h2>Society Activity Report</h2>
-                    <div class="sub">Request volume and engagement per society this semester, used to identify inactive societies and anticipate demand.</div>
+                    <div class="sub">Request volume and engagement per society, used to identify inactive societies and anticipate demand.</div>
                 </div>
                 <div class="report-actions">
                     <button class="btn" onclick="exportCSV('p2')">Export CSV</button>
@@ -661,14 +661,30 @@
                 </div>
             </div>
 
-            <div class="stats" id="p2-stats">
-                <div class="stat"><div class="label">Registered Societies</div><div class="value" id="p2-total">-</div><div class="delta">As of today</div></div>
-                <div class="stat"><div class="label">Active This Semester</div><div class="value" id="p2-active">-</div><div class="delta good" id="p2-engagement">-</div></div>
-                <div class="stat"><div class="label">Dormant Societies</div><div class="value" id="p2-dormant">-</div><div class="delta bad" id="p2-dormant-rate">-</div></div>
-                <div class="stat"><div class="label">Event : Regalia Split</div><div class="value" id="p2-split">-</div><div class="delta">Requests this semester</div></div>
+            <!-- NEW Filter Bar for Report 2 -->
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label for="p2-status-filter">Filter by status:</label>
+                    <select id="p2-status-filter">
+                        <option value="All">All</option>
+                        <option value="Active">Active</option>
+                        <option value="Dormant">Dormant</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <button class="btn btn-primary" onclick="applyFilterP2()">Apply</button>
+                    <button class="btn" onclick="clearFilterP2()">Clear</button>
+                </div>
             </div>
 
-            <div class="chart-card">
+            <div class="stats" id="p2-stats">
+                <div class="stat"><div class="label" id="p2-label-1">Registered Societies</div><div class="value" id="p2-total">-</div><div class="delta" id="p2-delta-1">As of today</div></div>
+                <div class="stat"><div class="label" id="p2-label-2">Active</div><div class="value" id="p2-active">-</div><div class="delta" id="p2-delta-2">Have requests</div></div>
+                <div class="stat"><div class="label" id="p2-label-3">Dormant</div><div class="value" id="p2-dormant">-</div><div class="delta" id="p2-delta-3">No requests</div></div>
+                <div class="stat"><div class="label" id="p2-label-4">Event : Regalia Split</div><div class="value" id="p2-split">-</div><div class="delta" id="p2-delta-4">Total requests</div></div>
+            </div>
+
+            <div class="chart-card" id="p2-chart-card">
                 <h3>Most active societies (requests submitted)</h3>
                 <div id="p2-chart"></div>
             </div>

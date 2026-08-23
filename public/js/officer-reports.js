@@ -56,13 +56,11 @@ function toggleFilterInputs() {
     document.getElementById('rangeFilter').style.display = filterType === 'range' ? 'flex' : 'none';
 }
 
-// New unified filter function for Report 1
 function computeFilteredRequests() {
     const filterType = document.querySelector('input[name="filterType"]:checked').value;
     let dateFiltered = [];
     let titleSuffix = '';
 
-    // 1. Date filter
     if (filterType === 'month') {
         const month = document.getElementById('filterMonth').value;
         const year = document.getElementById('filterYear').value;
@@ -96,9 +94,7 @@ function computeFilteredRequests() {
         titleSuffix = ` from ${start} to ${end}`;
     }
 
-    // 2. Status filter
     const status = document.getElementById('p1-status-filter').value;
-    // 3. Society filter
     const societyQuery = document.getElementById('p1-society-search').value.trim().toLowerCase();
 
     let filtered = dateFiltered;
@@ -111,7 +107,6 @@ function computeFilteredRequests() {
 
     filteredRequests = filtered;
 
-    // Update title
     let title = 'Budget Request Status Report';
     if (titleSuffix) {
         title += titleSuffix;
@@ -120,7 +115,6 @@ function computeFilteredRequests() {
         title += ` (Status: ${status})`;
     }
     if (societyQuery !== '') {
-        // display the original input value (not lowercased)
         const originalQuery = document.getElementById('p1-society-search').value.trim();
         title += ` (Society: ${originalQuery})`;
     }
@@ -140,7 +134,6 @@ function applyDefaultFilter() {
     document.querySelector('input[name="filterType"][value="month"]').checked = true;
     toggleFilterInputs();
 
-    // Reset new filters to default
     document.getElementById('p1-status-filter').value = 'All';
     document.getElementById('p1-society-search').value = '';
 
@@ -152,7 +145,6 @@ function applyFilter() {
 }
 
 function clearFilter() {
-    // Reset date to current month
     const now = new Date();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const year = now.getFullYear();
@@ -161,12 +153,23 @@ function clearFilter() {
     document.querySelector('input[name="filterType"][value="month"]').checked = true;
     toggleFilterInputs();
 
-    // Reset new filters
     document.getElementById('p1-status-filter').value = 'All';
     document.getElementById('p1-society-search').value = '';
 
     computeFilteredRequests();
     showToast('Filter cleared — showing current month with all statuses.');
+}
+
+// ============ FILTER FUNCTIONS (Report 2) ============
+
+function applyFilterP2() {
+    renderReport2();
+}
+
+function clearFilterP2() {
+    document.getElementById('p2-status-filter').value = 'All';
+    renderReport2();
+    showToast('Filter cleared — showing all societies.');
 }
 
 // ============ FILTER FUNCTIONS (Report 3) ============
@@ -364,7 +367,6 @@ function renderReport1() {
     document.getElementById('p1-rejection-rate').textContent = total > 0 ? Math.round((rejected/total)*100) + '% rejection rate' : 'No data';
     document.getElementById('p1-avg-pending').textContent = total > 0 ? 'Avg. pending' : 'No data';
 
-    // Show/hide stats and chart based on status filter
     const status = document.getElementById('p1-status-filter').value;
     const statsDiv = document.getElementById('p1-stats');
     const chartCard = document.getElementById('p1-chart-card');
@@ -425,63 +427,136 @@ function changePageP1(delta) {
     renderReport1();
 }
 
-// ============ REPORT 2: SOCIETY ACTIVITY ============
+// ============ REPORT 2: SOCIETY ACTIVITY (with Active/Dormant Filter) ============
 function renderReport2() {
-    const total = allSocieties.length;
-    const active = allSocieties.filter(s => {
-        const hasRequests = allRequests.some(r => r.societyName === s.name);
-        return hasRequests;
-    });
-    const dormant = allSocieties.filter(s => {
-        const hasRequests = allRequests.some(r => r.societyName === s.name);
-        return !hasRequests;
-    });
+    const statusFilter = document.getElementById('p2-status-filter').value;
 
-    const eventCount = allRequests.filter(r => r.type === 'Event').length;
-    const regaliaCount = allRequests.filter(r => r.type === 'Regalia').length;
-
-    document.getElementById('p2-total').textContent = total || '0';
-    document.getElementById('p2-active').textContent = active.length || '0';
-    document.getElementById('p2-dormant').textContent = dormant.length || '0';
-    document.getElementById('p2-engagement').textContent = total > 0 ? Math.round((active.length/total)*100) + '% engagement' : 'No societies';
-    document.getElementById('p2-dormant-rate').textContent = total > 0 ? Math.round((dormant.length/total)*100) + '% dormant' : 'No societies';
-    document.getElementById('p2-split').textContent = `${eventCount || 0} : ${regaliaCount || 0}`;
-
-    const societyActivity = allSocieties.map(s => {
-        const requests = allRequests.filter(r => r.societyName === s.name);
-        return { name: s.name, count: requests.length };
-    }).sort((a, b) => b.count - a.count).slice(0, 5);
-
-    if (societyActivity.length === 0 || societyActivity.every(s => s.count === 0)) {
-        document.getElementById('p2-chart').innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No activity data available</p>';
-    } else {
-        const chartData = societyActivity.filter(s => s.count > 0).map(s => ({
-            label: s.name,
-            count: s.count,
-            color: '#2E6FBA'
-        }));
-        if (chartData.length === 0) {
-            document.getElementById('p2-chart').innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No active societies</p>';
-        } else {
-            renderChart('p2-chart', chartData);
-        }
-    }
-
-    const tbody = document.getElementById('p2-table-body');
-    const sorted = allSocieties.map(s => {
+    // Build enriched society data with request counts
+    let societyData = allSocieties.map(s => {
         const requests = allRequests.filter(r => r.societyName === s.name);
         const eventReqs = requests.filter(r => r.type === 'Event').length;
         const regaliaReqs = requests.filter(r => r.type === 'Regalia').length;
         const lastActive = requests.length > 0 ? 
             new Date(Math.max(...requests.map(r => r.submittedAt ? r.submittedAt.seconds : 0)) * 1000).toLocaleDateString() :
             'Never';
-        return { ...s, requests, eventReqs, regaliaReqs, totalReqs: requests.length, lastActive };
-    }).sort((a, b) => b.totalReqs - a.totalReqs);
+        return {
+            ...s,
+            requests,
+            eventReqs,
+            regaliaReqs,
+            totalReqs: requests.length,
+            lastActive
+        };
+    });
 
-    const display = sorted.slice(0, 8);
-    
-    if (display.length === 0 || display.every(s => s.totalReqs === 0)) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:#6c757d;">No societies registered yet</td></tr>`;
+    // Apply filter
+    let filteredData = societyData;
+    if (statusFilter === 'Active') {
+        filteredData = filteredData.filter(s => s.totalReqs > 0);
+    } else if (statusFilter === 'Dormant') {
+        filteredData = filteredData.filter(s => s.totalReqs === 0);
+    }
+
+    // Calculate stats based on filtered data
+    const totalSocieties = filteredData.length;
+    const totalRequests = filteredData.reduce((sum, s) => sum + s.totalReqs, 0);
+    const eventTotal = filteredData.reduce((sum, s) => sum + s.eventReqs, 0);
+    const regaliaTotal = filteredData.reduce((sum, s) => sum + s.regaliaReqs, 0);
+    const avgRequests = totalSocieties > 0 ? (totalRequests / totalSocieties) : 0;
+
+    // Active count for the original "All" view context (how many have requests)
+    const activeCount = societyData.filter(s => s.totalReqs > 0).length;
+    const dormantCount = societyData.filter(s => s.totalReqs === 0).length;
+
+    // Update stats cards dynamically based on filter
+    const label1 = document.getElementById('p2-label-1');
+    const value1 = document.getElementById('p2-total');
+    const delta1 = document.getElementById('p2-delta-1');
+
+    const label2 = document.getElementById('p2-label-2');
+    const value2 = document.getElementById('p2-active');
+    const delta2 = document.getElementById('p2-delta-2');
+
+    const label3 = document.getElementById('p2-label-3');
+    const value3 = document.getElementById('p2-dormant');
+    const delta3 = document.getElementById('p2-delta-3');
+
+    const label4 = document.getElementById('p2-label-4');
+    const value4 = document.getElementById('p2-split');
+    const delta4 = document.getElementById('p2-delta-4');
+
+    if (statusFilter === 'All') {
+        label1.textContent = 'Registered Societies';
+        value1.textContent = totalSocieties;
+        delta1.textContent = 'As of today';
+
+        label2.textContent = 'Active';
+        value2.textContent = activeCount;
+        delta2.textContent = 'Have requests';
+
+        label3.textContent = 'Dormant';
+        value3.textContent = dormantCount;
+        delta3.textContent = 'No requests';
+
+        label4.textContent = 'Event : Regalia Split';
+        value4.textContent = `${eventTotal} : ${regaliaTotal}`;
+        delta4.textContent = 'Total requests';
+    } else if (statusFilter === 'Active') {
+        label1.textContent = 'Active Societies';
+        value1.textContent = totalSocieties;
+        delta1.textContent = 'Engaged this period';
+
+        label2.textContent = 'Total Requests';
+        value2.textContent = totalRequests;
+        delta2.textContent = 'From active societies';
+
+        label3.textContent = 'Avg Requests / Society';
+        value3.textContent = avgRequests.toFixed(1);
+        delta3.textContent = 'Per society';
+
+        label4.textContent = 'Event : Regalia Split';
+        value4.textContent = `${eventTotal} : ${regaliaTotal}`;
+        delta4.textContent = 'Active only';
+    } else { // Dormant
+        label1.textContent = 'Dormant Societies';
+        value1.textContent = totalSocieties;
+        delta1.textContent = 'Inactive this period';
+
+        label2.textContent = 'Total Requests';
+        value2.textContent = '0';
+        delta2.textContent = 'No activity';
+
+        label3.textContent = 'Avg Requests / Society';
+        value3.textContent = '0.0';
+        delta3.textContent = 'N/A';
+
+        label4.textContent = 'Event : Regalia Split';
+        value4.textContent = '0 : 0';
+        delta4.textContent = 'No requests';
+    }
+
+    // --- Chart ---
+    const chartContainer = document.getElementById('p2-chart');
+    const sortedForChart = [...filteredData].sort((a, b) => b.totalReqs - a.totalReqs).slice(0, 5);
+
+    if (statusFilter === 'Dormant' || sortedForChart.every(s => s.totalReqs === 0)) {
+        chartContainer.innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No active societies to display</p>';
+    } else {
+        const chartData = sortedForChart.filter(s => s.totalReqs > 0).map(s => ({
+            label: s.name,
+            count: s.totalReqs,
+            color: '#2E6FBA'
+        }));
+        renderChart('p2-chart', chartData);
+    }
+
+    // --- Table ---
+    const tbody = document.getElementById('p2-table-body');
+    const sortedForTable = [...filteredData].sort((a, b) => b.totalReqs - a.totalReqs);
+    const display = sortedForTable.slice(0, 8);
+
+    if (display.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:#6c757d;">No societies match this filter</td></tr>`;
     } else {
         tbody.innerHTML = display.map(s => `
             <tr>
@@ -495,7 +570,8 @@ function renderReport2() {
             </tr>
         `).join('');
     }
-    document.getElementById('p2-showing').textContent = `Showing ${Math.min(display.length, sorted.length)} of ${sorted.length} societies`;
+
+    document.getElementById('p2-showing').textContent = `Showing ${display.length} of ${filteredData.length} societies`;
 }
 
 // ============ REPORT 3: FINANCIAL ALLOCATION ============
@@ -568,7 +644,6 @@ function renderReport4() {
     const flagged = filteredFlaggedRequests;
     const total = flagged.length;
 
-    // Stats
     document.getElementById('p4-total').textContent = total;
     document.getElementById('p4-top-issue').textContent = total > 0 ? 'Revision Required' : 'None';
     document.getElementById('p4-top-count').textContent = total > 0 ? total + ' requests' : 'No flagged requests';
@@ -578,7 +653,6 @@ function renderReport4() {
     document.getElementById('p4-resolved-rate').textContent = '0% resolved';
     document.getElementById('p4-avg-open').textContent = total > 0 ? 'Awaiting review' : 'No data';
 
-    // Chart
     if (total === 0) {
         document.getElementById('p4-chart').innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No flagged submissions for this period</p>';
     } else {
@@ -588,7 +662,6 @@ function renderReport4() {
         renderChart('p4-chart', chartData);
     }
 
-    // Table with Pagination
     const tbody = document.getElementById('p4-table-body');
     const sorted = [...flagged].sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
     const totalItems = sorted.length;
@@ -616,7 +689,6 @@ function renderReport4() {
         `).join('');
     }
 
-    // Update table footer with pagination info
     document.getElementById('p4-showing').textContent = `Showing ${totalItems > 0 ? start + 1 : 0}-${end} of ${totalItems} flagged submissions`;
     document.getElementById('p4-page-info').textContent = `Page ${p4CurrentPage} of ${totalPages || 1}`;
     document.getElementById('p4-prev-btn').disabled = (p4CurrentPage <= 1);

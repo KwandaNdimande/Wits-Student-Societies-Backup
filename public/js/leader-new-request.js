@@ -2,7 +2,6 @@
 const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
 
-// Create a global supabase client
 window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
 // Firebase configuration
@@ -20,12 +19,10 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Get current user
 let currentUser = null;
 let userRole = localStorage.getItem('userRole');
 let userUid = localStorage.getItem('userUid');
 
-// Redirect if not logged in
 if (!userUid) {
     window.location.href = '/login.html';
 }
@@ -44,170 +41,210 @@ auth.onAuthStateChanged(async (user) => {
     }
 });
 
-// ============ VALIDATION FUNCTIONS ============
-function setFieldError(fieldGroupId, message) {
-    const group = document.getElementById(fieldGroupId);
-    if (!group) return;
-    const error = group.querySelector('.form-error');
-    if (message) {
-        group.classList.add('field-invalid');
-        if (error) error.textContent = message;
+// ============ ASTERISK HELPERS ============
+const asterisks = {
+    type: document.getElementById('req-type'),
+    item: document.getElementById('req-item'),
+    amount: document.getElementById('req-amount'),
+    description: document.getElementById('req-description'),
+    budget: document.getElementById('req-budget'),
+    meeting: document.getElementById('req-meeting'),
+    quotation: document.getElementById('req-quotation'),
+};
+
+function showAsterisk(key) {
+    if (asterisks[key]) asterisks[key].classList.remove('hidden');
+}
+
+function hideAsterisk(key) {
+    if (asterisks[key]) asterisks[key].classList.add('hidden');
+}
+
+function updateAsterisk(key, value) {
+    if (value && value.toString().trim().length > 0) {
+        hideAsterisk(key);
     } else {
-        group.classList.remove('field-invalid');
-        if (error) error.textContent = '';
+        showAsterisk(key);
     }
 }
 
-function clearAllErrors() {
-    ['request-type', 'item-name', 'amount', 'description', 'budget-form', 'meeting-minutes', 'vendor-quotation'].forEach((id) => {
-        const group = document.getElementById('group-' + id);
-        if (group) group.classList.remove('field-invalid');
-        const error = group ? group.querySelector('.form-error') : null;
-        if (error) error.textContent = '';
-    });
-    const summary = document.getElementById('form-error');
-    if (summary) summary.textContent = '';
+// ============ VALIDATION ============
+function isValidField(fieldId, value) {
+    switch (fieldId) {
+        case 'request-type':
+            return value && value.trim() !== '';
+        case 'item-name':
+            return value && value.trim() !== '';
+        case 'amount':
+            const num = parseFloat(value);
+            return !isNaN(num) && num > 0;
+        case 'description':
+            return value && value.trim() !== '';
+        case 'budget-form':
+            const fileB = document.getElementById('budget-form').files[0];
+            return fileB && /\.(xlsx|xls)$/i.test(fileB.name);
+        case 'meeting-minutes':
+            const fileM = document.getElementById('meeting-minutes').files[0];
+            return fileM && /\.pdf$/i.test(fileM.name);
+        case 'vendor-quotation':
+            const fileQ = document.getElementById('vendor-quotation').files[0];
+            return fileQ && /\.pdf$/i.test(fileQ.name);
+        default:
+            return true;
+    }
 }
 
-function isValidPdf(file) {
-    return file && /\.pdf$/i.test(file.name);
+function isFormValid() {
+    const type = document.getElementById('request-type').value;
+    const item = document.getElementById('item-name').value;
+    const amount = document.getElementById('amount').value;
+    const desc = document.getElementById('description').value;
+
+    const validType = isValidField('request-type', type);
+    const validItem = isValidField('item-name', item);
+    const validAmount = isValidField('amount', amount);
+    const validDesc = isValidField('description', desc);
+    const validBudget = isValidField('budget-form');
+    const validMeeting = isValidField('meeting-minutes');
+    const validQuotation = isValidField('vendor-quotation');
+
+    return validType && validItem && validAmount && validDesc &&
+           validBudget && validMeeting && validQuotation;
 }
 
-function isValidExcel(file) {
-    return file && /\.(xlsx|xls)$/i.test(file.name);
-}
+function updateFormState() {
+    // Update asterisks
+    updateAsterisk('type', document.getElementById('request-type').value);
+    updateAsterisk('item', document.getElementById('item-name').value);
+    updateAsterisk('amount', document.getElementById('amount').value);
+    updateAsterisk('description', document.getElementById('description').value);
+    updateAsterisk('budget', document.getElementById('budget-form').files[0] ? document.getElementById('budget-form').files[0].name : '');
+    updateAsterisk('meeting', document.getElementById('meeting-minutes').files[0] ? document.getElementById('meeting-minutes').files[0].name : '');
+    updateAsterisk('quotation', document.getElementById('vendor-quotation').files[0] ? document.getElementById('vendor-quotation').files[0].name : '');
 
-function getFileErrorText(inputId) {
-    if (inputId === 'budget-form') return 'Budget Form is required.';
-    if (inputId === 'meeting-minutes') return 'Meeting Minutes are required.';
-    if (inputId === 'vendor-quotation') return 'Vendor Quotation is required.';
-    return 'File is required.';
-}
-
-function validateField() {
-    clearAllErrors();
-    let valid = true;
-
-    const type = document.getElementById('request-type').value.trim();
-    if (!type) {
-        setFieldError('group-request-type', 'Request type is required.');
-        valid = false;
-    }
-
-    const itemName = document.getElementById('item-name').value.trim();
-    if (!itemName) {
-        setFieldError('group-item-name', 'Event or item name is required.');
-        valid = false;
-    }
-
-    const amountValue = document.getElementById('amount').value.trim();
-    const amount = parseFloat(amountValue);
-    if (!amountValue) {
-        setFieldError('group-amount', 'Amount requested is required.');
-        valid = false;
-    } else if (isNaN(amount) || amount <= 0) {
-        setFieldError('group-amount', 'Enter a valid amount greater than zero.');
-        valid = false;
-    }
-
-    const description = document.getElementById('description').value.trim();
-    if (!description) {
-        setFieldError('group-description', 'Description is required.');
-        valid = false;
-    }
-
-    const budgetForm = document.getElementById('budget-form').files[0];
-    if (!budgetForm) {
-        setFieldError('group-budget-form', getFileErrorText('budget-form'));
-        valid = false;
-    } else if (!isValidExcel(budgetForm)) {
-        setFieldError('group-budget-form', 'Budget Form must be an Excel file (.xlsx or .xls).');
-        valid = false;
-    }
-
-    const meetingMinutes = document.getElementById('meeting-minutes').files[0];
-    if (!meetingMinutes) {
-        setFieldError('group-meeting-minutes', getFileErrorText('meeting-minutes'));
-        valid = false;
-    } else if (!isValidPdf(meetingMinutes)) {
-        setFieldError('group-meeting-minutes', 'Meeting Minutes must be a PDF file.');
-        valid = false;
-    }
-
-    const vendorQuotation = document.getElementById('vendor-quotation').files[0];
-    if (!vendorQuotation) {
-        setFieldError('group-vendor-quotation', getFileErrorText('vendor-quotation'));
-        valid = false;
-    } else if (!isValidPdf(vendorQuotation)) {
-        setFieldError('group-vendor-quotation', 'Vendor Quotation must be a PDF file.');
-        valid = false;
-    }
-
+    const valid = isFormValid();
     document.getElementById('submit-request').disabled = !valid;
-    return valid;
 }
 
-function handleFileInput(event) {
-    const input = event.target;
-    const file = input.files[0];
-    const groupId = 'group-' + input.id;
+// ============ CLEAR & SHOW ERRORS (only on submit) ============
+function clearAllErrors() {
+    document.querySelectorAll('.form-group input, .form-group select, .form-group textarea').forEach(el => {
+        el.classList.remove('error');
+    });
+    document.querySelectorAll('.field-error').forEach(el => {
+        el.classList.remove('show');
+    });
+    document.getElementById('form-error').classList.remove('show');
+    document.getElementById('form-error').textContent = '';
+}
 
-    if (!file) {
-        setFieldError(groupId, getFileErrorText(input.id));
-    } else if (input.id === 'budget-form' && !isValidExcel(file)) {
-        setFieldError(groupId, 'File must be an Excel document (.xlsx or .xls).');
-    } else if (input.id !== 'budget-form' && !isValidPdf(file)) {
-        setFieldError(groupId, 'File must be a PDF file.');
-    } else {
-        setFieldError(groupId, '');
+function showFieldError(inputId, errorId, message) {
+    const input = document.getElementById(inputId);
+    if (input) input.classList.add('error');
+    const errorEl = document.getElementById(errorId);
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.classList.add('show');
+    }
+}
+
+function validateAllFieldsOnSubmit() {
+    clearAllErrors();
+    let isValid = true;
+
+    const type = document.getElementById('request-type').value;
+    if (!type || type.trim() === '') {
+        showFieldError('request-type', 'type-error', 'Request type is required.');
+        isValid = false;
     }
 
-    validateField();
+    const item = document.getElementById('item-name').value.trim();
+    if (!item) {
+        showFieldError('item-name', 'item-error', 'Event or item name is required.');
+        isValid = false;
+    }
+
+    const amountVal = document.getElementById('amount').value.trim();
+    const amount = parseFloat(amountVal);
+    if (!amountVal || isNaN(amount) || amount <= 0) {
+        showFieldError('amount', 'amount-error', 'Amount requested is required and must be greater than zero.');
+        isValid = false;
+    }
+
+    const desc = document.getElementById('description').value.trim();
+    if (!desc) {
+        showFieldError('description', 'description-error', 'Description is required.');
+        isValid = false;
+    }
+
+    const budgetFile = document.getElementById('budget-form').files[0];
+    if (!budgetFile) {
+        showFieldError('budget-form', 'budget-error', 'Budget Form is required.');
+        isValid = false;
+    } else if (!/\.(xlsx|xls)$/i.test(budgetFile.name)) {
+        showFieldError('budget-form', 'budget-error', 'Budget Form must be an Excel file (.xlsx or .xls).');
+        isValid = false;
+    }
+
+    const meetingFile = document.getElementById('meeting-minutes').files[0];
+    if (!meetingFile) {
+        showFieldError('meeting-minutes', 'meeting-error', 'Meeting Minutes are required.');
+        isValid = false;
+    } else if (!/\.pdf$/i.test(meetingFile.name)) {
+        showFieldError('meeting-minutes', 'meeting-error', 'Meeting Minutes must be a PDF file.');
+        isValid = false;
+    }
+
+    const quotationFile = document.getElementById('vendor-quotation').files[0];
+    if (!quotationFile) {
+        showFieldError('vendor-quotation', 'quotation-error', 'Vendor Quotation is required.');
+        isValid = false;
+    } else if (!/\.pdf$/i.test(quotationFile.name)) {
+        showFieldError('vendor-quotation', 'quotation-error', 'Vendor Quotation must be a PDF file.');
+        isValid = false;
+    }
+
+    if (!isValid) {
+        const summary = document.getElementById('form-error');
+        summary.textContent = 'Please fix the highlighted fields before submitting.';
+        summary.classList.add('show');
+    }
+
+    return isValid;
 }
 
-// ============ RESET FORM (WITH RE-VALIDATION) ============
-function resetForm() {
-    document.getElementById('request-type').value = '';
-    document.getElementById('item-name').value = '';
-    document.getElementById('amount').value = '';
-    document.getElementById('description').value = '';
-    document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
-    clearAllErrors();
-    document.getElementById('form-section').classList.remove('hidden');
-    document.getElementById('success-section').classList.add('hidden');
-    document.getElementById('submit-request').disabled = true;
-    validateField(); // <-- This shows errors again
-}
+// ============ EVENT LISTENERS (all use 'input' for immediate updates) ============
+document.getElementById('request-type').addEventListener('input', updateFormState);
+document.getElementById('item-name').addEventListener('input', updateFormState);
+document.getElementById('amount').addEventListener('input', updateFormState);
+document.getElementById('description').addEventListener('input', updateFormState);
+document.getElementById('budget-form').addEventListener('change', updateFormState);
+document.getElementById('meeting-minutes').addEventListener('change', updateFormState);
+document.getElementById('vendor-quotation').addEventListener('change', updateFormState);
 
-function confirmCancel() {
+// Cancel button
+document.getElementById('cancel-request').addEventListener('click', function (e) {
+    e.preventDefault();
     if (confirm('Are you sure you want to discard this request?')) {
         resetForm();
         window.location.href = '/leader/dashboard.html';
     }
-}
-
-// ============ EVENT LISTENERS ============
-document.getElementById('request-type').addEventListener('change', validateField);
-document.getElementById('item-name').addEventListener('input', validateField);
-document.getElementById('amount').addEventListener('input', validateField);
-document.getElementById('description').addEventListener('input', validateField);
-document.getElementById('budget-form').addEventListener('change', handleFileInput);
-document.getElementById('meeting-minutes').addEventListener('change', handleFileInput);
-document.getElementById('vendor-quotation').addEventListener('change', handleFileInput);
-document.getElementById('cancel-request').addEventListener('click', function (e) {
-    e.preventDefault();
-    confirmCancel();
 });
+
+// Submit another after success
 document.getElementById('submit-another').addEventListener('click', function () {
     resetForm();
 });
 
-// ============ SUBMIT REQUEST ============
+// ============ SUBMIT ============
 document.getElementById('submit-request').addEventListener('click', async (e) => {
     e.preventDefault();
-    if (!validateField()) {
-        const summary = document.getElementById('form-error');
-        if (summary) summary.textContent = 'Please fix the highlighted fields before submitting.';
+
+    if (!validateAllFieldsOnSubmit()) {
+        const firstError = document.querySelector('.form-group .error');
+        if (firstError) {
+            firstError.focus();
+        }
         return;
     }
 
@@ -272,12 +309,27 @@ document.getElementById('submit-request').addEventListener('click', async (e) =>
     } catch (error) {
         console.error('Error submitting request:', error);
         const summary = document.getElementById('form-error');
-        if (summary) summary.textContent = 'Error: ' + error.message;
+        summary.textContent = 'Error: ' + error.message;
+        summary.classList.add('show');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Submit Request';
+        updateFormState();
     }
 });
 
-// Initial validation on page load
-validateField();
+// ============ RESET FORM ============
+function resetForm() {
+    document.getElementById('request-type').value = '';
+    document.getElementById('item-name').value = '';
+    document.getElementById('amount').value = '';
+    document.getElementById('description').value = '';
+    document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
+    clearAllErrors();
+    document.getElementById('form-section').classList.remove('hidden');
+    document.getElementById('success-section').classList.add('hidden');
+    updateFormState();
+}
+
+// ============ INITIAL STATE ============
+updateFormState();

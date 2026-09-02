@@ -88,7 +88,8 @@
             color: var(--text-600);
             margin-bottom: 4px;
         }
-        .form-group input {
+        .form-group input,
+        .form-group select {
             width: 100%;
             padding: 10px 14px;
             border: 1px solid var(--border);
@@ -99,7 +100,15 @@
             background: var(--surface);
             transition: border-color 0.2s;
         }
-        .form-group input:focus {
+        .form-group select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235A6B87' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 40px;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
             outline: none;
             border-color: var(--navy-900);
             box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
@@ -172,6 +181,11 @@
             text-transform: uppercase;
             font-weight: 500;
         }
+        .society-loading {
+            font-size: 13px;
+            color: var(--text-500);
+            padding: 8px 0;
+        }
         @media (max-width: 480px) {
             .card {
                 padding: 32px 20px;
@@ -200,10 +214,15 @@
                         <input id="lastName" type="text" placeholder="Doe" required />
                     </div>
                 </div>
+
+                <!-- Society dropdown -->
                 <div class="form-group">
-                    <label for="society-name">Society Name</label>
-                    <input id="society-name" type="text" placeholder="e.g. Wits Debate Society" required />
+                    <label for="society-name">Your Society</label>
+                    <select id="society-name" required>
+                        <option value="">Loading societies...</option>
+                    </select>
                 </div>
+
                 <div class="form-group">
                     <label for="signup-email">Email</label>
                     <input id="signup-email" type="email" placeholder="studentnumber@students.wits.ac.za" required />
@@ -215,7 +234,7 @@
 
                 <div id="register-error" class="error-message"></div>
 
-                <button type="submit" class="btn btn-primary" id="register-btn">Create account</button>
+                <button type="submit" class="btn btn-primary" id="register-btn" disabled>Create account</button>
             </form>
 
             <hr class="divider">
@@ -248,39 +267,81 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        function getFriendlyErrorMessage(errorCode) {
-            const messages = {
-                'auth/email-already-in-use': 'This email is already registered. Please sign in instead.',
-                'auth/invalid-email': 'The email address is not valid. Please check and try again.',
-                'auth/weak-password': 'Password is too weak. Please use at least 6 characters.',
-                'auth/network-request-failed': 'Network error. Please check your internet connection.',
-                'auth/internal-error': 'Something went wrong. Please try again.'
-            };
-            return messages[errorCode] || 'Unable to create account. Please try again.';
+        // DOM references
+        const societySelect = document.getElementById('society-name');
+        const registerBtn = document.getElementById('register-btn');
+        const errorEl = document.getElementById('register-error');
+
+        // --- 1. Populate societies dropdown ---
+        async function loadSocieties() {
+            try {
+                const snapshot = await db.collection('societies')
+                    .orderBy('name', 'asc')
+                    .get();
+
+                if (snapshot.empty) {
+                    societySelect.innerHTML = `
+                        <option value="">No societies available – please contact SGO</option>
+                    `;
+                    registerBtn.disabled = true;
+                    return;
+                }
+
+                let options = '<option value="">Select your society...</option>';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const name = data.name || 'Unnamed';
+                    options += `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+                });
+                societySelect.innerHTML = options;
+                registerBtn.disabled = false;
+
+            } catch (error) {
+                console.error('Error loading societies:', error);
+                societySelect.innerHTML = `
+                    <option value="">Error loading societies – please refresh</option>
+                `;
+                registerBtn.disabled = true;
+            }
         }
 
-        let isRegistering = false;
+        // Simple escape to prevent XSS from society names
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
 
+        // Load societies on page load
+        document.addEventListener('DOMContentLoaded', loadSocieties);
+
+        // --- 2. Registration form submit ---
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            isRegistering = true;
 
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
-            const societyName = document.getElementById('society-name').value.trim();
+            const societyName = societySelect.value;
             const email = document.getElementById('signup-email').value.trim();
             const password = document.getElementById('signup-password').value;
-            const errorEl = document.getElementById('register-error');
-            const btn = document.getElementById('register-btn');
+
+            // Validate society selection
+            if (!societyName) {
+                errorEl.textContent = 'Please select your society from the list.';
+                errorEl.style.display = 'block';
+                return;
+            }
 
             errorEl.style.display = 'none';
-            btn.disabled = true;
-            btn.textContent = 'Creating account...';
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Creating account...';
 
             try {
+                // Create user with email/password
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
+                // Generate OTP and store verification
                 const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
                 const expiresAt = new Date();
                 expiresAt.setMinutes(expiresAt.getMinutes() + 15);
@@ -294,31 +355,19 @@
                     verified: false
                 });
 
+                // Store user data (no society creation – we use existing society)
                 await db.collection('users').doc(user.uid).set({
                     uid: user.uid,
                     email: email,
                     firstName: firstName,
                     lastName: lastName,
-                    societyName: societyName,
+                    societyName: societyName,     // selected from dropdown
                     role: 'leader',
                     isEmailVerified: false,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                const existingSociety = await db.collection('societies')
-                    .where('name', '==', societyName)
-                    .get();
-
-                if (existingSociety.empty) {
-                    await db.collection('societies').add({
-                        name: societyName,
-                        category: 'General',
-                        email: email,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    console.log('✅ Society created:', societyName);
-                }
-
+                // Save pending data for OTP verification
                 localStorage.setItem('pendingUserId', user.uid);
                 localStorage.setItem('pendingUserEmail', email);
                 localStorage.setItem('pendingUserName', firstName + ' ' + lastName);
@@ -329,6 +378,7 @@
                 console.log('Expires at:', expiresAt.toLocaleTimeString());
                 console.log('=========================================');
 
+                // Try to send verification email (optional)
                 try {
                     const emailResponse = await fetch('/api/send-verification-email', {
                         method: 'POST',
@@ -339,22 +389,18 @@
                             name: firstName + ' ' + lastName
                         }),
                     });
-
-                    if (emailResponse.ok) {
-                        console.log('Verification email sent successfully');
-                    } else {
-                        console.error('Failed to send verification email');
-                    }
+                    if (!emailResponse.ok) console.error('Failed to send verification email');
                 } catch (emailError) {
                     console.error('Email sending error:', emailError);
                 }
 
+                // Sign out the user (they need to verify first)
                 await auth.signOut();
 
-                errorEl.style.display = 'none';
-                btn.textContent = '✅ Check your email!';
-                btn.style.background = '#28a745';
+                registerBtn.textContent = '✅ Check your email!';
+                registerBtn.style.background = '#28a745';
 
+                // Redirect to OTP verification page
                 setTimeout(() => {
                     window.location.href = '/verify-otp.html';
                 }, 1500);
@@ -364,11 +410,21 @@
                 const friendlyMessage = getFriendlyErrorMessage(err.code);
                 errorEl.textContent = friendlyMessage;
                 errorEl.style.display = 'block';
-                btn.disabled = false;
-                btn.textContent = 'Create account';
-                isRegistering = false;
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Create account';
             }
         });
+
+        function getFriendlyErrorMessage(errorCode) {
+            const messages = {
+                'auth/email-already-in-use': 'This email is already registered. Please sign in instead.',
+                'auth/invalid-email': 'The email address is not valid. Please check and try again.',
+                'auth/weak-password': 'Password is too weak. Please use at least 6 characters.',
+                'auth/network-request-failed': 'Network error. Please check your internet connection.',
+                'auth/internal-error': 'Something went wrong. Please try again.'
+            };
+            return messages[errorCode] || 'Unable to create account. Please try again.';
+        }
     </script>
 </body>
 </html>

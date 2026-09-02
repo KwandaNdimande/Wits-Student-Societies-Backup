@@ -20,7 +20,6 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 
 let currentUser = null;
-let userRole = localStorage.getItem('userRole');
 let userUid = localStorage.getItem('userUid');
 
 if (!userUid) {
@@ -40,6 +39,15 @@ auth.onAuthStateChanged(async (user) => {
         window.location.href = '/login.html';
     }
 });
+
+// ============ DOM REFS ============
+const submitBtn = document.getElementById('submit-request');
+const cancelBtn = document.getElementById('cancel-request');
+const formCard = document.getElementById('formCard');
+const errorSummary = document.getElementById('form-error');
+
+// All form inputs (for disabling during processing)
+const formInputs = document.querySelectorAll('#form-section input, #form-section select, #form-section textarea');
 
 // ============ ASTERISK HELPERS ============
 const asterisks = {
@@ -68,65 +76,7 @@ function updateAsterisk(key, value) {
     }
 }
 
-// ============ VALIDATION ============
-function isValidField(fieldId, value) {
-    switch (fieldId) {
-        case 'request-type':
-            return value && value.trim() !== '';
-        case 'item-name':
-            return value && value.trim() !== '';
-        case 'amount':
-            const num = parseFloat(value);
-            return !isNaN(num) && num > 0;
-        case 'description':
-            return value && value.trim() !== '';
-        case 'budget-form':
-            const fileB = document.getElementById('budget-form').files[0];
-            return fileB && /\.(xlsx|xls)$/i.test(fileB.name);
-        case 'meeting-minutes':
-            const fileM = document.getElementById('meeting-minutes').files[0];
-            return fileM && /\.pdf$/i.test(fileM.name);
-        case 'vendor-quotation':
-            const fileQ = document.getElementById('vendor-quotation').files[0];
-            return fileQ && /\.pdf$/i.test(fileQ.name);
-        default:
-            return true;
-    }
-}
-
-function isFormValid() {
-    const type = document.getElementById('request-type').value;
-    const item = document.getElementById('item-name').value;
-    const amount = document.getElementById('amount').value;
-    const desc = document.getElementById('description').value;
-
-    const validType = isValidField('request-type', type);
-    const validItem = isValidField('item-name', item);
-    const validAmount = isValidField('amount', amount);
-    const validDesc = isValidField('description', desc);
-    const validBudget = isValidField('budget-form');
-    const validMeeting = isValidField('meeting-minutes');
-    const validQuotation = isValidField('vendor-quotation');
-
-    return validType && validItem && validAmount && validDesc &&
-           validBudget && validMeeting && validQuotation;
-}
-
-function updateFormState() {
-    // Update asterisks
-    updateAsterisk('type', document.getElementById('request-type').value);
-    updateAsterisk('item', document.getElementById('item-name').value);
-    updateAsterisk('amount', document.getElementById('amount').value);
-    updateAsterisk('description', document.getElementById('description').value);
-    updateAsterisk('budget', document.getElementById('budget-form').files[0] ? document.getElementById('budget-form').files[0].name : '');
-    updateAsterisk('meeting', document.getElementById('meeting-minutes').files[0] ? document.getElementById('meeting-minutes').files[0].name : '');
-    updateAsterisk('quotation', document.getElementById('vendor-quotation').files[0] ? document.getElementById('vendor-quotation').files[0].name : '');
-
-    const valid = isFormValid();
-    document.getElementById('submit-request').disabled = !valid;
-}
-
-// ============ CLEAR & SHOW ERRORS (only on submit) ============
+// ============ CLEAR ERRORS ============
 function clearAllErrors() {
     document.querySelectorAll('.form-group input, .form-group select, .form-group textarea').forEach(el => {
         el.classList.remove('error');
@@ -134,10 +84,11 @@ function clearAllErrors() {
     document.querySelectorAll('.field-error').forEach(el => {
         el.classList.remove('show');
     });
-    document.getElementById('form-error').classList.remove('show');
-    document.getElementById('form-error').textContent = '';
+    errorSummary.classList.remove('show');
+    errorSummary.textContent = '';
 }
 
+// ============ SHOW ERROR ON A FIELD ============
 function showFieldError(inputId, errorId, message) {
     const input = document.getElementById(inputId);
     if (input) input.classList.add('error');
@@ -148,7 +99,8 @@ function showFieldError(inputId, errorId, message) {
     }
 }
 
-function validateAllFieldsOnSubmit() {
+// ============ VALIDATE ALL FIELDS (on submit) ============
+function validateAllFields() {
     clearAllErrors();
     let isValid = true;
 
@@ -205,25 +157,100 @@ function validateAllFieldsOnSubmit() {
     }
 
     if (!isValid) {
-        const summary = document.getElementById('form-error');
-        summary.textContent = 'Please fix the highlighted fields before submitting.';
-        summary.classList.add('show');
+        errorSummary.textContent = 'Please fix the highlighted fields before submitting.';
+        errorSummary.classList.add('show');
     }
 
     return isValid;
 }
 
-// ============ EVENT LISTENERS (all use 'input' for immediate updates) ============
-document.getElementById('request-type').addEventListener('input', updateFormState);
-document.getElementById('item-name').addEventListener('input', updateFormState);
-document.getElementById('amount').addEventListener('input', updateFormState);
-document.getElementById('description').addEventListener('input', updateFormState);
-document.getElementById('budget-form').addEventListener('change', updateFormState);
-document.getElementById('meeting-minutes').addEventListener('change', updateFormState);
-document.getElementById('vendor-quotation').addEventListener('change', updateFormState);
+// ============ ENABLE / DISABLE FORM ============
+function setFormProcessing(processing) {
+    // Disable all form inputs
+    formInputs.forEach(input => {
+        if (input.id !== 'society-name') { // keep society name disabled always
+            input.disabled = processing;
+        }
+    });
+
+    // Disable buttons
+    submitBtn.disabled = processing;
+    cancelBtn.disabled = processing;
+
+    // Add overlay class to form card
+    if (processing) {
+        formCard.classList.add('processing');
+    } else {
+        formCard.classList.remove('processing');
+    }
+}
+
+// ============ UPDATE BUTTON STATE ============
+function setButtonState(state, message) {
+    // state: 'idle', 'validating', 'submitting', 'success', 'error'
+    submitBtn.innerHTML = '';
+    submitBtn.disabled = true;
+
+    switch (state) {
+        case 'idle':
+            submitBtn.innerHTML = 'Submit Request';
+            submitBtn.disabled = false;
+            break;
+        case 'validating':
+            submitBtn.innerHTML = `<span class="spinner"></span> Validating request…`;
+            submitBtn.disabled = true;
+            break;
+        case 'submitting':
+            submitBtn.innerHTML = `<span class="spinner"></span> Submitting request…`;
+            submitBtn.disabled = true;
+            break;
+        case 'error':
+            submitBtn.innerHTML = 'Submit Request';
+            submitBtn.disabled = false;
+            break;
+        default:
+            submitBtn.innerHTML = 'Submit Request';
+            submitBtn.disabled = false;
+    }
+}
+
+// ============ RESET FORM ============
+function resetForm() {
+    document.getElementById('request-type').value = '';
+    document.getElementById('item-name').value = '';
+    document.getElementById('amount').value = '';
+    document.getElementById('description').value = '';
+    document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
+    clearAllErrors();
+    document.getElementById('form-section').classList.remove('hidden');
+    document.getElementById('success-section').classList.add('hidden');
+    setFormProcessing(false);
+    setButtonState('idle');
+    updateAsterisks();
+}
+
+// ============ UPDATE ASTERISKS ============
+function updateAsterisks() {
+    updateAsterisk('type', document.getElementById('request-type').value);
+    updateAsterisk('item', document.getElementById('item-name').value);
+    updateAsterisk('amount', document.getElementById('amount').value);
+    updateAsterisk('description', document.getElementById('description').value);
+    updateAsterisk('budget', document.getElementById('budget-form').files[0] ? document.getElementById('budget-form').files[0].name : '');
+    updateAsterisk('meeting', document.getElementById('meeting-minutes').files[0] ? document.getElementById('meeting-minutes').files[0].name : '');
+    updateAsterisk('quotation', document.getElementById('vendor-quotation').files[0] ? document.getElementById('vendor-quotation').files[0].name : '');
+}
+
+// ============ EVENT LISTENERS ============
+document.getElementById('request-type').addEventListener('input', updateAsterisks);
+document.getElementById('item-name').addEventListener('input', updateAsterisks);
+document.getElementById('amount').addEventListener('input', updateAsterisks);
+document.getElementById('description').addEventListener('input', updateAsterisks);
+document.getElementById('budget-form').addEventListener('change', updateAsterisks);
+document.getElementById('meeting-minutes').addEventListener('change', updateAsterisks);
+document.getElementById('vendor-quotation').addEventListener('change', updateAsterisks);
 
 // Cancel button
-document.getElementById('cancel-request').addEventListener('click', function (e) {
+cancelBtn.addEventListener('click', function (e) {
     e.preventDefault();
     if (confirm('Are you sure you want to discard this request?')) {
         resetForm();
@@ -237,16 +264,31 @@ document.getElementById('submit-another').addEventListener('click', function () 
 });
 
 // ============ SUBMIT ============
-document.getElementById('submit-request').addEventListener('click', async (e) => {
+submitBtn.addEventListener('click', async (e) => {
     e.preventDefault();
 
-    if (!validateAllFieldsOnSubmit()) {
+    // Clear old errors and reset button state
+    clearAllErrors();
+
+    // Step 1: Validate all fields
+    if (!validateAllFields()) {
+        // Scroll to first error
         const firstError = document.querySelector('.form-group .error');
         if (firstError) {
             firstError.focus();
         }
         return;
     }
+
+    // Step 2: All fields valid – show validating state
+    setFormProcessing(true);
+    setButtonState('validating');
+
+    // Wait at least 800ms (AC 3)
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Step 3: Change to submitting state
+    setButtonState('submitting');
 
     const type = document.getElementById('request-type').value.trim();
     const itemName = document.getElementById('item-name').value.trim();
@@ -255,10 +297,6 @@ document.getElementById('submit-request').addEventListener('click', async (e) =>
     const budgetForm = document.getElementById('budget-form').files[0];
     const meetingMinutes = document.getElementById('meeting-minutes').files[0];
     const vendorQuotation = document.getElementById('vendor-quotation').files[0];
-
-    const btn = document.getElementById('submit-request');
-    btn.disabled = true;
-    btn.textContent = 'Submitting...';
 
     try {
         const user = auth.currentUser;
@@ -303,33 +341,23 @@ document.getElementById('submit-request').addEventListener('click', async (e) =>
         };
 
         await db.collection('requests').add(requestData);
+
+        // Success – show success page
+        setFormProcessing(false);
         document.getElementById('form-section').classList.add('hidden');
         document.getElementById('success-section').classList.remove('hidden');
 
     } catch (error) {
         console.error('Error submitting request:', error);
-        const summary = document.getElementById('form-error');
-        summary.textContent = 'Error: ' + error.message;
-        summary.classList.add('show');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Submit Request';
-        updateFormState();
+
+        // Error – restore form
+        setFormProcessing(false);
+        setButtonState('error');
+        errorSummary.textContent = 'Error: ' + error.message;
+        errorSummary.classList.add('show');
     }
 });
 
-// ============ RESET FORM ============
-function resetForm() {
-    document.getElementById('request-type').value = '';
-    document.getElementById('item-name').value = '';
-    document.getElementById('amount').value = '';
-    document.getElementById('description').value = '';
-    document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
-    clearAllErrors();
-    document.getElementById('form-section').classList.remove('hidden');
-    document.getElementById('success-section').classList.add('hidden');
-    updateFormState();
-}
-
 // ============ INITIAL STATE ============
-updateFormState();
+updateAsterisks();
+setButtonState('idle');

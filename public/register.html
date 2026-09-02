@@ -89,7 +89,7 @@
             color: var(--text-600);
             margin-bottom: 4px;
         }
-        /* ---- Society input with arrow and button ---- */
+        /* ---- Society input with browse button ---- */
         .society-row {
             display: flex;
             gap: 8px;
@@ -101,7 +101,7 @@
         }
         .dropdown-wrapper input {
             width: 100%;
-            padding: 10px 40px 10px 14px;
+            padding: 10px 14px;
             border: 1px solid var(--border);
             border-radius: 8px;
             font-size: 14px;
@@ -117,28 +117,6 @@
         }
         .dropdown-wrapper input::placeholder {
             color: var(--text-500);
-        }
-        .dropdown-arrow {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 14px;
-            color: var(--text-500);
-            cursor: pointer;
-            pointer-events: auto;
-            user-select: none;
-            transition: transform 0.2s ease;
-            background: var(--surface);
-            padding: 2px 6px;
-            border-radius: 4px;
-            line-height: 1;
-        }
-        .dropdown-arrow:hover {
-            color: var(--navy-900);
-        }
-        .dropdown-arrow.open {
-            transform: translateY(-50%) rotate(180deg);
         }
         .browse-btn {
             flex-shrink: 0;
@@ -467,7 +445,7 @@
                     </div>
                 </div>
 
-                <!-- Society input with arrow and browse button -->
+                <!-- Society input with browse button (no arrow) -->
                 <div class="form-group">
                     <label for="society-input">Your Society</label>
                     <div class="society-row">
@@ -479,15 +457,14 @@
                                 autocomplete="off"
                                 required
                             />
-                            <span class="dropdown-arrow" id="dropdownArrow">▾</span>
                             <ul class="dropdown-list" id="societyList">
-                                <li class="no-results">Loading societies...</li>
+                                <li class="no-results">Start typing to search...</li>
                             </ul>
                         </div>
                         <button type="button" class="browse-btn" id="browseAllBtn">Browse All</button>
                     </div>
                     <div class="dropdown-hint">
-                        Type to filter, use the arrow to browse, or click "Browse All" for a full list.
+                        Type at least one character to filter, or click "Browse All" for a full list.
                     </div>
                 </div>
 
@@ -558,7 +535,6 @@
         // DOM refs
         const societyInput = document.getElementById('society-input');
         const societyList = document.getElementById('societyList');
-        const dropdownArrow = document.getElementById('dropdownArrow');
         const registerBtn = document.getElementById('register-btn');
         const errorEl = document.getElementById('register-error');
         const browseBtn = document.getElementById('browseAllBtn');
@@ -576,12 +552,12 @@
         let activeIndex = -1;
         let isDropdownOpen = false;
 
-        // Pagination state for modal
+        // Pagination state for modal (10 per page)
         let modalLastDoc = null;
         let modalHasMore = true;
         let modalLoading = false;
-        let modalAllSocieties = []; // full cached list for search
-        let modalFiltered = [];
+        let modalAllSocieties = [];
+        const MODAL_PAGE_SIZE = 10;
 
         // --- Load societies for autocomplete (initial) ---
         async function loadSocieties() {
@@ -602,7 +578,7 @@
                     allSocieties.push(name);
                 });
 
-                renderDropdown(allSocieties);
+                societyList.innerHTML = '<li class="no-results">Start typing to search...</li>';
                 registerBtn.disabled = false;
 
             } catch (error) {
@@ -627,9 +603,15 @@
             return div.innerHTML;
         }
 
-        // --- Filter for autocomplete dropdown ---
-        function filterSocieties(query) {
-            const lower = query.toLowerCase().trim();
+        // --- Filter for autocomplete dropdown (only if input has text) ---
+        function filterAndShow(query) {
+            const trimmed = query.trim();
+            if (trimmed.length === 0) {
+                closeDropdown();
+                societyList.innerHTML = '<li class="no-results">Start typing to search...</li>';
+                return;
+            }
+            const lower = trimmed.toLowerCase();
             const filtered = allSocieties.filter(name => name.toLowerCase().includes(lower));
             renderDropdown(filtered);
             activeIndex = -1;
@@ -638,39 +620,20 @@
                 items[0].classList.add('active');
                 activeIndex = 0;
             }
-            if (document.activeElement === societyInput || isDropdownOpen) {
-                openDropdown();
-            }
+            openDropdown();
         }
 
         // --- Open / close autocomplete dropdown ---
         function openDropdown() {
             societyList.classList.add('open');
-            dropdownArrow.classList.add('open');
             isDropdownOpen = true;
         }
 
         function closeDropdown() {
             societyList.classList.remove('open');
-            dropdownArrow.classList.remove('open');
             isDropdownOpen = false;
             activeIndex = -1;
             document.querySelectorAll('#societyList li').forEach(li => li.classList.remove('active'));
-        }
-
-        function toggleDropdown() {
-            if (isDropdownOpen) {
-                closeDropdown();
-            } else {
-                const query = societyInput.value.trim();
-                if (query.length > 0) {
-                    filterSocieties(query);
-                } else {
-                    renderDropdown(allSocieties);
-                }
-                openDropdown();
-                societyInput.focus();
-            }
         }
 
         // --- Select item (from either dropdown or modal) ---
@@ -678,7 +641,6 @@
             societyInput.value = value;
             closeDropdown();
             validateSociety();
-            // Clear any error
             errorEl.style.display = 'none';
         }
 
@@ -697,26 +659,25 @@
         }
 
         // --- Autocomplete event listeners ---
-        dropdownArrow.addEventListener('click', function(e) {
-            e.stopPropagation();
-            toggleDropdown();
-        });
 
         societyInput.addEventListener('input', function(e) {
             const val = this.value.trim();
             if (val.length === 0) {
-                renderDropdown(allSocieties);
-                if (isDropdownOpen) openDropdown();
+                closeDropdown();
+                societyList.innerHTML = '<li class="no-results">Start typing to search...</li>';
             } else {
-                filterSocieties(val);
+                filterAndShow(val);
             }
             validateSociety();
         });
 
         societyInput.addEventListener('focus', function() {
-            if (allSocieties.length > 0) {
-                renderDropdown(allSocieties);
-                openDropdown();
+            const val = this.value.trim();
+            if (val.length > 0) {
+                filterAndShow(val);
+            } else {
+                closeDropdown();
+                societyList.innerHTML = '<li class="no-results">Start typing to search...</li>';
             }
         });
 
@@ -743,12 +704,20 @@
 
             if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                if (!isDropdownOpen) openDropdown();
+                if (!isDropdownOpen) {
+                    const val = societyInput.value.trim();
+                    if (val.length === 0) return;
+                    filterAndShow(val);
+                }
                 activeIndex = (activeIndex + 1) % items.length;
                 updateActiveItem(items);
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
-                if (!isDropdownOpen) openDropdown();
+                if (!isDropdownOpen) {
+                    const val = societyInput.value.trim();
+                    if (val.length === 0) return;
+                    filterAndShow(val);
+                }
                 activeIndex = (activeIndex - 1 + items.length) % items.length;
                 updateActiveItem(items);
             } else if (e.key === 'Enter') {
@@ -779,16 +748,13 @@
             }
         }
 
-        // --- MODAL: Open, close, load data ---
+        // --- MODAL: Open, close, load data (10 per page) ---
 
-        // Open modal
         browseBtn.addEventListener('click', function() {
             modal.classList.add('active');
-            // Reset pagination and load first batch
             modalLastDoc = null;
             modalHasMore = true;
             modalAllSocieties = [];
-            modalFiltered = [];
             modalList.innerHTML = '<li class="no-results">Loading societies...</li>';
             loadMoreBtn.classList.remove('hidden');
             loadMoreBtn.disabled = false;
@@ -797,7 +763,6 @@
             loadModalSocieties();
         });
 
-        // Close modal
         function closeModal() {
             modal.classList.remove('active');
         }
@@ -806,24 +771,20 @@
             if (e.target === modal) closeModal();
         });
 
-        // Load more button
         loadMoreBtn.addEventListener('click', function() {
             if (!modalLoading && modalHasMore) {
                 loadModalSocieties();
             }
         });
 
-        // Search inside modal
         modalSearch.addEventListener('input', function() {
             const query = this.value.trim().toLowerCase();
             if (query.length === 0) {
-                // Show all loaded items
                 renderModalList(modalAllSocieties);
             } else {
                 const filtered = modalAllSocieties.filter(name => name.toLowerCase().includes(query));
                 renderModalList(filtered);
             }
-            // Reset pagination visibility if search is active
             if (query.length > 0) {
                 loadMoreBtn.classList.add('hidden');
             } else {
@@ -831,7 +792,6 @@
             }
         });
 
-        // Render modal list from an array
         function renderModalList(items) {
             if (!items || items.length === 0) {
                 modalList.innerHTML = '<li class="no-results">No societies found</li>';
@@ -839,7 +799,6 @@
             }
             const html = items.map(name => `<li data-value="${escapeHtml(name)}">${escapeHtml(name)}</li>`).join('');
             modalList.innerHTML = html;
-            // Attach click listeners to select
             modalList.querySelectorAll('li:not(.no-results)').forEach(li => {
                 li.addEventListener('click', function() {
                     const value = this.dataset.value;
@@ -851,7 +810,6 @@
             });
         }
 
-        // Load paginated societies for modal
         async function loadModalSocieties() {
             if (modalLoading) return;
             modalLoading = true;
@@ -861,7 +819,7 @@
             try {
                 let query = db.collection('societies')
                     .orderBy('name', 'asc')
-                    .limit(20);
+                    .limit(MODAL_PAGE_SIZE);
 
                 if (modalLastDoc) {
                     query = query.startAfter(modalLastDoc);
@@ -885,7 +843,6 @@
                 modalLastDoc = snapshot.docs[snapshot.docs.length - 1];
                 modalAllSocieties = modalAllSocieties.concat(newSocieties);
 
-                // If search is active, re-filter
                 const searchQuery = modalSearch.value.trim().toLowerCase();
                 if (searchQuery.length > 0) {
                     const filtered = modalAllSocieties.filter(name => name.toLowerCase().includes(searchQuery));
@@ -894,8 +851,7 @@
                     renderModalList(modalAllSocieties);
                 }
 
-                // Check if we have more
-                if (snapshot.docs.length < 20) {
+                if (snapshot.docs.length < MODAL_PAGE_SIZE) {
                     modalHasMore = false;
                     loadMoreBtn.classList.add('hidden');
                     modalLoadingText.textContent = 'All societies loaded';

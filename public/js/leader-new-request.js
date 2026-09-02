@@ -182,7 +182,7 @@ function setFormProcessing(processing) {
 }
 
 // ============ UPDATE BUTTON STATE ============
-function setButtonState(state, message) {
+function setButtonState(state) {
     submitBtn.innerHTML = '';
     submitBtn.disabled = true;
 
@@ -193,6 +193,14 @@ function setButtonState(state, message) {
             break;
         case 'validating':
             submitBtn.innerHTML = `<span class="spinner"></span> Validating request…`;
+            submitBtn.disabled = true;
+            break;
+        case 'passed':
+            submitBtn.innerHTML = `✅ Validation passed`;
+            submitBtn.disabled = true;
+            break;
+        case 'failed':
+            submitBtn.innerHTML = `Validation failed`;
             submitBtn.disabled = true;
             break;
         case 'submitting':
@@ -276,9 +284,14 @@ submitBtn.addEventListener('click', async (e) => {
     const isValid = validateAllFields();
 
     if (!isValid) {
-        // Validation failed – restore form, show errors
+        // Validation failed – show "Validation failed" for 1.5s, then restore
+        setButtonState('failed');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Restore form, show errors
         setFormProcessing(false);
         setButtonState('error');
+
         // Scroll to first error
         const firstError = document.querySelector('.form-group .error');
         if (firstError) {
@@ -287,7 +300,11 @@ submitBtn.addEventListener('click', async (e) => {
         return;
     }
 
-    // Step 4: Validation passed – continue to submission
+    // Step 4: Validation passed – show "Validation passed ✓" for 1s
+    setButtonState('passed');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Step 5: Start submission
     setButtonState('submitting');
 
     const type = document.getElementById('request-type').value.trim();

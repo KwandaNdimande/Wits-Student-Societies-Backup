@@ -99,69 +99,103 @@ function showFieldError(inputId, errorId, message) {
     }
 }
 
-// ============ VALIDATE ALL FIELDS ============
-function validateAllFields() {
-    clearAllErrors();
+// ============ VALIDATE ALL FIELDS (returns errors without displaying them) ============
+function validateAllFields(displayErrors = false) {
+    if (displayErrors) {
+        clearAllErrors();
+    }
+
     let isValid = true;
+    const errors = [];
 
     const type = document.getElementById('request-type').value;
     if (!type || type.trim() === '') {
-        showFieldError('request-type', 'type-error', 'Request type is required.');
+        if (displayErrors) {
+            showFieldError('request-type', 'type-error', 'Request type is required.');
+        }
+        errors.push({ field: 'request-type', message: 'Request type is required.' });
         isValid = false;
     }
 
     const item = document.getElementById('item-name').value.trim();
     if (!item) {
-        showFieldError('item-name', 'item-error', 'Event or item name is required.');
+        if (displayErrors) {
+            showFieldError('item-name', 'item-error', 'Event or item name is required.');
+        }
+        errors.push({ field: 'item-name', message: 'Event or item name is required.' });
         isValid = false;
     }
 
     const amountVal = document.getElementById('amount').value.trim();
     const amount = parseFloat(amountVal);
     if (!amountVal || isNaN(amount) || amount <= 0) {
-        showFieldError('amount', 'amount-error', 'Amount requested is required and must be greater than zero.');
+        if (displayErrors) {
+            showFieldError('amount', 'amount-error', 'Amount requested is required and must be greater than zero.');
+        }
+        errors.push({ field: 'amount', message: 'Amount requested is required and must be greater than zero.' });
         isValid = false;
     }
 
     const desc = document.getElementById('description').value.trim();
     if (!desc) {
-        showFieldError('description', 'description-error', 'Description is required.');
+        if (displayErrors) {
+            showFieldError('description', 'description-error', 'Description is required.');
+        }
+        errors.push({ field: 'description', message: 'Description is required.' });
         isValid = false;
     }
 
     const budgetFile = document.getElementById('budget-form').files[0];
     if (!budgetFile) {
-        showFieldError('budget-form', 'budget-error', 'Budget Form is required.');
+        if (displayErrors) {
+            showFieldError('budget-form', 'budget-error', 'Budget Form is required.');
+        }
+        errors.push({ field: 'budget-form', message: 'Budget Form is required.' });
         isValid = false;
     } else if (!/\.(xlsx|xls)$/i.test(budgetFile.name)) {
-        showFieldError('budget-form', 'budget-error', 'Budget Form must be an Excel file (.xlsx or .xls).');
+        if (displayErrors) {
+            showFieldError('budget-form', 'budget-error', 'Budget Form must be an Excel file (.xlsx or .xls).');
+        }
+        errors.push({ field: 'budget-form', message: 'Budget Form must be an Excel file (.xlsx or .xls).' });
         isValid = false;
     }
 
     const meetingFile = document.getElementById('meeting-minutes').files[0];
     if (!meetingFile) {
-        showFieldError('meeting-minutes', 'meeting-error', 'Meeting Minutes are required.');
+        if (displayErrors) {
+            showFieldError('meeting-minutes', 'meeting-error', 'Meeting Minutes are required.');
+        }
+        errors.push({ field: 'meeting-minutes', message: 'Meeting Minutes are required.' });
         isValid = false;
     } else if (!/\.pdf$/i.test(meetingFile.name)) {
-        showFieldError('meeting-minutes', 'meeting-error', 'Meeting Minutes must be a PDF file.');
+        if (displayErrors) {
+            showFieldError('meeting-minutes', 'meeting-error', 'Meeting Minutes must be a PDF file.');
+        }
+        errors.push({ field: 'meeting-minutes', message: 'Meeting Minutes must be a PDF file.' });
         isValid = false;
     }
 
     const quotationFile = document.getElementById('vendor-quotation').files[0];
     if (!quotationFile) {
-        showFieldError('vendor-quotation', 'quotation-error', 'Vendor Quotation is required.');
+        if (displayErrors) {
+            showFieldError('vendor-quotation', 'quotation-error', 'Vendor Quotation is required.');
+        }
+        errors.push({ field: 'vendor-quotation', message: 'Vendor Quotation is required.' });
         isValid = false;
     } else if (!/\.pdf$/i.test(quotationFile.name)) {
-        showFieldError('vendor-quotation', 'quotation-error', 'Vendor Quotation must be a PDF file.');
+        if (displayErrors) {
+            showFieldError('vendor-quotation', 'quotation-error', 'Vendor Quotation must be a PDF file.');
+        }
+        errors.push({ field: 'vendor-quotation', message: 'Vendor Quotation must be a PDF file.' });
         isValid = false;
     }
 
-    if (!isValid) {
+    if (!isValid && displayErrors) {
         errorSummary.textContent = 'Please fix the highlighted fields before submitting.';
         errorSummary.classList.add('show');
     }
 
-    return isValid;
+    return { isValid, errors };
 }
 
 // ============ ENABLE / DISABLE FORM ============
@@ -280,17 +314,20 @@ submitBtn.addEventListener('click', async (e) => {
     // Step 2: Wait minimum 800ms (AC 3)
     await new Promise(resolve => setTimeout(resolve, 800));
 
-    // Step 3: Run validation
-    const isValid = validateAllFields();
+    // Step 3: Run validation (without displaying errors yet)
+    const result = validateAllFields(false);
 
-    if (!isValid) {
-        // Validation failed – show "Validation failed" for 1.5s, then restore
+    if (!result.isValid) {
+        // Validation failed – show "Validation failed" on button (no errors yet)
         setButtonState('failed');
         await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // Restore form, show errors
+        // Now show the errors and restore form
         setFormProcessing(false);
         setButtonState('error');
+
+        // Display all errors
+        validateAllFields(true);
 
         // Scroll to first error
         const firstError = document.querySelector('.form-group .error');

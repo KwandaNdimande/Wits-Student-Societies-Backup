@@ -99,7 +99,7 @@ function showFieldError(inputId, errorId, message) {
     }
 }
 
-// ============ VALIDATE ALL FIELDS (on submit) ============
+// ============ VALIDATE ALL FIELDS ============
 function validateAllFields() {
     clearAllErrors();
     let isValid = true;
@@ -166,18 +166,14 @@ function validateAllFields() {
 
 // ============ ENABLE / DISABLE FORM ============
 function setFormProcessing(processing) {
-    // Disable all form inputs
     formInputs.forEach(input => {
-        if (input.id !== 'society-name') { // keep society name disabled always
+        if (input.id !== 'society-name') {
             input.disabled = processing;
         }
     });
-
-    // Disable buttons
     submitBtn.disabled = processing;
     cancelBtn.disabled = processing;
 
-    // Add overlay class to form card
     if (processing) {
         formCard.classList.add('processing');
     } else {
@@ -187,7 +183,6 @@ function setFormProcessing(processing) {
 
 // ============ UPDATE BUTTON STATE ============
 function setButtonState(state, message) {
-    // state: 'idle', 'validating', 'submitting', 'success', 'error'
     submitBtn.innerHTML = '';
     submitBtn.disabled = true;
 
@@ -267,11 +262,23 @@ document.getElementById('submit-another').addEventListener('click', function () 
 submitBtn.addEventListener('click', async (e) => {
     e.preventDefault();
 
-    // Clear old errors and reset button state
+    // Clear old errors
     clearAllErrors();
 
-    // Step 1: Validate all fields
-    if (!validateAllFields()) {
+    // Step 1: Show validating spinner immediately
+    setFormProcessing(true);
+    setButtonState('validating');
+
+    // Step 2: Wait minimum 800ms (AC 3)
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Step 3: Run validation
+    const isValid = validateAllFields();
+
+    if (!isValid) {
+        // Validation failed – restore form, show errors
+        setFormProcessing(false);
+        setButtonState('error');
         // Scroll to first error
         const firstError = document.querySelector('.form-group .error');
         if (firstError) {
@@ -280,14 +287,7 @@ submitBtn.addEventListener('click', async (e) => {
         return;
     }
 
-    // Step 2: All fields valid – show validating state
-    setFormProcessing(true);
-    setButtonState('validating');
-
-    // Wait at least 800ms (AC 3)
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    // Step 3: Change to submitting state
+    // Step 4: Validation passed – continue to submission
     setButtonState('submitting');
 
     const type = document.getElementById('request-type').value.trim();

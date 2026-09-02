@@ -100,7 +100,6 @@
             background: var(--surface);
             transition: border-color 0.2s;
         }
-        /* Ensure name inputs also have rounded corners */
         .name-grid input {
             border-radius: 8px;
         }
@@ -711,9 +710,11 @@
             }, 150);
         });
 
-        societyList.addEventListener('click', function(e) {
+        // --- FIX: Use mousedown instead of click for better responsiveness ---
+        societyList.addEventListener('mousedown', function(e) {
             const li = e.target.closest('li');
             if (!li || li.classList.contains('no-results')) return;
+            e.preventDefault(); // prevent blur from closing before we select
             const value = li.dataset.value;
             if (value) {
                 selectSociety(value);

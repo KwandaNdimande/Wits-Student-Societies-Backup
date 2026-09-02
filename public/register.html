@@ -89,6 +89,16 @@
             color: var(--text-600);
             margin-bottom: 4px;
         }
+        /* Asterisk for required fields - hidden by default, shown via JS */
+        .form-group label .required {
+            color: var(--error);
+            font-weight: 700;
+            margin-left: 2px;
+            display: inline;
+        }
+        .form-group label .required.hidden {
+            display: none;
+        }
         .form-group input {
             width: 100%;
             padding: 10px 14px;
@@ -98,7 +108,7 @@
             font-family: 'Inter', sans-serif;
             color: var(--text-900);
             background: var(--surface);
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
         .name-grid input {
             border-radius: 8px;
@@ -110,6 +120,21 @@
         }
         .form-group input::placeholder {
             color: var(--text-500);
+        }
+        /* Error state for inputs - only shown on submit error */
+        .form-group input.error {
+            border-color: var(--error);
+            box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
+        }
+        /* Field error message - hidden by default, shown on submit */
+        .field-error {
+            color: var(--error);
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+        .field-error.show {
+            display: block;
         }
         /* ---- Society input with browse button ---- */
         .society-row {
@@ -260,12 +285,6 @@
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
-        }
-        .error-message {
-            color: var(--error);
-            font-size: 13px;
-            margin-top: 6px;
-            display: none;
         }
         .footer-link {
             text-align: center;
@@ -455,21 +474,23 @@
             <h1>Create Account</h1>
             <p class="subtitle">Join Wits Student Societies</p>
 
-            <form id="register-form">
+            <form id="register-form" novalidate>
                 <div class="name-grid">
                     <div class="form-group">
-                        <label for="firstName">First name</label>
-                        <input id="firstName" type="text" placeholder="Jane" required />
+                        <label for="firstName">First name <span class="required" id="req-firstName">*</span></label>
+                        <input id="firstName" type="text" placeholder="Jane" />
+                        <div class="field-error" id="firstName-error">First name is required</div>
                     </div>
                     <div class="form-group">
-                        <label for="lastName">Last name</label>
-                        <input id="lastName" type="text" placeholder="Doe" required />
+                        <label for="lastName">Last name <span class="required" id="req-lastName">*</span></label>
+                        <input id="lastName" type="text" placeholder="Doe" />
+                        <div class="field-error" id="lastName-error">Last name is required</div>
                     </div>
                 </div>
 
                 <!-- Society input with browse button -->
                 <div class="form-group">
-                    <label for="society-input">Your Society</label>
+                    <label for="society-input">Your Society <span class="required" id="req-society">*</span></label>
                     <div class="society-row">
                         <div class="dropdown-wrapper" id="societyDropdown">
                             <input
@@ -477,7 +498,6 @@
                                 type="text"
                                 placeholder="Type to search..."
                                 autocomplete="off"
-                                required
                             />
                             <ul class="dropdown-list" id="societyList">
                                 <li class="no-results">Start typing to search...</li>
@@ -485,23 +505,26 @@
                         </div>
                         <button type="button" class="browse-btn" id="browseAllBtn">Browse All</button>
                     </div>
+                    <div class="field-error" id="society-error">Please select a valid society</div>
                     <div class="dropdown-hint">
                         Type at least one character to filter, or click "Browse All" for a full list.
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="signup-email">Email</label>
-                    <input id="signup-email" type="email" placeholder="studentnumber@students.wits.ac.za" required />
+                    <label for="signup-email">Email <span class="required" id="req-email">*</span></label>
+                    <input id="signup-email" type="email" placeholder="studentnumber@students.wits.ac.za" />
+                    <div class="field-error" id="email-error">Email is required</div>
                 </div>
                 <div class="form-group">
-                    <label for="signup-password">Password</label>
-                    <input id="signup-password" type="password" placeholder="Use a strong password" required />
+                    <label for="signup-password">Password <span class="required" id="req-password">*</span></label>
+                    <input id="signup-password" type="password" placeholder="Use a strong password" />
+                    <div class="field-error" id="password-error">Password is required</div>
                 </div>
 
-                <div id="register-error" class="error-message"></div>
+                <div id="register-error" class="field-error" style="margin-bottom:12px;"></div>
 
-                <button type="submit" class="btn btn-primary" id="register-btn" disabled>Create account</button>
+                <button type="submit" class="btn btn-primary" id="register-btn">Create account</button>
             </form>
 
             <hr class="divider">
@@ -569,7 +592,131 @@
         const loadMoreBtn = document.getElementById('loadMoreBtn');
         const modalLoadingText = document.getElementById('modalLoadingText');
 
-        // State
+        // All field refs
+        const fields = {
+            firstName: document.getElementById('firstName'),
+            lastName: document.getElementById('lastName'),
+            email: document.getElementById('signup-email'),
+            password: document.getElementById('signup-password'),
+        };
+
+        // All asterisk refs
+        const asterisks = {
+            firstName: document.getElementById('req-firstName'),
+            lastName: document.getElementById('req-lastName'),
+            society: document.getElementById('req-society'),
+            email: document.getElementById('req-email'),
+            password: document.getElementById('req-password'),
+        };
+
+        const fieldErrors = {
+            firstName: document.getElementById('firstName-error'),
+            lastName: document.getElementById('lastName-error'),
+            email: document.getElementById('email-error'),
+            password: document.getElementById('password-error'),
+            society: document.getElementById('society-error'),
+        };
+
+        // --- Asterisk visibility helpers ---
+        function showAsterisk(fieldId) {
+            if (asterisks[fieldId]) asterisks[fieldId].classList.remove('hidden');
+        }
+
+        function hideAsterisk(fieldId) {
+            if (asterisks[fieldId]) asterisks[fieldId].classList.add('hidden');
+        }
+
+        function updateAsterisk(fieldId, value) {
+            if (value && value.trim().length > 0) {
+                hideAsterisk(fieldId);
+            } else {
+                showAsterisk(fieldId);
+            }
+        }
+
+        // --- Error helpers (only shown on submit) ---
+        function showFieldError(fieldId, errorEl) {
+            const input = document.getElementById(fieldId);
+            if (input) input.classList.add('error');
+            if (errorEl) errorEl.classList.add('show');
+        }
+
+        function hideFieldError(fieldId, errorEl) {
+            const input = document.getElementById(fieldId);
+            if (input) input.classList.remove('error');
+            if (errorEl) errorEl.classList.remove('show');
+        }
+
+        function hideAllErrors() {
+            Object.keys(fieldErrors).forEach(key => {
+                const inputId = key === 'society' ? 'society-input' : key;
+                hideFieldError(inputId, fieldErrors[key]);
+            });
+            errorEl.classList.remove('show');
+            errorEl.textContent = '';
+        }
+
+        // --- Validate all fields (only on submit) ---
+        function validateAllFields() {
+            let isValid = true;
+
+            // First name
+            const firstNameVal = fields.firstName.value.trim();
+            if (firstNameVal.length === 0) {
+                showFieldError('firstName', fieldErrors.firstName);
+                isValid = false;
+            } else {
+                hideFieldError('firstName', fieldErrors.firstName);
+            }
+
+            // Last name
+            const lastNameVal = fields.lastName.value.trim();
+            if (lastNameVal.length === 0) {
+                showFieldError('lastName', fieldErrors.lastName);
+                isValid = false;
+            } else {
+                hideFieldError('lastName', fieldErrors.lastName);
+            }
+
+            // Society
+            const societyVal = societyInput.value.trim();
+            if (societyVal.length === 0 || !allSocieties.includes(societyVal)) {
+                showFieldError('society-input', fieldErrors.society);
+                isValid = false;
+            } else {
+                hideFieldError('society-input', fieldErrors.society);
+            }
+
+            // Email
+            const emailVal = fields.email.value.trim();
+            if (emailVal.length === 0) {
+                showFieldError('signup-email', fieldErrors.email);
+                isValid = false;
+            } else {
+                hideFieldError('signup-email', fieldErrors.email);
+            }
+
+            // Password
+            const passwordVal = fields.password.value;
+            if (passwordVal.length === 0) {
+                showFieldError('signup-password', fieldErrors.password);
+                isValid = false;
+            } else {
+                hideFieldError('signup-password', fieldErrors.password);
+            }
+
+            if (!isValid) {
+                errorEl.textContent = 'Please fill in all required fields.';
+                errorEl.classList.add('show');
+            } else {
+                errorEl.classList.remove('show');
+                errorEl.textContent = '';
+            }
+
+            return isValid;
+        }
+
+        // --- State
         let allSocieties = [];
         let activeIndex = -1;
         let isDropdownOpen = false;
@@ -625,7 +772,7 @@
             return div.innerHTML;
         }
 
-        // --- Filter for autocomplete dropdown (only if input has text) ---
+        // --- Filter for autocomplete dropdown ---
         function filterAndShow(query) {
             const trimmed = query.trim();
             if (trimmed.length === 0) {
@@ -662,35 +809,31 @@
         function selectSociety(value) {
             societyInput.value = value;
             closeDropdown();
-            validateSociety();
-            errorEl.style.display = 'none';
-        }
-
-        // --- Validate ---
-        function validateSociety() {
-            const val = societyInput.value.trim();
-            if (val && allSocieties.includes(val)) {
-                errorEl.style.display = 'none';
-                return true;
-            } else if (val) {
-                errorEl.textContent = 'Please select a valid society from the list.';
-                errorEl.style.display = 'block';
-                return false;
-            }
-            return false;
+            // Update asterisk
+            updateAsterisk('society', value);
+            // Hide error if it was showing
+            hideFieldError('society-input', fieldErrors.society);
+            errorEl.classList.remove('show');
+            errorEl.textContent = '';
         }
 
         // --- Autocomplete event listeners ---
 
         societyInput.addEventListener('input', function(e) {
             const val = this.value.trim();
+            // Update asterisk
+            updateAsterisk('society', val);
+
             if (val.length === 0) {
                 closeDropdown();
                 societyList.innerHTML = '<li class="no-results">Start typing to search...</li>';
             } else {
                 filterAndShow(val);
+                // If it matches a society, hide error
+                if (allSocieties.includes(val)) {
+                    hideFieldError('society-input', fieldErrors.society);
+                }
             }
-            validateSociety();
         });
 
         societyInput.addEventListener('focus', function() {
@@ -706,15 +849,14 @@
         societyInput.addEventListener('blur', function(e) {
             setTimeout(() => {
                 closeDropdown();
-                validateSociety();
             }, 150);
         });
 
-        // --- FIX: Use mousedown instead of click for better responsiveness ---
+        // Fix click on dropdown items
         societyList.addEventListener('mousedown', function(e) {
             const li = e.target.closest('li');
             if (!li || li.classList.contains('no-results')) return;
-            e.preventDefault(); // prevent blur from closing before we select
+            e.preventDefault();
             const value = li.dataset.value;
             if (value) {
                 selectSociety(value);
@@ -771,6 +913,23 @@
                 activeLi.scrollIntoView({ block: 'nearest' });
             }
         }
+
+        // --- Asterisk updates on standard fields ---
+        fields.firstName.addEventListener('input', function() {
+            updateAsterisk('firstName', this.value);
+        });
+
+        fields.lastName.addEventListener('input', function() {
+            updateAsterisk('lastName', this.value);
+        });
+
+        fields.email.addEventListener('input', function() {
+            updateAsterisk('email', this.value);
+        });
+
+        fields.password.addEventListener('input', function() {
+            updateAsterisk('password', this.value);
+        });
 
         // --- MODAL: Open, close, load data (10 per page) ---
 
@@ -899,20 +1058,34 @@
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const firstName = document.getElementById('firstName').value.trim();
-            const lastName = document.getElementById('lastName').value.trim();
-            const societyName = societyInput.value.trim();
-            const email = document.getElementById('signup-email').value.trim();
-            const password = document.getElementById('signup-password').value;
+            // Hide any previous errors before validating
+            hideAllErrors();
 
+            // Validate all fields
+            if (!validateAllFields()) {
+                // Scroll to first error
+                const firstError = document.querySelector('.form-group .error');
+                if (firstError) {
+                    firstError.focus();
+                }
+                return;
+            }
+
+            const firstName = fields.firstName.value.trim();
+            const lastName = fields.lastName.value.trim();
+            const societyName = societyInput.value.trim();
+            const email = fields.email.value.trim();
+            const password = fields.password.value;
+
+            // Double-check society is valid
             if (!allSocieties.includes(societyName)) {
+                showFieldError('society-input', fieldErrors.society);
                 errorEl.textContent = 'Please select a valid society from the list.';
-                errorEl.style.display = 'block';
+                errorEl.classList.add('show');
                 societyInput.focus();
                 return;
             }
 
-            errorEl.style.display = 'none';
             registerBtn.disabled = true;
             registerBtn.textContent = 'Creating account...';
 
@@ -981,7 +1154,7 @@
                 console.error('Registration error:', err);
                 const friendlyMessage = getFriendlyErrorMessage(err.code);
                 errorEl.textContent = friendlyMessage;
-                errorEl.style.display = 'block';
+                errorEl.classList.add('show');
                 registerBtn.disabled = false;
                 registerBtn.textContent = 'Create account';
             }

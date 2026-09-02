@@ -89,6 +89,29 @@
             color: var(--text-600);
             margin-bottom: 4px;
         }
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-900);
+            background: var(--surface);
+            transition: border-color 0.2s;
+        }
+        /* Ensure name inputs also have rounded corners */
+        .name-grid input {
+            border-radius: 8px;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--navy-900);
+            box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
+        }
+        .form-group input::placeholder {
+            color: var(--text-500);
+        }
         /* ---- Society input with browse button ---- */
         .society-row {
             display: flex;
@@ -445,7 +468,7 @@
                     </div>
                 </div>
 
-                <!-- Society input with browse button (no arrow) -->
+                <!-- Society input with browse button -->
                 <div class="form-group">
                     <label for="society-input">Your Society</label>
                     <div class="society-row">

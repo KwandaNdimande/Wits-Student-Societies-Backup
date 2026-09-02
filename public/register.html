@@ -88,8 +88,7 @@
             color: var(--text-600);
             margin-bottom: 4px;
         }
-        .form-group input,
-        .form-group select {
+        .form-group input {
             width: 100%;
             padding: 10px 14px;
             border: 1px solid var(--border);
@@ -100,15 +99,7 @@
             background: var(--surface);
             transition: border-color 0.2s;
         }
-        .form-group select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235A6B87' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 14px center;
-            padding-right: 40px;
-        }
-        .form-group input:focus,
-        .form-group select:focus {
+        .form-group input:focus {
             outline: none;
             border-color: var(--navy-900);
             box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
@@ -186,6 +177,11 @@
             color: var(--text-500);
             padding: 8px 0;
         }
+        /* Override datalist arrow for a cleaner look */
+        input[list]::-webkit-calendar-picker-indicator {
+            opacity: 0.5;
+            cursor: pointer;
+        }
         @media (max-width: 480px) {
             .card {
                 padding: 32px 20px;
@@ -215,12 +211,23 @@
                     </div>
                 </div>
 
-                <!-- Society dropdown -->
+                <!-- Society search input with datalist -->
                 <div class="form-group">
                     <label for="society-name">Your Society</label>
-                    <select id="society-name" required>
-                        <option value="">Loading societies...</option>
-                    </select>
+                    <input
+                        id="society-name"
+                        list="societies-list"
+                        type="text"
+                        placeholder="Type to search your society..."
+                        required
+                        autocomplete="off"
+                    />
+                    <datalist id="societies-list">
+                        <option value="Loading societies...">
+                    </datalist>
+                    <div style="font-size:12px;color:var(--text-500);margin-top:4px;">
+                        Start typing to filter the list of registered societies.
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -229,7 +236,8 @@
                 </div>
                 <div class="form-group">
                     <label for="signup-password">Password</label>
-                    <input id="signup-password" type="password" placeholder="Create a password (min 6 characters)" required />
+                    <!-- Removed "min 6" from placeholder -->
+                    <input id="signup-password" type="password" placeholder="Use a strong password" required />
                 </div>
 
                 <div id="register-error" class="error-message"></div>
@@ -268,11 +276,15 @@
         const db = firebase.firestore();
 
         // DOM references
-        const societySelect = document.getElementById('society-name');
+        const societyInput = document.getElementById('society-name');
+        const datalist = document.getElementById('societies-list');
         const registerBtn = document.getElementById('register-btn');
         const errorEl = document.getElementById('register-error');
 
-        // --- 1. Populate societies dropdown ---
+        // Store society names for validation
+        let validSocietyNames = [];
+
+        // --- 1. Populate datalist with societies ---
         async function loadSocieties() {
             try {
                 const snapshot = await db.collection('societies')
@@ -280,32 +292,28 @@
                     .get();
 
                 if (snapshot.empty) {
-                    societySelect.innerHTML = `
-                        <option value="">No societies available – please contact SGO</option>
-                    `;
+                    datalist.innerHTML = '<option value="No societies available">';
                     registerBtn.disabled = true;
                     return;
                 }
 
-                let options = '<option value="">Select your society...</option>';
+                let options = '';
+                validSocietyNames = [];
                 snapshot.forEach(doc => {
-                    const data = doc.data();
-                    const name = data.name || 'Unnamed';
-                    options += `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+                    const name = doc.data().name || 'Unnamed';
+                    validSocietyNames.push(name);
+                    options += `<option value="${escapeHtml(name)}">`;
                 });
-                societySelect.innerHTML = options;
+                datalist.innerHTML = options;
                 registerBtn.disabled = false;
 
             } catch (error) {
                 console.error('Error loading societies:', error);
-                societySelect.innerHTML = `
-                    <option value="">Error loading societies – please refresh</option>
-                `;
+                datalist.innerHTML = '<option value="Error loading societies">';
                 registerBtn.disabled = true;
             }
         }
 
-        // Simple escape to prevent XSS from society names
         function escapeHtml(str) {
             const div = document.createElement('div');
             div.textContent = str;
@@ -321,13 +329,13 @@
 
             const firstName = document.getElementById('firstName').value.trim();
             const lastName = document.getElementById('lastName').value.trim();
-            const societyName = societySelect.value;
+            const societyName = societyInput.value.trim();
             const email = document.getElementById('signup-email').value.trim();
             const password = document.getElementById('signup-password').value;
 
-            // Validate society selection
-            if (!societyName) {
-                errorEl.textContent = 'Please select your society from the list.';
+            // Validate that the entered society name exactly matches one in the list
+            if (!validSocietyNames.includes(societyName)) {
+                errorEl.textContent = 'Please select a valid society from the list.';
                 errorEl.style.display = 'block';
                 return;
             }
@@ -337,11 +345,10 @@
             registerBtn.textContent = 'Creating account...';
 
             try {
-                // Create user with email/password
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
-                // Generate OTP and store verification
+                // Generate OTP
                 const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
                 const expiresAt = new Date();
                 expiresAt.setMinutes(expiresAt.getMinutes() + 15);
@@ -355,19 +362,18 @@
                     verified: false
                 });
 
-                // Store user data (no society creation – we use existing society)
+                // Store user data
                 await db.collection('users').doc(user.uid).set({
                     uid: user.uid,
                     email: email,
                     firstName: firstName,
                     lastName: lastName,
-                    societyName: societyName,     // selected from dropdown
+                    societyName: societyName,
                     role: 'leader',
                     isEmailVerified: false,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                // Save pending data for OTP verification
                 localStorage.setItem('pendingUserId', user.uid);
                 localStorage.setItem('pendingUserEmail', email);
                 localStorage.setItem('pendingUserName', firstName + ' ' + lastName);
@@ -378,9 +384,9 @@
                 console.log('Expires at:', expiresAt.toLocaleTimeString());
                 console.log('=========================================');
 
-                // Try to send verification email (optional)
+                // Optional: send email
                 try {
-                    const emailResponse = await fetch('/api/send-verification-email', {
+                    await fetch('/api/send-verification-email', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -389,18 +395,15 @@
                             name: firstName + ' ' + lastName
                         }),
                     });
-                    if (!emailResponse.ok) console.error('Failed to send verification email');
                 } catch (emailError) {
                     console.error('Email sending error:', emailError);
                 }
 
-                // Sign out the user (they need to verify first)
                 await auth.signOut();
 
                 registerBtn.textContent = '✅ Check your email!';
                 registerBtn.style.background = '#28a745';
 
-                // Redirect to OTP verification page
                 setTimeout(() => {
                     window.location.href = '/verify-otp.html';
                 }, 1500);

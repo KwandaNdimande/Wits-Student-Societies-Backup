@@ -111,7 +111,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
-            min-width: 900px;
+            min-width: 950px;
         }
         thead {
             background: #FAFBFD;
@@ -220,6 +220,24 @@
         }
         .btn-delete:hover {
             background: var(--danger);
+            color: #fff;
+        }
+        /* ===== Reverse button ===== */
+        .btn-reverse {
+            font-size: 12px;
+            color: #E65100;
+            background: none;
+            border: 1px solid #E65100;
+            border-radius: 6px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+            margin-right: 4px;
+        }
+        .btn-reverse:hover {
+            background: #E65100;
             color: #fff;
         }
         .empty-state {
@@ -448,6 +466,42 @@
             outline: none;
             border-color: var(--navy-900);
         }
+        .modal-body .request-info {
+            background: #FAFBFD;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+        .modal-body .request-info .info-row {
+            display: flex;
+            padding: 4px 0;
+            font-size: 14px;
+        }
+        .modal-body .request-info .info-row .label {
+            font-weight: 600;
+            color: var(--text-500);
+            min-width: 110px;
+        }
+        .modal-body .request-info .info-row .value {
+            color: var(--text-900);
+            font-weight: 500;
+        }
+        .modal-body .request-info .info-row .value .status-badge {
+            font-size: 12px;
+        }
+        .modal-body .warning-text {
+            color: #E65100;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-body .warning-text .icon {
+            font-size: 20px;
+        }
         .modal-footer {
             margin-top: 20px;
             padding-top: 16px;
@@ -489,6 +543,13 @@
         }
         .btn-danger:hover {
             background: #a93226;
+        }
+        .btn-warning {
+            background: #E65100;
+            color: #fff;
+        }
+        .btn-warning:hover {
+            background: #BF360C;
         }
 
         /* ================================================================
@@ -643,6 +704,38 @@
             .detail-label {
                 min-width: auto;
             }
+            .modal-body .request-info .info-row {
+                flex-direction: column;
+                gap: 2px;
+            }
+            .modal-body .request-info .info-row .label {
+                min-width: auto;
+            }
+            table {
+                min-width: 700px;
+            }
+        }
+        @media (max-width: 480px) {
+            .btn-reverse {
+                display: block;
+                width: 100%;
+                margin-bottom: 4px;
+                text-align: center;
+            }
+            .btn-view {
+                display: block;
+                width: 100%;
+                margin-bottom: 4px;
+                text-align: center;
+            }
+            .btn-delete {
+                display: block;
+                width: 100%;
+                text-align: center;
+            }
+            td .btn-reverse {
+                margin-right: 0 !important;
+            }
         }
     </style>
 </head>
@@ -692,6 +785,33 @@
             <div class="modal-footer">
                 <button class="btn btn-primary" onclick="submitStatusModal()">Save Status</button>
                 <button class="btn btn-secondary" onclick="closeStatusModal(true)">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================
+         Reverse Decision Modal
+         ================================================================ -->
+    <div class="modal-overlay" id="reverseModal">
+        <div class="modal">
+            <div class="modal-header">
+                <button class="modal-back" onclick="closeReverseModal()">← Back to Requests</button>
+                <h2>⚠️ Reverse Decision</h2>
+            </div>
+            <div class="modal-body" id="reverseModalBody">
+                <div class="warning-text">
+                    <span class="icon">⚠️</span>
+                    Are you sure you want to reverse the decision on this request?
+                </div>
+                <div class="request-info" id="reverseRequestInfo">
+                    <!-- Filled by JavaScript -->
+                </div>
+                <label for="reverseReason">Reason for reversal <span style="color:#C0392B;">*</span></label>
+                <textarea id="reverseReason" placeholder="Explain why this decision is being reversed (required for audit)"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-warning" id="confirmReverseBtn" onclick="confirmReverse()">↩Confirm Reversal</button>
+                <button class="btn btn-secondary" onclick="closeReverseModal()">Cancel</button>
             </div>
         </div>
     </div>

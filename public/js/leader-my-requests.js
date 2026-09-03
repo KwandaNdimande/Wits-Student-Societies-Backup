@@ -319,7 +319,7 @@ function searchRequests() {
 }
 
 // ================================================================
-// RENDER TABLE (UPDATED: hide "View Docs" for Revision Required)
+// RENDER TABLE (UPDATED: removed Amount and Date columns)
 // ================================================================
 
 function renderTable() {
@@ -356,8 +356,6 @@ function renderTable() {
                         <th>#</th>
                         <th>Request</th>
                         <th>Type</th>
-                        <th>Amount</th>
-                        <th>Date</th>
                         <th>Status</th>
                         <th>Action</th>
                     </tr>
@@ -377,8 +375,6 @@ function renderTable() {
                 <td style="color:#6c757d;font-weight:500;">${num}</td>
                 <td class="strong">${r.itemName || r.name || 'Untitled'}</td>
                 <td style="color:#6c757d;">${r.type || 'N/A'}</td>
-                <td>R${r.amount ? r.amount.toLocaleString() : '0'}</td>
-                <td style="color:#6c757d;">${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
                 <td>
                     <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
                     ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">${r.officerComment}</span>` : ''}
@@ -387,7 +383,6 @@ function renderTable() {
                     <button class="btn-action btn-details" onclick="openDetailView('${r.id}')" style="margin-right:6px;">
                         Details
                     </button>
-                    <!-- Hide "View Docs" for Revision Required -->
                     ${!isRevision && hasDocs
                         ? `<button class="btn-action btn-docs" onclick="viewLeaderDocuments('${r.id}')" style="margin-right:6px;">View Docs</button>`
                         : (!isRevision && !hasDocs ? `<button class="btn-action btn-no-docs" style="margin-right:6px;" disabled>No Docs</button>` : '')
@@ -442,7 +437,7 @@ function changePage(page) {
 }
 
 // ================================================================
-// OPEN DETAIL VIEW (UPDATED: hide View/Download for Revision Required)
+// OPEN DETAIL VIEW (unchanged, still includes Amount & Date)
 // ================================================================
 
 function openDetailView(requestId) {
@@ -473,7 +468,6 @@ function openDetailView(requestId) {
         if (!info.path) {
             return `<div class="doc-item"><strong>${label}</strong><div>No file uploaded</div></div>`;
         }
-        // For Revision Required, show only the file name (no buttons)
         if (isRevision) {
             return `
                 <div class="doc-item">

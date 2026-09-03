@@ -50,6 +50,29 @@ const docLabels = {
 };
 
 // ================================================================
+// HELPER: Get timestamp in milliseconds from any format
+// ================================================================
+function getTimestampMs(timestamp) {
+    if (!timestamp) return 0;
+    if (typeof timestamp === 'number') return timestamp;
+    if (typeof timestamp.toMillis === 'function') return timestamp.toMillis();
+    if (typeof timestamp.toDate === 'function') return timestamp.toDate().getTime();
+    if (typeof timestamp === 'string') return Date.parse(timestamp) || 0;
+    if (timestamp.seconds) return timestamp.seconds * 1000 + Math.round((timestamp.nanoseconds || 0) / 1e6);
+    return 0;
+}
+
+// ================================================================
+// HELPER: Format timestamp to readable string
+// ================================================================
+function formatTimestamp(timestamp) {
+    if (!timestamp) return 'Unknown time';
+    const ms = getTimestampMs(timestamp);
+    if (ms === 0) return 'Unknown time';
+    return new Date(ms).toLocaleString();
+}
+
+// ================================================================
 // VIEW FILE IN NEW TAB (PUBLIC BUCKET)
 // ================================================================
 
@@ -157,7 +180,7 @@ async function viewLeaderDocuments(requestId) {
                         <div class="doc-detail">${info.name}</div>
                         <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
                             <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
-                            <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
+                            <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">Download</button>
                         </div>
                     </div>
                 `;
@@ -195,14 +218,6 @@ async function loadRequests() {
 }
 
 // Notification helpers
-function getTimestampMs(timestamp) {
-    if (!timestamp) return 0;
-    if (typeof timestamp === 'number') return timestamp;
-    if (typeof timestamp.toMillis === 'function') return timestamp.toMillis();
-    if (timestamp.seconds) return timestamp.seconds * 1000 + Math.round((timestamp.nanoseconds || 0) / 1e6);
-    return Date.parse(timestamp) || 0;
-}
-
 function initLeaderNotificationBell() {
     const navLinks = document.querySelector('.nav-links');
     if (!navLinks || navLinks.querySelector('.nav-bell')) return;
@@ -319,7 +334,7 @@ function searchRequests() {
 }
 
 // ================================================================
-// RENDER TABLE (UPDATED: removed Amount and Date columns)
+// RENDER TABLE (removed Amount and Date columns)
 // ================================================================
 
 function renderTable() {
@@ -437,7 +452,7 @@ function changePage(page) {
 }
 
 // ================================================================
-// OPEN DETAIL VIEW (unchanged, still includes Amount & Date)
+// OPEN DETAIL VIEW
 // ================================================================
 
 function openDetailView(requestId) {
@@ -482,12 +497,16 @@ function openDetailView(requestId) {
                     <div>${info.name}</div>
                     <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
                         <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
-                        <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
+                        <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">Download</button>
                     </div>
                 </div>
             `;
         }
     }).join('');
+
+    // Build timeline HTML with reversal support
+    const history = request.statusHistory || [];
+    const historyHtml = getRequestHistoryHtml(history);
 
     document.getElementById('detailBody').innerHTML = `
         <div class="detail-row"><div class="detail-label">Request Type</div><div class="detail-value">${request.type || 'N/A'}</div></div>
@@ -497,6 +516,7 @@ function openDetailView(requestId) {
         ${officerComment}
         ${leaderComment}
         <div class="detail-docs"><h3 style="font-size:15px;color:var(--text-600);margin-bottom:10px;">Documents</h3>${docsHtml}</div>
+        ${historyHtml}
     `;
 }
 
@@ -504,6 +524,55 @@ function closeDetailView() {
     document.getElementById('request-detail-view').classList.add('hidden');
     document.getElementById('requests-container').classList.remove('hidden');
     document.getElementById('controls').classList.remove('hidden');
+}
+
+// ================================================================
+// ACTIVITY TIMELINE (with reversal support for leaders)
+// ================================================================
+
+function getRequestHistoryHtml(history = []) {
+    if (!Array.isArray(history) || history.length === 0) {
+        return `<div style="margin-top:16px;padding:16px 0;color:var(--text-500);font-size:13px;">No activity history yet.</div>`;
+    }
+
+    // Sort by timestamp descending (most recent first)
+    const sortedHistory = [...history].sort((a, b) => {
+        const aTime = getTimestampMs(a.timestamp);
+        const bTime = getTimestampMs(b.timestamp);
+        return bTime - aTime;
+    });
+
+    return `
+        <div style="margin-top:16px;">
+            <h3 style="font-size:15px;color:var(--navy-900);margin-bottom:12px;">Activity Timeline</h3>
+            ${sortedHistory.map(entry => {
+                const when = formatTimestamp(entry.timestamp);
+                let statusLabel = entry.status || 'Status changed';
+                // Check if this is a reversal entry
+                if (entry.isReversal) {
+                    statusLabel = `Reversed to ${entry.status}`;
+                }
+                // Check if this is a deletion entry
+                if (entry.isDeletion) {
+                    statusLabel = 'Request deleted';
+                }
+                return `
+                    <div style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;margin-bottom:12px;background:#FAFBFD;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+                            <span style="font-weight:600;color:var(--text-900);">${statusLabel}</span>
+                            <span style="font-size:12px;color:var(--text-500);">${when}</span>
+                        </div>
+                        <div style="margin-top:8px;font-size:13px;color:var(--text-600);">
+                            ${entry.actorName || 'Officer'} · ${entry.actorRole || 'officer'}
+                        </div>
+                        ${entry.note ? `<div style="margin-top:8px;font-size:13px;color:var(--text-600);">${entry.note}</div>` : ''}
+                        ${entry.isReversal ? `<div style="margin-top:8px;font-size:12px;color:#E65100;font-style:italic;">Reversal reason: ${entry.note || 'No reason provided'}</div>` : ''}
+                        ${entry.isDeletion ? `<div style="margin-top:8px;font-size:12px;color:#E65100;font-style:italic;">Deletion reason: ${entry.note || 'No reason provided'}</div>` : ''}
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
 }
 
 // ============ UPDATE DOCUMENTS MODAL (with View button) ============
@@ -538,7 +607,7 @@ async function openUpdateModal(requestId) {
 
         modalBody += `
             <p style="color:#E65100;font-size:14px;margin-bottom:20px;background:#FFF3E0;padding:12px 16px;border-radius:8px;border-left:4px solid #E65100;">
-                ⚠️ Please upload corrected documents below. All files must be in the correct format.
+                Please upload corrected documents below. All files must be in the correct format.
             </p>
         `;
 
@@ -698,7 +767,7 @@ async function submitUpdate() {
         if (!user) throw new Error('User not logged in.');
         const firebaseToken = await user.getIdToken();
 
-        // 1. Upload new files (only for fields that have a new file)
+        // 1. Upload new files
         const uploadFile = async (file, key) => {
             if (!file) return null;
             const timestamp = Date.now();
@@ -741,7 +810,7 @@ async function submitUpdate() {
             return;
         }
 
-        // 2. If uploads succeeded, delete old files for the fields that were updated
+        // 2. Delete old files
         const oldPathsToDelete = [];
         for (const key of ['budgetForm', 'meetingMinutes', 'vendorQuotation']) {
             if (newPaths[key]) {
@@ -773,7 +842,7 @@ async function submitUpdate() {
 
         closeUpdateModal();
         loadRequests();
-        alert('✅ Documents updated successfully. Your request has been resubmitted for review.');
+        alert('Documents updated successfully. Your request has been resubmitted for review.');
     } catch (error) {
         console.error('Error updating documents:', error);
         alert('Error updating documents. ' + error.message);
@@ -818,26 +887,21 @@ async function deleteRequest(requestId) {
         if (documents.meetingMinutes) filePaths.push(documents.meetingMinutes);
         if (documents.vendorQuotation) filePaths.push(documents.vendorQuotation);
 
-        console.log('🔍 File paths to delete:', filePaths);
-
         if (filePaths.length > 0) {
             const { data, error } = await window.supabaseClient.storage
                 .from('documents')
                 .remove(filePaths);
-            console.log('Delete response:', { data, error });
             if (error) {
-                console.error('❌ Error deleting files from Supabase:', error);
-                alert('⚠️ Failed to delete some files from storage. Check console for details.');
-            } else {
-                console.log('✅ Files successfully deleted:', data);
+                console.error('Error deleting files from Supabase:', error);
+                alert('Failed to delete some files from storage. Check console for details.');
             }
         }
 
         await docRef.delete();
         loadRequests();
-        alert('✅ Request deleted successfully.');
+        alert('Request deleted successfully.');
     } catch (error) {
-        console.error('❌ Error deleting request:', error);
+        console.error('Error deleting request:', error);
         alert('Error deleting request. ' + error.message);
     }
 }

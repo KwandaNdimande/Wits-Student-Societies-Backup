@@ -54,6 +54,7 @@ const statusOptions = ["Submitted", "Under Review", "Revision Required", "Approv
 let pendingStatusUpdate = null;
 let pendingReverseRequestId = null;
 let pendingDeleteRequestId = null;
+let pendingPermanentDeleteId = null;
 
 // ================================================================
 // HELPER: Get timestamp in milliseconds from any format
@@ -295,7 +296,7 @@ function changePage(page) {
 }
 
 // ================================================================
-// RENDER DELETED TABLE (simplified: #, Society, Request, Type, Action)
+// RENDER DELETED TABLE (with Permanently Delete button)
 // ================================================================
 
 function renderDeletedTable() {
@@ -344,6 +345,7 @@ function renderDeletedTable() {
                 <td style="color:#6c757d;">${r.originalData?.type || 'N/A'}</td>
                 <td>
                     <button class="btn-view" onclick="viewDeletedRequestDetails('${r.id}')">View</button>
+                    <button class="btn-delete" onclick="openPermanentDeleteModal('${r.id}')">Permanently Delete</button>
                 </td>
             </tr>
         `;
@@ -1098,6 +1100,102 @@ function confirmDelete() {
 }
 
 // ================================================================
+// PERMANENT DELETE FUNCTIONS
+// ================================================================
+
+function openPermanentDeleteModal(deletedId) {
+    const request = deletedRequests.find(r => r.id === deletedId);
+    if (!request) {
+        alert('Deleted request not found.');
+        return;
+    }
+
+    pendingPermanentDeleteId = deletedId;
+
+    const infoHtml = `
+        <div class="info-row">
+            <span class="label">Society</span>
+            <span class="value">${request.societyName || 'Unknown'}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Request</span>
+            <span class="value">${request.requestName || request.originalData?.itemName || 'Untitled'}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Deleted By</span>
+            <span class="value">${request.deletedBy || 'Unknown'}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Deleted At</span>
+            <span class="value">${formatTimestamp(request.deletedAt)}</span>
+        </div>
+    `;
+
+    document.getElementById('permanentDeleteRequestInfo').innerHTML = infoHtml;
+    document.getElementById('permanentDeleteConfirm').value = '';
+    document.getElementById('permanentDeleteError').style.display = 'none';
+    document.getElementById('confirmPermanentDeleteBtn').disabled = true;
+    document.getElementById('permanentDeleteModal').classList.add('active');
+    document.getElementById('permanentDeleteConfirm').focus();
+
+    const input = document.getElementById('permanentDeleteConfirm');
+    const btn = document.getElementById('confirmPermanentDeleteBtn');
+    const errorEl = document.getElementById('permanentDeleteError');
+
+    input.oninput = function() {
+        if (this.value === 'DELETE') {
+            btn.disabled = false;
+            errorEl.style.display = 'none';
+        } else {
+            btn.disabled = true;
+            errorEl.style.display = 'none';
+        }
+    };
+}
+
+function closePermanentDeleteModal() {
+    document.getElementById('permanentDeleteModal').classList.remove('active');
+    pendingPermanentDeleteId = null;
+    document.getElementById('permanentDeleteConfirm').value = '';
+    document.getElementById('confirmPermanentDeleteBtn').disabled = true;
+    document.getElementById('permanentDeleteError').style.display = 'none';
+}
+
+function confirmPermanentDelete() {
+    const input = document.getElementById('permanentDeleteConfirm');
+    const errorEl = document.getElementById('permanentDeleteError');
+
+    if (input.value !== 'DELETE') {
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    if (!pendingPermanentDeleteId) {
+        alert('No request selected.');
+        return;
+    }
+
+    const btn = document.getElementById('confirmPermanentDeleteBtn');
+    btn.disabled = true;
+    btn.textContent = 'Deleting...';
+
+    db.collection('deletedRequests').doc(pendingPermanentDeleteId).delete()
+        .then(() => {
+            closePermanentDeleteModal();
+            loadDeletedRequests();
+            alert('Request permanently deleted from the system.');
+        })
+        .catch(error => {
+            console.error('Error permanently deleting request:', error);
+            alert('Error permanently deleting request: ' + error.message);
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.textContent = 'Permanently Delete';
+        });
+}
+
+// ================================================================
 // STATUS UPDATE FUNCTIONS
 // ================================================================
 
@@ -1318,6 +1416,12 @@ document.getElementById('reverseModal').addEventListener('click', function(e) {
 document.getElementById('deleteModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeDeleteModal();
+    }
+});
+
+document.getElementById('permanentDeleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closePermanentDeleteModal();
     }
 });
 

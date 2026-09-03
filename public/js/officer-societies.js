@@ -359,9 +359,10 @@ async function openEditSociety(societyId) {
                     <option value="">Category...</option>
                     <option value="Academic" ${s.category === 'Academic' ? 'selected' : ''}>Academic</option>
                     <option value="Cultural" ${s.category === 'Cultural' ? 'selected' : ''}>Cultural</option>
-                    <option value="Sports" ${s.category === 'Sports' ? 'selected' : ''}>Sports</option>
+                    <option value="Social" ${s.category === 'Social' ? 'selected' : ''}>Social</option>
                     <option value="Religious" ${s.category === 'Religious' ? 'selected' : ''}>Religious</option>
-                    <option value="Other" ${s.category === 'Other' ? 'selected' : ''}>Other</option>
+                    <option value="Political" ${s.category === 'Political' ? 'selected' : ''}>Political</option>
+                    <option value="Business" ${s.category === 'Business' ? 'selected' : ''}>Business & Entrepreneur</option>
                 </select>
                 <input id="edit-soc-email" placeholder="Contact Email" value="${escapeHtml(s.email || '')}" />
                 <textarea id="edit-soc-description" placeholder="Short description">${escapeHtml(s.description || '')}</textarea>

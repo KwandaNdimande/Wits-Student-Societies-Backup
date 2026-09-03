@@ -570,7 +570,7 @@ async function viewUpdatedDocuments(requestId) {
     }
 }
 
-// ============ REQUEST DETAIL VIEW (FIXED) ============
+// ============ REQUEST DETAIL VIEW (FIXED - CLEAN LAYOUT) ============
 
 function showRequestDetails(requestId) {
     return viewRequestDetails(requestId);
@@ -610,8 +610,8 @@ async function viewRequestDetails(requestId) {
             if (!doc) {
                 return `
                     <div class="doc-item">
-                        <div class="doc-name">${docLabels[key] || key}</div>
-                        <div class="doc-detail">No file uploaded</div>
+                        <span class="doc-name">${docLabels[key] || key}</span>
+                        <span class="doc-detail">No file uploaded</span>
                     </div>
                 `;
             }
@@ -619,15 +619,15 @@ async function viewRequestDetails(requestId) {
             if (!info.path) {
                 return `
                     <div class="doc-item">
-                        <div class="doc-name">${docLabels[key] || key}</div>
-                        <div class="doc-detail">${info.name || 'File not found'}</div>
+                        <span class="doc-name">${docLabels[key] || key}</span>
+                        <span class="doc-detail">${info.name || 'File not found'}</span>
                     </div>
                 `;
             }
             return `
                 <div class="doc-item">
-                    <div class="doc-name">${docLabels[key] || key}</div>
-                    <div class="doc-detail">${info.name}</div>
+                    <span class="doc-name">${docLabels[key] || key}</span>
+                    <span class="doc-detail">${info.name}</span>
                     <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
                         <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
                         <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
@@ -636,19 +636,27 @@ async function viewRequestDetails(requestId) {
             `;
         }).join('');
 
+        // Build details rows
+        const detailRows = `
+            <div class="detail-row"><span class="detail-label">Request Type</span><span class="detail-value">${type}</span></div>
+            <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${amount}</span></div>
+            <div class="detail-row"><span class="detail-label">Submitted</span><span class="detail-value">${submittedAt}</span></div>
+            <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">${description}</span></div>
+        `;
+
         // Officer comment
         const officerCommentHtml = officerComment ? `
-            <div style="background:#FFF3E0;padding:12px 16px;border-radius:8px;margin-bottom:16px;border-left:4px solid #E65100;">
-                <strong style="color:#E65100;font-size:13px;">Officer's Feedback</strong>
-                <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${officerComment}</p>
+            <div class="detail-row" style="background:#FFF3E0;padding:8px 12px;border-radius:6px;margin-bottom:12px;border-left:4px solid #E65100;">
+                <span class="detail-label" style="font-weight:600;color:#E65100;">Officer Feedback</span>
+                <span class="detail-value">${officerComment}</span>
             </div>
         ` : '';
 
         // Leader comment
         const leaderCommentHtml = leaderComment ? `
-            <div style="background:#E3F2FD;padding:12px 16px;border-radius:8px;margin-bottom:16px;border-left:4px solid #0D47A1;">
-                <strong style="color:#0D47A1;font-size:13px;">Leader's Note</strong>
-                <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${leaderComment}</p>
+            <div class="detail-row" style="background:#E3F2FD;padding:8px 12px;border-radius:6px;margin-bottom:12px;border-left:4px solid #0D47A1;">
+                <span class="detail-label" style="font-weight:600;color:#0D47A1;">Leader's Note</span>
+                <span class="detail-value">${leaderComment}</span>
             </div>
         ` : '';
 
@@ -664,14 +672,8 @@ async function viewRequestDetails(requestId) {
                     <span class="status-badge ${statusColors[status] || 'status-submitted'}">${status}</span>
                 </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
-                <div><strong>Request Type</strong><div style="margin-top:4px;color:var(--text-600);">${type}</div></div>
-                <div><strong>Amount</strong><div style="margin-top:4px;color:var(--text-600);">${amount}</div></div>
-                <div><strong>Submitted</strong><div style="margin-top:4px;color:var(--text-600);">${submittedAt}</div></div>
-            </div>
             <div style="margin-bottom:16px;">
-                <strong>Description</strong>
-                <div style="margin-top:4px;color:var(--text-600);">${description}</div>
+                ${detailRows}
             </div>
             ${officerCommentHtml}
             ${leaderCommentHtml}
@@ -686,6 +688,60 @@ async function viewRequestDetails(requestId) {
         document.getElementById('modalTitle').textContent = `Request Details - ${itemName}`;
         document.getElementById('modalBody').innerHTML = modalBody;
         document.getElementById('docModal').classList.add('active');
+
+        // Apply detail-row styles inline if not already present in CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            .detail-row {
+                display: flex;
+                padding: 6px 0;
+                border-bottom: 1px solid #f0f0f0;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .detail-row:last-child {
+                border-bottom: none;
+            }
+            .detail-label {
+                font-weight: 600;
+                color: var(--text-600);
+                min-width: 120px;
+                flex-shrink: 0;
+            }
+            .detail-value {
+                color: var(--text-900);
+                flex: 1;
+                word-break: break-word;
+            }
+            .doc-item {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 12px;
+                padding: 10px 14px;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                margin-bottom: 10px;
+                background: #FAFBFD;
+            }
+            .doc-item .doc-name {
+                font-weight: 600;
+                color: var(--text-900);
+                min-width: 140px;
+                font-size: 14px;
+            }
+            .doc-item .doc-detail {
+                color: var(--text-500);
+                font-size: 13px;
+                flex: 1;
+                word-break: break-word;
+            }
+        `;
+        // Only add if not already present
+        if (!document.getElementById('detail-view-styles')) {
+            style.id = 'detail-view-styles';
+            document.head.appendChild(style);
+        }
 
     } catch (error) {
         console.error('Error viewing request details:', error);

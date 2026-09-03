@@ -211,6 +211,75 @@ app.get('/', (req, res) => {
 
 // ============ API ROUTES ============
 
+// Helper function to validate email format
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// Helper function to validate executive committee structure
+function validateExecCommittee(execCommittee) {
+  if (!execCommittee || typeof execCommittee !== 'object') {
+    return { valid: false, error: 'Executive committee must be an object' };
+  }
+
+  const requiredPortfolios = ['chairperson', 'deputyChairperson', 'treasurer', 'secretary', 'organiser'];
+  
+  for (const portfolio of requiredPortfolios) {
+    const portfolioData = execCommittee[portfolio];
+    
+    if (!portfolioData) {
+      return { valid: false, error: `${portfolio} is missing` };
+    }
+
+    const name = portfolioData.name || '';
+    const email = portfolioData.email || '';
+
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      return { valid: false, error: `${portfolio} name is required` };
+    }
+
+    if (!email || typeof email !== 'string' || email.trim() === '') {
+      return { valid: false, error: `${portfolio} email is required` };
+    }
+
+    if (!isValidEmail(email)) {
+      return { valid: false, error: `${portfolio} email is invalid` };
+    }
+  }
+
+  // Validate otherPortfolios if they exist
+  if (execCommittee.otherPortfolios && Array.isArray(execCommittee.otherPortfolios)) {
+    for (let i = 0; i < execCommittee.otherPortfolios.length; i++) {
+      const portfolio = execCommittee.otherPortfolios[i];
+      
+      const title = portfolio.title || '';
+      const name = portfolio.name || '';
+      const email = portfolio.email || '';
+
+      if (!title || typeof title !== 'string' || title.trim() === '') {
+        return { valid: false, error: `Other portfolio ${i + 1} title is required` };
+      }
+
+      if (!name || typeof name !== 'string' || name.trim() === '') {
+        return { valid: false, error: `Other portfolio ${i + 1} member name is required` };
+      }
+
+      if (!email || typeof email !== 'string' || email.trim() === '') {
+        return { valid: false, error: `Other portfolio ${i + 1} member email is required` };
+      }
+
+      if (!isValidEmail(email)) {
+        return { valid: false, error: `Other portfolio ${i + 1} member email is invalid` };
+      }
+    }
+  }
+
+  return { valid: true };
+}
+
+// ============ API ROUTES ============
+
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -346,26 +415,38 @@ app.post('/api/societies', async (req, res) => {
       description,
       category,
       contactEmail,
-      website
+      website,
+      email,
+      execCommittee
     } = req.body;
 
 
-    if (!name || !description) {
+    if (!name || !category || !email) {
 
       return res.status(400).json({
-        error: 'Name and description are required'
+        error: 'Name, category, and email are required'
       });
 
     }
 
+    // Validate executive committee if provided
+    if (execCommittee) {
+      const validation = validateExecCommittee(execCommittee);
+      if (!validation.valid) {
+        return res.status(400).json({
+          error: 'Invalid executive committee: ' + validation.error
+        });
+      }
+    }
 
     const newSociety = {
 
       name,
-      description,
-      category: category || 'General',
-      contactEmail: contactEmail || '',
+      description: description || '',
+      category,
+      email,
       website: website || '',
+      execCommittee: execCommittee || {},
 
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -400,18 +481,37 @@ app.put('/api/societies/:id', async (req, res) => {
 
   try {
 
-    const updateData = {
+    const {
+      name,
+      description,
+      category,
+      email,
+      website,
+      execCommittee
+    } = req.body;
 
-      name: req.body.name,
-      description: req.body.description,
-      category: req.body.category || 'General',
-      contactEmail: req.body.contactEmail || '',
-      website: req.body.website || '',
+    // Validate executive committee if provided
+    if (execCommittee) {
+      const validation = validateExecCommittee(execCommittee);
+      if (!validation.valid) {
+        return res.status(400).json({
+          error: 'Invalid executive committee: ' + validation.error
+        });
+      }
+    }
+
+    const updateData = {
 
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
 
     };
 
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (category !== undefined) updateData.category = category;
+    if (email !== undefined) updateData.email = email;
+    if (website !== undefined) updateData.website = website;
+    if (execCommittee !== undefined) updateData.execCommittee = execCommittee;
 
     await db.collection('societies')
       .doc(req.params.id)

@@ -154,6 +154,79 @@
             color: var(--text-900);
             font-size: 13px;
         }
+        .req-asterisk {
+            color: var(--danger);
+            font-weight: 700;
+        }
+        .field-error {
+            color: var(--danger);
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+        .field-error.show {
+            display: block;
+        }
+        .input-error {
+            border-color: var(--danger) !important;
+            box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15) !important;
+        }
+        .other-portfolios-section {
+            grid-column: 1 / -1;
+            padding: 12px;
+            background: #f9fafb;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 12px 0;
+        }
+        .portfolio-item {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 10px 12px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .portfolio-item-content {
+            flex: 1;
+            display: flex;
+            gap: 16px;
+        }
+        .portfolio-item-field {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        .portfolio-item-field label {
+            font-size: 11px;
+            color: var(--text-500);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        .portfolio-item-field span {
+            color: var(--text-900);
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .btn-remove-portfolio {
+            padding: 6px 12px;
+            background: var(--danger);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn-remove-portfolio:hover {
+            background: #922b21;
+        }
         .btn-add {
             font-family: 'Inter', sans-serif;
             font-size: 14px;
@@ -611,26 +684,50 @@
 
                 <div class="exec-grid">
                     <div class="exec-col">
-                        <strong>Chairperson</strong>
+                        <strong>Chairperson <span class="req-asterisk">*</span></strong>
                         <input id="chairperson-name" placeholder="Chairperson Name" />
                         <input id="chairperson-email" placeholder="Chairperson Email" />
+                        <div class="field-error" id="chairperson-error"></div>
                     </div>
                     <div class="exec-col">
-                        <strong>Deputy Chairperson</strong>
+                        <strong>Deputy Chairperson <span class="req-asterisk">*</span></strong>
                         <input id="deputychairperson-name" placeholder="Deputy Chairperson Name" />
                         <input id="deputychairperson-email" placeholder="Deputy Chairperson Email" />
+                        <div class="field-error" id="deputychairperson-error"></div>
                     </div>
                     <div class="exec-col">
-                        <strong>Treasurer</strong>
+                        <strong>Treasurer <span class="req-asterisk">*</span></strong>
                         <input id="treasurer-name" placeholder="Treasurer Name" />
                         <input id="treasurer-email" placeholder="Treasurer Email" />
+                        <div class="field-error" id="treasurer-error"></div>
                     </div>
                     <div class="exec-col">
-                        <strong>Secretary</strong>
+                        <strong>Secretary <span class="req-asterisk">*</span></strong>
                         <input id="secretary-name" placeholder="Secretary Name" />
                         <input id="secretary-email" placeholder="Secretary Email" />
+                        <div class="field-error" id="secretary-error"></div>
+                    </div>
+                    <div class="exec-col">
+                        <strong>Organiser <span class="req-asterisk">*</span></strong>
+                        <input id="organiser-name" placeholder="Organiser Name" />
+                        <input id="organiser-email" placeholder="Organiser Email" />
+                        <div class="field-error" id="organiser-error"></div>
                     </div>
                 </div>
+
+                <div class="other-portfolios-section">
+                    <div style="margin-bottom: 12px;">
+                        <strong style="color: var(--text-900); font-size: 14px;">Optional: Add Other Portfolios</strong>
+                    </div>
+                    <div id="other-portfolios-add" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                        <input id="other-portfolio-title" placeholder="Portfolio Title" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
+                        <input id="other-portfolio-name" placeholder="Member Name" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
+                        <input id="other-portfolio-email" placeholder="Member Email" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
+                        <button type="button" onclick="addOtherPortfolio()" style="padding: 10px 20px; background: var(--blue-600); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">Add</button>
+                    </div>
+                    <div id="other-portfolios-list"></div>
+                </div>
+
                 <button class="btn-add" onclick="addSociety()">Add Society</button>
             </div>
         </div>

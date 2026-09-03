@@ -31,6 +31,127 @@ let allSocieties = [];
 let filteredSocieties = [];
 let currentPage = 1;
 const pageSize = 5;
+let otherPortfolios = []; // Store other portfolios for the add form
+let editingOtherPortfolios = []; // Store other portfolios for the edit form
+
+// ================================================================
+// VALIDATION HELPERS
+// ================================================================
+
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+function showFieldError(fieldName, message) {
+    const errorEl = document.getElementById(`${fieldName}-error`);
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.classList.add('show');
+    }
+    const inputEl = document.getElementById(fieldName);
+    if (inputEl) {
+        inputEl.classList.add('input-error');
+    }
+}
+
+function hideFieldError(fieldName) {
+    const errorEl = document.getElementById(`${fieldName}-error`);
+    if (errorEl) {
+        errorEl.classList.remove('show');
+        errorEl.textContent = '';
+    }
+    const inputEl = document.getElementById(fieldName);
+    if (inputEl) {
+        inputEl.classList.remove('input-error');
+    }
+}
+
+function validateKeyPortfolios() {
+    const requiredPortfolios = [
+        { id: 'chairperson', label: 'Chairperson' },
+        { id: 'deputychairperson', label: 'Deputy Chairperson' },
+        { id: 'treasurer', label: 'Treasurer' },
+        { id: 'secretary', label: 'Secretary' },
+        { id: 'organiser', label: 'Organiser' }
+    ];
+
+    let isValid = true;
+
+    requiredPortfolios.forEach(portfolio => {
+        const nameInput = document.getElementById(`${portfolio.id}-name`);
+        const emailInput = document.getElementById(`${portfolio.id}-email`);
+        
+        if (!nameInput || !emailInput) return;
+
+        const name = nameInput.value.trim();
+        const email = emailInput.value.trim();
+
+        // Check name
+        if (!name) {
+            showFieldError(`${portfolio.id}-name`, `${portfolio.label} name is required`);
+            isValid = false;
+        } else {
+            hideFieldError(`${portfolio.id}-name`);
+        }
+
+        // Check email
+        if (!email) {
+            showFieldError(`${portfolio.id}-email`, `${portfolio.label} email is required`);
+            isValid = false;
+        } else if (!isValidEmail(email)) {
+            showFieldError(`${portfolio.id}-email`, `${portfolio.label} email is invalid`);
+            isValid = false;
+        } else {
+            hideFieldError(`${portfolio.id}-email`);
+        }
+    });
+
+    return isValid;
+}
+
+function validateEditKeyPortfolios() {
+    const requiredPortfolios = [
+        { id: 'edit-chairperson', label: 'Chairperson' },
+        { id: 'edit-deputychairperson', label: 'Deputy Chairperson' },
+        { id: 'edit-treasurer', label: 'Treasurer' },
+        { id: 'edit-secretary', label: 'Secretary' },
+        { id: 'edit-organiser', label: 'Organiser' }
+    ];
+
+    let isValid = true;
+
+    requiredPortfolios.forEach(portfolio => {
+        const nameInput = document.getElementById(`${portfolio.id}-name`);
+        const emailInput = document.getElementById(`${portfolio.id}-email`);
+        
+        if (!nameInput || !emailInput) return;
+
+        const name = nameInput.value.trim();
+        const email = emailInput.value.trim();
+
+        // Check name
+        if (!name) {
+            showFieldError(`${portfolio.id}-name`, `${portfolio.label} name is required`);
+            isValid = false;
+        } else {
+            hideFieldError(`${portfolio.id}-name`);
+        }
+
+        // Check email
+        if (!email) {
+            showFieldError(`${portfolio.id}-email`, `${portfolio.label} email is required`);
+            isValid = false;
+        } else if (!isValidEmail(email)) {
+            showFieldError(`${portfolio.id}-email`, `${portfolio.label} email is invalid`);
+            isValid = false;
+        } else {
+            hideFieldError(`${portfolio.id}-email`);
+        }
+    });
+
+    return isValid;
+}
 
 // Load societies
 async function loadSocieties() {
@@ -69,6 +190,9 @@ function searchSocieties() {
             (s.execCommittee && (
                 (s.execCommittee.chairperson && (s.execCommittee.chairperson.name || '').toLowerCase().includes(searchTerm)) ||
                 (s.execCommittee.chairperson && (s.execCommittee.chairperson.email || '').toLowerCase().includes(searchTerm)) ||
+                (s.execCommittee.deputyChairperson && (s.execCommittee.deputyChairperson.name || '').toLowerCase().includes(searchTerm)) ||
+                (s.execCommittee.deputyChairperson && (s.execCommittee.deputyChairperson.email || '').toLowerCase().includes(searchTerm)) ||
+                // Backward compatibility for old key name
                 (s.execCommittee.deputychairperson && (s.execCommittee.deputychairperson.name || '').toLowerCase().includes(searchTerm)) ||
                 (s.execCommittee.deputychairperson && (s.execCommittee.deputychairperson.email || '').toLowerCase().includes(searchTerm))
             ))
@@ -183,6 +307,142 @@ function changePage(page) {
 }
 
 // ================================================================
+// OTHER PORTFOLIOS MANAGEMENT (ADD FORM)
+// ================================================================
+
+function addOtherPortfolio() {
+    const title = document.getElementById('other-portfolio-title')?.value.trim();
+    const name = document.getElementById('other-portfolio-name')?.value.trim();
+    const email = document.getElementById('other-portfolio-email')?.value.trim();
+
+    if (!title || !name || !email) {
+        alert('Please fill in all portfolio fields.');
+        return;
+    }
+
+    if (!isValidEmail(email)) {
+        alert('Please enter a valid email for the portfolio.');
+        return;
+    }
+
+    otherPortfolios.push({ title, name, email });
+
+    // Clear inputs
+    document.getElementById('other-portfolio-title').value = '';
+    document.getElementById('other-portfolio-name').value = '';
+    document.getElementById('other-portfolio-email').value = '';
+
+    renderOtherPortfolios();
+}
+
+function removeOtherPortfolio(index) {
+    otherPortfolios.splice(index, 1);
+    renderOtherPortfolios();
+}
+
+function renderOtherPortfolios() {
+    const container = document.getElementById('other-portfolios-list');
+    if (otherPortfolios.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = '';
+    otherPortfolios.forEach((portfolio, index) => {
+        html += `
+            <div class="portfolio-item">
+                <div class="portfolio-item-content">
+                    <div class="portfolio-item-field">
+                        <label>Portfolio Title</label>
+                        <span>${escapeHtml(portfolio.title)}</span>
+                    </div>
+                    <div class="portfolio-item-field">
+                        <label>Member Name</label>
+                        <span>${escapeHtml(portfolio.name)}</span>
+                    </div>
+                    <div class="portfolio-item-field">
+                        <label>Member Email</label>
+                        <span>${escapeHtml(portfolio.email)}</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-remove-portfolio" onclick="removeOtherPortfolio(${index})">Remove</button>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+// ================================================================
+// OTHER PORTFOLIOS MANAGEMENT (EDIT FORM)
+// ================================================================
+
+function addEditOtherPortfolio() {
+    const title = document.getElementById('edit-other-portfolio-title')?.value.trim();
+    const name = document.getElementById('edit-other-portfolio-name')?.value.trim();
+    const email = document.getElementById('edit-other-portfolio-email')?.value.trim();
+
+    if (!title || !name || !email) {
+        alert('Please fill in all portfolio fields.');
+        return;
+    }
+
+    if (!isValidEmail(email)) {
+        alert('Please enter a valid email for the portfolio.');
+        return;
+    }
+
+    editingOtherPortfolios.push({ title, name, email });
+
+    // Clear inputs
+    document.getElementById('edit-other-portfolio-title').value = '';
+    document.getElementById('edit-other-portfolio-name').value = '';
+    document.getElementById('edit-other-portfolio-email').value = '';
+
+    renderEditOtherPortfolios();
+}
+
+function removeEditOtherPortfolio(index) {
+    editingOtherPortfolios.splice(index, 1);
+    renderEditOtherPortfolios();
+}
+
+function renderEditOtherPortfolios() {
+    const container = document.getElementById('edit-other-portfolios-list');
+    if (!container) return;
+    
+    if (editingOtherPortfolios.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = '';
+    editingOtherPortfolios.forEach((portfolio, index) => {
+        html += `
+            <div class="portfolio-item">
+                <div class="portfolio-item-content">
+                    <div class="portfolio-item-field">
+                        <label>Portfolio Title</label>
+                        <span>${escapeHtml(portfolio.title)}</span>
+                    </div>
+                    <div class="portfolio-item-field">
+                        <label>Member Name</label>
+                        <span>${escapeHtml(portfolio.name)}</span>
+                    </div>
+                    <div class="portfolio-item-field">
+                        <label>Member Email</label>
+                        <span>${escapeHtml(portfolio.email)}</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-remove-portfolio" onclick="removeEditOtherPortfolio(${index})">Remove</button>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+// ================================================================
+
+// ================================================================
 // ADD SOCIETY
 // ================================================================
 
@@ -191,12 +451,25 @@ async function addSociety() {
     const category = document.getElementById('society-category').value;
     const email = document.getElementById('society-email').value.trim();
     const description = document.getElementById('society-description')?.value.trim() || '';
+    
+    // Basic validation
+    if (!name || !category || !email) {
+        alert('Please fill in all required society fields.');
+        return;
+    }
+
+    // Validate key portfolios
+    if (!validateKeyPortfolios()) {
+        alert('Please complete all required key portfolios with valid names and emails.');
+        return;
+    }
+
     const execCommittee = {
         chairperson: {
             name: document.getElementById('chairperson-name')?.value.trim() || '',
             email: document.getElementById('chairperson-email')?.value.trim() || ''
         },
-        deputychairperson: {
+        deputyChairperson: {
             name: document.getElementById('deputychairperson-name')?.value.trim() || '',
             email: document.getElementById('deputychairperson-email')?.value.trim() || ''
         },
@@ -207,13 +480,13 @@ async function addSociety() {
         secretary: {
             name: document.getElementById('secretary-name')?.value.trim() || '',
             email: document.getElementById('secretary-email')?.value.trim() || ''
-        }
+        },
+        organiser: {
+            name: document.getElementById('organiser-name')?.value.trim() || '',
+            email: document.getElementById('organiser-email')?.value.trim() || ''
+        },
+        otherPortfolios: [...otherPortfolios]
     };
-
-    if (!name || !category || !email) {
-        alert('Please fill in all fields.');
-        return;
-    }
 
     try {
         const btn = document.querySelector('.btn-add');
@@ -243,8 +516,17 @@ async function addSociety() {
         document.getElementById('treasurer-email').value = '';
         document.getElementById('secretary-name').value = '';
         document.getElementById('secretary-email').value = '';
+        document.getElementById('organiser-name').value = '';
+        document.getElementById('organiser-email').value = '';
+        document.getElementById('other-portfolio-title').value = '';
+        document.getElementById('other-portfolio-name').value = '';
+        document.getElementById('other-portfolio-email').value = '';
+
+        otherPortfolios = [];
+        renderOtherPortfolios();
 
         loadSocieties();
+        alert('Society created successfully!');
 
     } catch (error) {
         console.error('Error adding society:', error);
@@ -285,6 +567,50 @@ async function viewSociety(societyId) {
         const s = doc.data();
         const exec = s.execCommittee || {};
 
+        // Handle both old and new key names for backward compatibility
+        const deputyChairperson = exec.deputyChairperson || exec.deputychairperson || {};
+
+        let execHtml = `
+                    <div class="exec-card">
+                        <strong>Chairperson</strong>
+                        <div class="name">${escapeHtml(exec.chairperson?.name || '—')}</div>
+                        <div class="email">${escapeHtml(exec.chairperson?.email || '')}</div>
+                    </div>
+                    <div class="exec-card">
+                        <strong>Deputy Chairperson</strong>
+                        <div class="name">${escapeHtml(deputyChairperson?.name || '—')}</div>
+                        <div class="email">${escapeHtml(deputyChairperson?.email || '')}</div>
+                    </div>
+                    <div class="exec-card">
+                        <strong>Treasurer</strong>
+                        <div class="name">${escapeHtml(exec.treasurer?.name || '—')}</div>
+                        <div class="email">${escapeHtml(exec.treasurer?.email || '')}</div>
+                    </div>
+                    <div class="exec-card">
+                        <strong>Secretary</strong>
+                        <div class="name">${escapeHtml(exec.secretary?.name || '—')}</div>
+                        <div class="email">${escapeHtml(exec.secretary?.email || '')}</div>
+                    </div>
+                    <div class="exec-card">
+                        <strong>Organiser</strong>
+                        <div class="name">${escapeHtml(exec.organiser?.name || '—')}</div>
+                        <div class="email">${escapeHtml(exec.organiser?.email || '')}</div>
+                    </div>
+        `;
+
+        // Add other portfolios if they exist
+        if (exec.otherPortfolios && Array.isArray(exec.otherPortfolios) && exec.otherPortfolios.length > 0) {
+            exec.otherPortfolios.forEach(portfolio => {
+                execHtml += `
+                    <div class="exec-card">
+                        <strong>${escapeHtml(portfolio.title || 'Other Portfolio')}</strong>
+                        <div class="name">${escapeHtml(portfolio.name || '—')}</div>
+                        <div class="email">${escapeHtml(portfolio.email || '')}</div>
+                    </div>
+                `;
+            });
+        }
+
         const html = `
             <div class="view-detail" style="margin-bottom:16px;">
                 <div style="font-size:20px;font-weight:700;color:var(--navy-900);">${escapeHtml(s.name)}</div>
@@ -304,26 +630,7 @@ async function viewSociety(societyId) {
             <div style="margin-top:16px;">
                 <h3 style="font-size:15px;color:var(--text-600);margin-bottom:10px;">Executive Committee</h3>
                 <div class="exec-grid-view">
-                    <div class="exec-card">
-                        <strong>Chairperson</strong>
-                        <div class="name">${escapeHtml(exec.chairperson?.name || '—')}</div>
-                        <div class="email">${escapeHtml(exec.chairperson?.email || '')}</div>
-                    </div>
-                    <div class="exec-card">
-                        <strong>Deputy Chairperson</strong>
-                        <div class="name">${escapeHtml(exec.deputychairperson?.name || '—')}</div>
-                        <div class="email">${escapeHtml(exec.deputychairperson?.email || '')}</div>
-                    </div>
-                    <div class="exec-card">
-                        <strong>Treasurer</strong>
-                        <div class="name">${escapeHtml(exec.treasurer?.name || '—')}</div>
-                        <div class="email">${escapeHtml(exec.treasurer?.email || '')}</div>
-                    </div>
-                    <div class="exec-card">
-                        <strong>Secretary</strong>
-                        <div class="name">${escapeHtml(exec.secretary?.name || '—')}</div>
-                        <div class="email">${escapeHtml(exec.secretary?.email || '')}</div>
-                    </div>
+                    ${execHtml}
                 </div>
             </div>
         `;
@@ -352,6 +659,12 @@ async function openEditSociety(societyId) {
         const s = doc.data();
         const exec = s.execCommittee || {};
 
+        // Handle both old and new key names for backward compatibility
+        const deputyChairperson = exec.deputyChairperson || exec.deputychairperson || {};
+
+        // Initialize other portfolios for editing
+        editingOtherPortfolios = Array.isArray(exec.otherPortfolios) ? [...exec.otherPortfolios] : [];
+
         const html = `
             <div class="edit-grid">
                 <input id="edit-soc-name" placeholder="Society Name" value="${escapeHtml(s.name || '')}" />
@@ -369,25 +682,48 @@ async function openEditSociety(societyId) {
 
                 <div class="exec-subgrid">
                     <div class="exec-col">
-                        <label>Chairperson</label>
+                        <label>Chairperson <span class="req-asterisk">*</span></label>
                         <input id="edit-chairperson-name" placeholder="Chairperson Name" value="${escapeHtml(exec.chairperson?.name || '')}" />
                         <input id="edit-chairperson-email" placeholder="Chairperson Email" value="${escapeHtml(exec.chairperson?.email || '')}" />
+                        <div class="field-error" id="edit-chairperson-error"></div>
                     </div>
                     <div class="exec-col">
-                        <label>Deputy Chairperson</label>
-                        <input id="edit-deputychairperson-name" placeholder="Deputy Chairperson Name" value="${escapeHtml(exec.deputychairperson?.name || '')}" />
-                        <input id="edit-deputychairperson-email" placeholder="Deputy Chairperson Email" value="${escapeHtml(exec.deputychairperson?.email || '')}" />
+                        <label>Deputy Chairperson <span class="req-asterisk">*</span></label>
+                        <input id="edit-deputychairperson-name" placeholder="Deputy Chairperson Name" value="${escapeHtml(deputyChairperson?.name || '')}" />
+                        <input id="edit-deputychairperson-email" placeholder="Deputy Chairperson Email" value="${escapeHtml(deputyChairperson?.email || '')}" />
+                        <div class="field-error" id="edit-deputychairperson-error"></div>
                     </div>
                     <div class="exec-col">
-                        <label>Treasurer</label>
+                        <label>Treasurer <span class="req-asterisk">*</span></label>
                         <input id="edit-treasurer-name" placeholder="Treasurer Name" value="${escapeHtml(exec.treasurer?.name || '')}" />
                         <input id="edit-treasurer-email" placeholder="Treasurer Email" value="${escapeHtml(exec.treasurer?.email || '')}" />
+                        <div class="field-error" id="edit-treasurer-error"></div>
                     </div>
                     <div class="exec-col">
-                        <label>Secretary</label>
+                        <label>Secretary <span class="req-asterisk">*</span></label>
                         <input id="edit-secretary-name" placeholder="Secretary Name" value="${escapeHtml(exec.secretary?.name || '')}" />
                         <input id="edit-secretary-email" placeholder="Secretary Email" value="${escapeHtml(exec.secretary?.email || '')}" />
+                        <div class="field-error" id="edit-secretary-error"></div>
                     </div>
+                    <div class="exec-col">
+                        <label>Organiser <span class="req-asterisk">*</span></label>
+                        <input id="edit-organiser-name" placeholder="Organiser Name" value="${escapeHtml(exec.organiser?.name || '')}" />
+                        <input id="edit-organiser-email" placeholder="Organiser Email" value="${escapeHtml(exec.organiser?.email || '')}" />
+                        <div class="field-error" id="edit-organiser-error"></div>
+                    </div>
+                </div>
+
+                <div class="other-portfolios-section">
+                    <div style="margin-bottom: 12px;">
+                        <strong style="color: var(--text-900); font-size: 14px;">Optional: Add Other Portfolios</strong>
+                    </div>
+                    <div id="edit-other-portfolios-add" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                        <input id="edit-other-portfolio-title" placeholder="Portfolio Title" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
+                        <input id="edit-other-portfolio-name" placeholder="Member Name" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
+                        <input id="edit-other-portfolio-email" placeholder="Member Email" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
+                        <button type="button" onclick="addEditOtherPortfolio()" style="padding: 10px 20px; background: var(--blue-600); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">Add</button>
+                    </div>
+                    <div id="edit-other-portfolios-list"></div>
                 </div>
             </div>
         `;
@@ -397,6 +733,9 @@ async function openEditSociety(societyId) {
         document.getElementById('societyModal').dataset.editingId = societyId;
         document.getElementById('societySaveBtn').style.display = 'inline-block';
         document.getElementById('societyModal').classList.add('active');
+
+        // Render existing other portfolios
+        renderEditOtherPortfolios();
     } catch (error) {
         console.error('Error opening society for edit:', error);
         alert('Error opening society. ' + error.message);
@@ -416,12 +755,25 @@ async function saveSocietyEdits() {
     const category = document.getElementById('edit-soc-category')?.value;
     const email = document.getElementById('edit-soc-email')?.value.trim();
     const description = document.getElementById('edit-soc-description')?.value.trim() || '';
+
+    // Basic validation
+    if (!name || !category || !email) {
+        alert('Please fill in all required society fields.');
+        return;
+    }
+
+    // Validate key portfolios
+    if (!validateEditKeyPortfolios()) {
+        alert('Please complete all required key portfolios with valid names and emails.');
+        return;
+    }
+
     const execCommittee = {
         chairperson: {
             name: document.getElementById('edit-chairperson-name')?.value.trim() || '',
             email: document.getElementById('edit-chairperson-email')?.value.trim() || ''
         },
-        deputychairperson: {
+        deputyChairperson: {
             name: document.getElementById('edit-deputychairperson-name')?.value.trim() || '',
             email: document.getElementById('edit-deputychairperson-email')?.value.trim() || ''
         },
@@ -432,13 +784,13 @@ async function saveSocietyEdits() {
         secretary: {
             name: document.getElementById('edit-secretary-name')?.value.trim() || '',
             email: document.getElementById('edit-secretary-email')?.value.trim() || ''
-        }
+        },
+        organiser: {
+            name: document.getElementById('edit-organiser-name')?.value.trim() || '',
+            email: document.getElementById('edit-organiser-email')?.value.trim() || ''
+        },
+        otherPortfolios: [...editingOtherPortfolios]
     };
-
-    if (!name || !category || !email) {
-        alert('Please fill in name, category and contact email.');
-        return;
-    }
 
     try {
         await db.collection('societies').doc(societyId).update({

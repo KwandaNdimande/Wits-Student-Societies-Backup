@@ -2,7 +2,6 @@
 const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
 
-// Create a global supabase client
 window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
 // Firebase configuration
@@ -32,6 +31,13 @@ let filteredRequests = [];
 let currentPage = 1;
 const pageSize = 5;
 
+let deletedRequests = [];
+let filteredDeleted = [];
+let deletedPage = 1;
+const deletedPageSize = 5;
+
+let currentTab = 'active';
+
 // Status colors
 const statusColors = {
     "Submitted": "status-submitted",
@@ -39,13 +45,15 @@ const statusColors = {
     "Approved": "status-approved",
     "Rejected": "status-rejected",
     "Revision Required": "status-revision",
-    "Resubmitted": "status-resubmitted"
+    "Resubmitted": "status-resubmitted",
+    "Deleted": "status-deleted"
 };
 
 const statusOptions = ["Submitted", "Under Review", "Revision Required", "Approved", "Rejected"];
 
 let pendingStatusUpdate = null;
 let pendingReverseRequestId = null;
+let pendingDeleteRequestId = null;
 
 // ================================================================
 // HELPER: Get timestamp in milliseconds from any format
@@ -70,7 +78,26 @@ function formatTimestamp(timestamp) {
     return new Date(ms).toLocaleString();
 }
 
-// Load all requests
+// ================================================================
+// TAB SWITCHING
+// ================================================================
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === 'tab-' + tab);
+    });
+    if (tab === 'deleted') {
+        renderDeletedTable();
+    }
+}
+window.switchTab = switchTab;
+
+// ================================================================
+// LOAD ACTIVE REQUESTS
+// ================================================================
 async function loadRequests() {
     try {
         const requestsSnapshot = await db.collection('requests')
@@ -94,7 +121,34 @@ async function loadRequests() {
     }
 }
 
-// Search function
+// ================================================================
+// LOAD DELETED REQUESTS
+// ================================================================
+async function loadDeletedRequests() {
+    try {
+        const snapshot = await db.collection('deletedRequests')
+            .orderBy('deletedAt', 'desc')
+            .get();
+
+        deletedRequests = [];
+        snapshot.forEach(doc => {
+            deletedRequests.push({ id: doc.id, ...doc.data() });
+        });
+
+        filteredDeleted = [...deletedRequests];
+        deletedPage = 1;
+        if (currentTab === 'deleted') {
+            renderDeletedTable();
+        }
+    } catch (error) {
+        console.error('Error loading deleted requests:', error);
+        document.getElementById('deleted-requests-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading deleted requests.</p>';
+    }
+}
+
+// ================================================================
+// SEARCH FUNCTION (Active)
+// ================================================================
 function searchRequests() {
     const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase().trim() || '';
     
@@ -114,7 +168,7 @@ function searchRequests() {
 }
 
 // ================================================================
-// RENDER TABLE (with Reverse button in the middle)
+// RENDER ACTIVE TABLE
 // ================================================================
 
 function renderTable() {
@@ -136,7 +190,7 @@ function renderTable() {
     if (totalItems === 0) {
         container.innerHTML = `
             <div class="table-container">
-                <div class="empty-state">No requests found.</div>
+                <div class="empty-state">No active requests found.</div>
             </div>
         `;
         return;
@@ -177,18 +231,16 @@ function renderTable() {
         const hasDocs = r.documents && Object.keys(r.documents).length > 0;
         const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
 
-        // Build action buttons in order: View Details → Reverse → Delete
         let actionButtons = `
             <button class="btn-view" onclick="showRequestDetails('${r.id}')">View Details</button>
-            <button class="btn-delete" onclick="deleteRequest('${r.id}')">Delete</button>
+            <button class="btn-delete" onclick="openDeleteModal('${r.id}')">Delete</button>
         `;
 
-        // Insert Reverse button in the middle for locked requests
         if (isLocked) {
             actionButtons = `
                 <button class="btn-view" onclick="showRequestDetails('${r.id}')">View Details</button>
                 <button class="btn-reverse" onclick="openReverseModal('${r.id}')">Reverse</button>
-                <button class="btn-delete" onclick="deleteRequest('${r.id}')">Delete</button>
+                <button class="btn-delete" onclick="openDeleteModal('${r.id}')">Delete</button>
             `;
         }
 
@@ -269,6 +321,166 @@ function changePage(page) {
     currentPage = page;
     renderTable();
 }
+
+// ================================================================
+// RENDER DELETED TABLE
+// ================================================================
+
+function renderDeletedTable() {
+    const container = document.getElementById('deleted-requests-container');
+    const totalItems = filteredDeleted.length;
+    const totalPages = Math.ceil(totalItems / deletedPageSize) || 1;
+    
+    if (deletedPage > totalPages) deletedPage = totalPages;
+    
+    const startIndex = (deletedPage - 1) * deletedPageSize;
+    const endIndex = Math.min(startIndex + deletedPageSize, totalItems);
+    const pageItems = filteredDeleted.slice(startIndex, endIndex);
+
+    if (totalItems === 0) {
+        container.innerHTML = `
+            <div class="table-container">
+                <div class="empty-state">No deleted requests found.</div>
+            </div>
+        `;
+        return;
+    }
+
+    let html = `
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Society</th>
+                        <th>Request</th>
+                        <th>Type</th>
+                        <th>Deleted By</th>
+                        <th>Deleted At</th>
+                        <th>Reason</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    pageItems.forEach((r, index) => {
+        const num = startIndex + index + 1;
+        const originalStatus = r.originalData?.status || 'Unknown';
+
+        html += `
+            <tr>
+                <td style="color:#6c757d;font-weight:500;">${num}</td>
+                <td class="strong">${r.societyName || 'Unknown'}</td>
+                <td>${r.requestName || r.originalData?.itemName || 'Untitled'}</td>
+                <td style="color:#6c757d;">${r.originalData?.type || 'N/A'}</td>
+                <td>${r.deletedBy || 'Unknown'}</td>
+                <td style="color:#6c757d;">${formatTimestamp(r.deletedAt)}</td>
+                <td style="color:#6c757d;max-width:200px;word-wrap:break-word;">${r.reason || 'No reason provided'}</td>
+                <td>
+                    <button class="btn-view" onclick="viewDeletedRequestDetails('${r.id}')">View</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+            <div class="pagination">
+                <span class="info">Showing ${startIndex + 1}-${endIndex} of ${totalItems} deleted requests</span>
+                <div class="pages">
+                    <button onclick="changeDeletedPage(${deletedPage - 1})" ${deletedPage <= 1 ? 'disabled' : ''}>‹</button>
+    `;
+
+    const maxVisible = 5;
+    let startPage = Math.max(1, deletedPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) {
+        html += `<button onclick="changeDeletedPage(1)">1</button>`;
+        if (startPage > 2) html += `<span class="ellipsis">…</span>`;
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="${i === deletedPage ? 'active' : ''}" onclick="changeDeletedPage(${i})">${i}</button>`;
+    }
+
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<span class="ellipsis">…</span>`;
+        html += `<button onclick="changeDeletedPage(${totalPages})">${totalPages}</button>`;
+    }
+
+    html += `
+                    <button onclick="changeDeletedPage(${deletedPage + 1})" ${deletedPage >= totalPages ? 'disabled' : ''}>›</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+function changeDeletedPage(page) {
+    const totalPages = Math.ceil(filteredDeleted.length / deletedPageSize) || 1;
+    if (page < 1 || page > totalPages) return;
+    deletedPage = page;
+    renderDeletedTable();
+}
+
+// ================================================================
+// VIEW DELETED REQUEST DETAILS
+// ================================================================
+
+function viewDeletedRequestDetails(deletedId) {
+    const request = deletedRequests.find(r => r.id === deletedId);
+    if (!request) {
+        alert('Deleted request not found.');
+        return;
+    }
+
+    const data = request.originalData || {};
+    const itemName = request.requestName || data.itemName || 'Untitled Request';
+    const society = request.societyName || 'Unknown Society';
+    const status = data.status || 'N/A';
+    const type = data.type || 'N/A';
+    const amount = data.amount ? `R${data.amount.toLocaleString()}` : 'N/A';
+    const submittedAt = data.submittedAt ? new Date(data.submittedAt.seconds * 1000).toLocaleString() : 'N/A';
+    const description = data.description || 'No description provided.';
+
+    const modalBody = `
+        <div style="margin-bottom:16px;">
+            <div style="font-size:14px;color:var(--text-500);margin-bottom:4px;">${society}</div>
+            <div style="font-size:20px;font-weight:700;color:var(--navy-900);">${itemName}</div>
+            <div style="margin-top:8px;">
+                <span class="status-badge status-deleted">Deleted</span>
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+            <div><strong>Request Type</strong><div style="margin-top:4px;color:var(--text-600);">${type}</div></div>
+            <div><strong>Amount</strong><div style="margin-top:4px;color:var(--text-600);">${amount}</div></div>
+            <div><strong>Submitted</strong><div style="margin-top:4px;color:var(--text-600);">${submittedAt}</div></div>
+            <div><strong>Deleted By</strong><div style="margin-top:4px;color:var(--text-600);">${request.deletedBy || 'Unknown'}</div></div>
+            <div><strong>Deleted At</strong><div style="margin-top:4px;color:var(--text-600);">${formatTimestamp(request.deletedAt)}</div></div>
+            <div><strong>Deletion Reason</strong><div style="margin-top:4px;color:var(--text-600);">${request.reason || 'No reason provided'}</div></div>
+        </div>
+        <div style="margin-bottom:16px;">
+            <strong>Description</strong>
+            <div style="margin-top:4px;color:var(--text-600);">${description}</div>
+        </div>
+    `;
+
+    document.getElementById('modalTitle').textContent = `Deleted Request - ${itemName}`;
+    document.getElementById('modalBody').innerHTML = modalBody;
+    document.getElementById('docModal').classList.add('active');
+}
+
+// ================================================================
+// NOTIFICATION FUNCTIONS
+// ================================================================
 
 function initOfficerNotificationBell() {
     const navLinks = document.querySelector('.nav-links');
@@ -376,7 +588,7 @@ function openOfficerNotificationFromUrl() {
 }
 
 // ================================================================
-// VIEW FILE IN NEW TAB (PUBLIC BUCKET)
+// VIEW / DOWNLOAD FILE FUNCTIONS
 // ================================================================
 
 async function viewFileFromSupabase(filePath, fileName) {
@@ -390,16 +602,11 @@ async function viewFileFromSupabase(filePath, fileName) {
         } else {
             alert('Failed to generate view link.');
         }
-
     } catch (error) {
         console.error('View error:', error);
         alert('An unexpected error occurred: ' + error.message);
     }
 }
-
-// ================================================================
-// DOWNLOAD FILE (PUBLIC BUCKET)
-// ================================================================
 
 async function downloadFileFromSupabase(filePath, fileName) {
     try {
@@ -417,40 +624,34 @@ async function downloadFileFromSupabase(filePath, fileName) {
         } else {
             alert('Failed to generate download link.');
         }
-
     } catch (error) {
         console.error('Download error:', error);
         alert('An unexpected error occurred while downloading: ' + error.message);
     }
 }
 
-// Helper: Extract filename and filepath from document object/string
 function getFileInfo(doc) {
     if (!doc) return { path: null, name: null };
-    
     if (typeof doc === 'string') {
         return { path: doc, name: doc.split('/').pop() };
     }
-    
     if (doc.filePath) {
         return { path: doc.filePath, name: doc.filePath.split('/').pop() };
     }
     if (doc.path) {
         return { path: doc.path, name: doc.path.split('/').pop() };
     }
-    
     if (doc.fileName) {
         return { path: doc.filePath || null, name: doc.fileName };
     }
     if (doc.name) {
         return { path: doc.filePath || null, name: doc.name };
     }
-    
     return { path: null, name: null };
 }
 
 // ================================================================
-// VIEW DOCUMENTS (no icons)
+// VIEW DOCUMENTS
 // ================================================================
 
 async function viewDocuments(requestId) {
@@ -515,8 +716,6 @@ async function viewDocuments(requestId) {
         alert('Error loading documents. ' + error.message);
     }
 }
-
-// ============ VIEW UPDATED DOCUMENTS (no icons) ============
 
 async function viewUpdatedDocuments(requestId) {
     try {
@@ -593,14 +792,15 @@ async function viewUpdatedDocuments(requestId) {
         }
 
         showModal(`Updated Documents - ${itemName}`, modalBody);
-
     } catch (error) {
         console.error('Error viewing updated documents:', error);
         alert('Error loading documents. ' + error.message);
     }
 }
 
-// ============ REQUEST DETAIL VIEW ============
+// ================================================================
+// REQUEST DETAIL VIEW
+// ================================================================
 
 function showRequestDetails(requestId) {
     return viewRequestDetails(requestId);
@@ -712,7 +912,6 @@ async function viewRequestDetails(requestId) {
         document.getElementById('modalTitle').textContent = `Request Details - ${itemName}`;
         document.getElementById('modalBody').innerHTML = modalBody;
         document.getElementById('docModal').classList.add('active');
-
     } catch (error) {
         console.error('Error viewing request details:', error);
         alert('Error loading request details. ' + error.message);
@@ -743,6 +942,9 @@ function getRequestHistoryHtml(history = []) {
                 if (entry.isReversal) {
                     statusLabel = `Reversed to ${entry.status}`;
                 }
+                if (entry.isDeletion) {
+                    statusLabel = 'Request deleted';
+                }
                 return `
                     <div style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;margin-bottom:12px;background:#FAFBFD;">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
@@ -754,6 +956,7 @@ function getRequestHistoryHtml(history = []) {
                         </div>
                         ${entry.note ? `<div style="margin-top:8px;font-size:13px;color:var(--text-600);">${entry.note}</div>` : ''}
                         ${entry.isReversal ? `<div style="margin-top:8px;font-size:12px;color:#E65100;font-style:italic;">Reversal reason: ${entry.note || 'No reason provided'}</div>` : ''}
+                        ${entry.isDeletion ? `<div style="margin-top:8px;font-size:12px;color:#E65100;font-style:italic;">Deletion reason: ${entry.note || 'No reason provided'}</div>` : ''}
                     </div>
                 `;
             }).join('')}
@@ -850,7 +1053,6 @@ function confirmReverse() {
         statusHistory: firebase.firestore.FieldValue.arrayUnion(historyEntry)
     })
     .then(() => {
-        // Audit log
         db.collection('reversalLogs').add({
             requestId: pendingReverseRequestId,
             requestName: request.itemName || request.name || 'Untitled',
@@ -864,7 +1066,6 @@ function confirmReverse() {
         })
         .catch(err => console.warn('Audit log error:', err));
 
-        // Send email notification to the leader
         if (request.submittedBy) {
             db.collection('users').doc(request.submittedBy).get()
                 .then(userDoc => {
@@ -904,6 +1105,128 @@ function confirmReverse() {
         btn.textContent = 'Confirm Reversal';
     });
 }
+
+// ================================================================
+// DELETE FUNCTIONS
+// ================================================================
+
+function openDeleteModal(requestId) {
+    const request = allRequests.find(r => r.id === requestId);
+    if (!request) {
+        alert('Request not found.');
+        return;
+    }
+
+    pendingDeleteRequestId = requestId;
+
+    const statusClass = statusColors[request.status] || 'status-submitted';
+    const infoHtml = `
+        <div class="info-row">
+            <span class="label">Society</span>
+            <span class="value">${request.societyName || 'Unknown'}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Request</span>
+            <span class="value">${request.itemName || request.name || 'Untitled'}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Status</span>
+            <span class="value"><span class="status-badge ${statusClass}">${request.status || 'N/A'}</span></span>
+        </div>
+    `;
+
+    document.getElementById('deleteRequestInfo').innerHTML = infoHtml;
+    document.getElementById('deleteReason').value = '';
+    document.getElementById('deleteModal').classList.add('active');
+    document.getElementById('deleteReason').focus();
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('active');
+    pendingDeleteRequestId = null;
+}
+
+function confirmDelete() {
+    if (!pendingDeleteRequestId) return;
+
+    const reason = document.getElementById('deleteReason').value.trim();
+    if (!reason) {
+        alert('Please provide a reason for the deletion.');
+        document.getElementById('deleteReason').focus();
+        return;
+    }
+
+    const request = allRequests.find(r => r.id === pendingDeleteRequestId);
+    if (!request) {
+        alert('Request not found.');
+        closeDeleteModal();
+        return;
+    }
+
+    const btn = document.getElementById('confirmDeleteBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+
+    const actorName = localStorage.getItem('userName') || 'Officer';
+    const actorRole = localStorage.getItem('userRole') || 'officer';
+
+    // Create a copy of the request data for the audit log
+    const requestData = { ...request };
+    delete requestData.id; // Remove the ID as it will be stored separately
+
+    // Create deletion log entry
+    const deletionEntry = {
+        requestId: pendingDeleteRequestId,
+        requestName: request.itemName || request.name || 'Untitled',
+        societyName: request.societyName || 'Unknown',
+        originalData: requestData,
+        deletedBy: actorName,
+        deletedByUid: userUid,
+        reason: reason,
+        deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    // Add to deletedRequests collection
+    db.collection('deletedRequests').add(deletionEntry)
+    .then(() => {
+        // Add deletion entry to the original request's history before deleting
+        const historyEntry = {
+            timestamp: new Date().toISOString(),
+            status: 'Deleted',
+            actorName: actorName,
+            actorRole: actorRole,
+            note: `Deleted: ${reason}`,
+            isDeletion: true,
+            deletionReason: reason
+        };
+
+        // Update the original request to mark it as deleted in history, then delete it
+        return db.collection('requests').doc(pendingDeleteRequestId).update({
+            statusHistory: firebase.firestore.FieldValue.arrayUnion(historyEntry)
+        })
+        .then(() => {
+            return db.collection('requests').doc(pendingDeleteRequestId).delete();
+        });
+    })
+    .then(() => {
+        closeDeleteModal();
+        loadRequests();
+        loadDeletedRequests();
+        alert('Request deleted successfully. Audit log has been created.');
+    })
+    .catch(error => {
+        console.error('Error deleting request:', error);
+        alert('Error deleting request: ' + error.message);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Confirm Delete';
+    });
+}
+
+// ================================================================
+// STATUS UPDATE FUNCTIONS
+// ================================================================
 
 function prepareStatusChange(requestId, newStatus) {
     const request = allRequests.find(r => r.id === requestId);
@@ -1093,7 +1416,9 @@ async function submitStatusModal() {
     }
 }
 
-// ============ MODAL FUNCTIONS ============
+// ================================================================
+// MODAL FUNCTIONS
+// ================================================================
 
 function showModal(title, bodyHTML) {
     document.getElementById('modalTitle').textContent = title;
@@ -1117,56 +1442,17 @@ document.getElementById('reverseModal').addEventListener('click', function(e) {
     }
 });
 
-// ================================================================
-// DELETE REQUEST
-// ================================================================
-
-async function deleteRequest(requestId) {
-    if (!confirm('Are you sure you want to delete this request? This cannot be undone.')) return;
-
-    try {
-        const docRef = db.collection('requests').doc(requestId);
-        const doc = await docRef.get();
-        if (!doc.exists) {
-            alert('Request not found.');
-            return;
-        }
-        const data = doc.data();
-        const documents = data.documents || {};
-        
-        const filePaths = [];
-        if (documents.budgetForm) filePaths.push(documents.budgetForm);
-        if (documents.meetingMinutes) filePaths.push(documents.meetingMinutes);
-        if (documents.vendorQuotation) filePaths.push(documents.vendorQuotation);
-
-        console.log('File paths to delete:', filePaths);
-
-        if (filePaths.length > 0) {
-            const { data, error } = await window.supabaseClient.storage
-                .from('documents')
-                .remove(filePaths);
-            
-            console.log('Delete response:', { data, error });
-            
-            if (error) {
-                console.error('Error deleting files from Supabase:', error);
-                alert('Failed to delete some files from storage. Check console for details.');
-            } else {
-                console.log('Files successfully deleted:', data);
-            }
-        }
-
-        await docRef.delete();
-        loadRequests();
-        alert('Request deleted successfully.');
-    } catch (error) {
-        console.error('Error deleting request:', error);
-        alert('Error deleting request. ' + error.message);
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
     }
-}
+});
 
-// ============ LOAD DATA ============
+// ================================================================
+// LOAD DATA
+// ================================================================
 
 loadRequests();
+loadDeletedRequests();
 
 window.searchRequests = searchRequests;

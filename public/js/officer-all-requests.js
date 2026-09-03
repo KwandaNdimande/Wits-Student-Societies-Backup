@@ -97,7 +97,10 @@ function searchRequests() {
     renderTable();
 }
 
-// Render table with pagination
+// ================================================================
+// RENDER TABLE (UPDATED: removed Request, Amount, Date columns)
+// ================================================================
+
 function renderTable() {
     const container = document.getElementById('requests-container');
     const totalItems = filteredRequests.length;
@@ -130,10 +133,7 @@ function renderTable() {
                     <tr>
                         <th>#</th>
                         <th>Society</th>
-                        <th>Request</th>
                         <th>Type</th>
-                        <th>Amount</th>
-                        <th>Date</th>
                         <th>Status</th>
                         <th>Documents</th>
                         <th>Update Status</th>
@@ -165,10 +165,7 @@ function renderTable() {
             <tr>
                 <td style="color:#6c757d;font-weight:500;">${num}</td>
                 <td class="strong">${r.societyName || 'Unknown'}</td>
-                <td>${r.itemName || r.name || 'Untitled'}</td>
                 <td style="color:#6c757d;">${r.type || 'N/A'}</td>
-                <td>R${r.amount ? r.amount.toLocaleString() : '0'}</td>
-                <td style="color:#6c757d;">${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
                 <td>
                     <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
                     ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">📝 ${r.officerComment}</span>` : ''}
@@ -354,7 +351,6 @@ function openOfficerNotificationFromUrl() {
 
 async function viewFileFromSupabase(filePath, fileName) {
     try {
-        // Get the public URL of the file
         const { data } = window.supabaseClient.storage
             .from('documents')
             .getPublicUrl(filePath);
@@ -377,13 +373,11 @@ async function viewFileFromSupabase(filePath, fileName) {
 
 async function downloadFileFromSupabase(filePath, fileName) {
     try {
-        // Get the public URL of the file
         const { data } = window.supabaseClient.storage
             .from('documents')
             .getPublicUrl(filePath);
 
         if (data && data.publicUrl) {
-            // Trigger download from the public URL
             const a = document.createElement('a');
             a.href = data.publicUrl;
             a.download = fileName || filePath.split('/').pop();
@@ -894,14 +888,13 @@ document.getElementById('docModal').addEventListener('click', function(e) {
 });
 
 // ================================================================
-// DELETE REQUEST (UPDATED - with better logging)
+// DELETE REQUEST
 // ================================================================
 
 async function deleteRequest(requestId) {
     if (!confirm('Are you sure you want to delete this request? This cannot be undone.')) return;
 
     try {
-        // 1. Get the request data to find the file paths
         const docRef = db.collection('requests').doc(requestId);
         const doc = await docRef.get();
         if (!doc.exists) {
@@ -911,21 +904,19 @@ async function deleteRequest(requestId) {
         const data = doc.data();
         const documents = data.documents || {};
         
-        // 2. Collect all file paths
         const filePaths = [];
         if (documents.budgetForm) filePaths.push(documents.budgetForm);
         if (documents.meetingMinutes) filePaths.push(documents.meetingMinutes);
         if (documents.vendorQuotation) filePaths.push(documents.vendorQuotation);
 
-        console.log('🔍 File paths to delete:', filePaths); // DEBUG
+        console.log('🔍 File paths to delete:', filePaths);
 
-        // 3. Delete files from Supabase Storage (if any exist)
         if (filePaths.length > 0) {
             const { data, error } = await window.supabaseClient.storage
                 .from('documents')
                 .remove(filePaths);
             
-            console.log('🗑️ Delete response:', { data, error }); // DEBUG
+            console.log('🗑️ Delete response:', { data, error });
             
             if (error) {
                 console.error('❌ Error deleting files from Supabase:', error);
@@ -935,12 +926,8 @@ async function deleteRequest(requestId) {
             }
         }
 
-        // 4. Delete the Firestore document
         await docRef.delete();
-        
-        // 5. Reload the table
         loadRequests();
-        
         alert('✅ Request deleted successfully.');
     } catch (error) {
         console.error('❌ Error deleting request:', error);

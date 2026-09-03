@@ -570,7 +570,7 @@ async function viewUpdatedDocuments(requestId) {
     }
 }
 
-// ============ REQUEST DETAIL VIEW ============
+// ============ REQUEST DETAIL VIEW (FIXED) ============
 
 function showRequestDetails(requestId) {
     return viewRequestDetails(requestId);
@@ -585,16 +585,19 @@ async function viewRequestDetails(requestId) {
         }
 
         const data = docRef.data();
-        const itemName = data.itemName || data.name || 'Request';
-        const status = data.status || 'N/A';
-        const submittedAt = data.submittedAt ? new Date(data.submittedAt.seconds * 1000).toLocaleString() : 'N/A';
-        const amount = data.amount ? `R${data.amount.toLocaleString()}` : 'N/A';
-        const type = data.type || 'N/A';
+        const itemName = data.itemName || data.name || 'Untitled Request';
         const society = data.societyName || 'Unknown Society';
+        const status = data.status || 'N/A';
+        const type = data.type || 'N/A';
+        const amount = data.amount ? `R${data.amount.toLocaleString()}` : 'N/A';
+        const submittedAt = data.submittedAt ? new Date(data.submittedAt.seconds * 1000).toLocaleString() : 'N/A';
         const description = data.description || 'No description provided.';
         const documents = data.documents || {};
-        const historyHtml = getRequestHistoryHtml(data.statusHistory || []);
+        const officerComment = data.officerComment || '';
+        const leaderComment = data.leaderComment || '';
+        const history = data.statusHistory || [];
 
+        // Build documents HTML
         const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
         const docLabels = {
             'budgetForm': 'Budget Form',
@@ -605,44 +608,85 @@ async function viewRequestDetails(requestId) {
         let docsHtml = docOrder.map(key => {
             const doc = documents[key];
             if (!doc) {
-                return `<div class="doc-item"><div class="doc-name">${docLabels[key] || key}</div><div class="doc-detail">No file uploaded</div></div>`;
+                return `
+                    <div class="doc-item">
+                        <div class="doc-name">${docLabels[key] || key}</div>
+                        <div class="doc-detail">No file uploaded</div>
+                    </div>
+                `;
             }
             const info = getFileInfo(doc);
             if (!info.path) {
-                return `<div class="doc-item"><div class="doc-name">${docLabels[key] || key}</div><div class="doc-detail">${info.name || 'File not found'}</div></div>`;
+                return `
+                    <div class="doc-item">
+                        <div class="doc-name">${docLabels[key] || key}</div>
+                        <div class="doc-detail">${info.name || 'File not found'}</div>
+                    </div>
+                `;
             }
             return `
                 <div class="doc-item">
                     <div class="doc-name">${docLabels[key] || key}</div>
                     <div class="doc-detail">${info.name}</div>
                     <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
-                        <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">👁️ View</button>
+                        <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
                         <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
                     </div>
                 </div>
             `;
         }).join('');
 
+        // Officer comment
+        const officerCommentHtml = officerComment ? `
+            <div style="background:#FFF3E0;padding:12px 16px;border-radius:8px;margin-bottom:16px;border-left:4px solid #E65100;">
+                <strong style="color:#E65100;font-size:13px;">Officer's Feedback</strong>
+                <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${officerComment}</p>
+            </div>
+        ` : '';
+
+        // Leader comment
+        const leaderCommentHtml = leaderComment ? `
+            <div style="background:#E3F2FD;padding:12px 16px;border-radius:8px;margin-bottom:16px;border-left:4px solid #0D47A1;">
+                <strong style="color:#0D47A1;font-size:13px;">Leader's Note</strong>
+                <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${leaderComment}</p>
+            </div>
+        ` : '';
+
+        // Activity timeline
+        const historyHtml = getRequestHistoryHtml(history);
+
+        // Build modal body
         const modalBody = `
-            <div style="margin-bottom:14px;">
-                <div style="font-size:14px;color:var(--text-600);margin-bottom:8px;">${society}</div>
-                <div style="font-size:18px;font-weight:700;color:var(--navy-900);">${itemName}</div>
+            <div style="margin-bottom:16px;">
+                <div style="font-size:14px;color:var(--text-500);margin-bottom:4px;">${society}</div>
+                <div style="font-size:20px;font-weight:700;color:var(--navy-900);">${itemName}</div>
+                <div style="margin-top:8px;">
+                    <span class="status-badge ${statusColors[status] || 'status-submitted'}">${status}</span>
+                </div>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:18px;">
-                <div><strong>Status</strong><div style="margin-top:6px;">${status}</div></div>
-                <div><strong>Submitted</strong><div style="margin-top:6px;">${submittedAt}</div></div>
-                <div><strong>Amount</strong><div style="margin-top:6px;">${amount}</div></div>
-                <div><strong>Type</strong><div style="margin-top:6px;">${type}</div></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+                <div><strong>Request Type</strong><div style="margin-top:4px;color:var(--text-600);">${type}</div></div>
+                <div><strong>Amount</strong><div style="margin-top:4px;color:var(--text-600);">${amount}</div></div>
+                <div><strong>Submitted</strong><div style="margin-top:4px;color:var(--text-600);">${submittedAt}</div></div>
             </div>
-            <div style="margin-bottom:18px;"><strong>Description</strong><div style="margin-top:8px;color:var(--text-600);">${description}</div></div>
-            <div style="margin-bottom:18px;">
+            <div style="margin-bottom:16px;">
+                <strong>Description</strong>
+                <div style="margin-top:4px;color:var(--text-600);">${description}</div>
+            </div>
+            ${officerCommentHtml}
+            ${leaderCommentHtml}
+            <div style="margin-bottom:16px;">
                 <h3 style="font-size:15px;color:var(--navy-900);margin-bottom:10px;">Documents</h3>
                 ${docsHtml}
             </div>
             ${historyHtml}
         `;
 
-        showModal(`Request Details - ${itemName}`, modalBody);
+        // Set modal title and body
+        document.getElementById('modalTitle').textContent = `Request Details - ${itemName}`;
+        document.getElementById('modalBody').innerHTML = modalBody;
+        document.getElementById('docModal').classList.add('active');
+
     } catch (error) {
         console.error('Error viewing request details:', error);
         alert('Error loading request details. ' + error.message);
@@ -651,9 +695,10 @@ async function viewRequestDetails(requestId) {
 
 function getRequestHistoryHtml(history = []) {
     if (!Array.isArray(history) || history.length === 0) {
-        return `<div class="history-empty" style="padding:16px 0;color:var(--text-500);font-size:13px;">No activity history yet.</div>`;
+        return `<div style="margin-top:16px;padding:16px 0;color:var(--text-500);font-size:13px;">No activity history yet.</div>`;
     }
 
+    // Sort by timestamp descending (most recent first)
     const sortedHistory = [...history].sort((a, b) => {
         const aTime = a.timestamp && a.timestamp.toDate ? a.timestamp.toDate().getTime() : 0;
         const bTime = b.timestamp && b.timestamp.toDate ? b.timestamp.toDate().getTime() : 0;
@@ -661,18 +706,20 @@ function getRequestHistoryHtml(history = []) {
     });
 
     return `
-        <div class="history-list" style="margin-top:16px;">
+        <div style="margin-top:16px;">
             <h3 style="font-size:15px;color:var(--navy-900);margin-bottom:12px;">Activity Timeline</h3>
             ${sortedHistory.map(entry => {
                 const when = entry.timestamp && entry.timestamp.toDate ? entry.timestamp.toDate().toLocaleString() : 'Unknown time';
                 return `
-                    <div class="history-item" style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;margin-bottom:12px;background:#FAFBFD;">
+                    <div style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;margin-bottom:12px;background:#FAFBFD;">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
                             <span style="font-weight:600;color:var(--text-900);">${entry.status || 'Status changed'}</span>
                             <span style="font-size:12px;color:var(--text-500);">${when}</span>
                         </div>
-                        <div style="margin-top:10px;font-size:13px;color:var(--text-600);">${entry.actorName || 'Officer'} · ${entry.actorRole || 'officer'}</div>
-                        ${entry.note ? `<div style="margin-top:10px;font-size:13px;color:var(--text-600);">${entry.note}</div>` : ''}
+                        <div style="margin-top:8px;font-size:13px;color:var(--text-600);">
+                            ${entry.actorName || 'Officer'} · ${entry.actorRole || 'officer'}
+                        </div>
+                        ${entry.note ? `<div style="margin-top:8px;font-size:13px;color:var(--text-600);">${entry.note}</div>` : ''}
                     </div>
                 `;
             }).join('')}

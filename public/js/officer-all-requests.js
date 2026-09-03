@@ -46,15 +46,30 @@ const statusOptions = ["Submitted", "Under Review", "Revision Required", "Approv
 
 let pendingStatusUpdate = null;
 
-// Load all requests
+// ================================================================
+// HELPER: Get timestamp in milliseconds from any format
+// ================================================================
 function getTimestampMs(timestamp) {
     if (!timestamp) return 0;
     if (typeof timestamp === 'number') return timestamp;
     if (typeof timestamp.toMillis === 'function') return timestamp.toMillis();
+    if (typeof timestamp.toDate === 'function') return timestamp.toDate().getTime();
+    if (typeof timestamp === 'string') return Date.parse(timestamp) || 0;
     if (timestamp.seconds) return timestamp.seconds * 1000 + Math.round((timestamp.nanoseconds || 0) / 1e6);
-    return Date.parse(timestamp) || 0;
+    return 0;
 }
 
+// ================================================================
+// HELPER: Format timestamp to readable string
+// ================================================================
+function formatTimestamp(timestamp) {
+    if (!timestamp) return 'Unknown time';
+    const ms = getTimestampMs(timestamp);
+    if (ms === 0) return 'Unknown time';
+    return new Date(ms).toLocaleString();
+}
+
+// Load all requests
 async function loadRequests() {
     try {
         const requestsSnapshot = await db.collection('requests')
@@ -636,7 +651,7 @@ async function viewRequestDetails(requestId) {
             `;
         }).join('');
 
-        // Build details rows
+        // Build detail rows
         const detailRows = `
             <div class="detail-row"><span class="detail-label">Request Type</span><span class="detail-value">${type}</span></div>
             <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${amount}</span></div>
@@ -689,65 +704,15 @@ async function viewRequestDetails(requestId) {
         document.getElementById('modalBody').innerHTML = modalBody;
         document.getElementById('docModal').classList.add('active');
 
-        // Apply detail-row styles inline if not already present in CSS
-        const style = document.createElement('style');
-        style.textContent = `
-            .detail-row {
-                display: flex;
-                padding: 6px 0;
-                border-bottom: 1px solid #f0f0f0;
-                align-items: flex-start;
-                gap: 12px;
-            }
-            .detail-row:last-child {
-                border-bottom: none;
-            }
-            .detail-label {
-                font-weight: 600;
-                color: var(--text-600);
-                min-width: 120px;
-                flex-shrink: 0;
-            }
-            .detail-value {
-                color: var(--text-900);
-                flex: 1;
-                word-break: break-word;
-            }
-            .doc-item {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 12px;
-                padding: 10px 14px;
-                border: 1px solid var(--border);
-                border-radius: 8px;
-                margin-bottom: 10px;
-                background: #FAFBFD;
-            }
-            .doc-item .doc-name {
-                font-weight: 600;
-                color: var(--text-900);
-                min-width: 140px;
-                font-size: 14px;
-            }
-            .doc-item .doc-detail {
-                color: var(--text-500);
-                font-size: 13px;
-                flex: 1;
-                word-break: break-word;
-            }
-        `;
-        // Only add if not already present
-        if (!document.getElementById('detail-view-styles')) {
-            style.id = 'detail-view-styles';
-            document.head.appendChild(style);
-        }
-
     } catch (error) {
         console.error('Error viewing request details:', error);
         alert('Error loading request details. ' + error.message);
     }
 }
+
+// ================================================================
+// ACTIVITY TIMELINE (FIXED: handles both Firestore Timestamps and ISO strings)
+// ================================================================
 
 function getRequestHistoryHtml(history = []) {
     if (!Array.isArray(history) || history.length === 0) {
@@ -756,8 +721,8 @@ function getRequestHistoryHtml(history = []) {
 
     // Sort by timestamp descending (most recent first)
     const sortedHistory = [...history].sort((a, b) => {
-        const aTime = a.timestamp && a.timestamp.toDate ? a.timestamp.toDate().getTime() : 0;
-        const bTime = b.timestamp && b.timestamp.toDate ? b.timestamp.toDate().getTime() : 0;
+        const aTime = getTimestampMs(a.timestamp);
+        const bTime = getTimestampMs(b.timestamp);
         return bTime - aTime;
     });
 
@@ -765,7 +730,7 @@ function getRequestHistoryHtml(history = []) {
         <div style="margin-top:16px;">
             <h3 style="font-size:15px;color:var(--navy-900);margin-bottom:12px;">Activity Timeline</h3>
             ${sortedHistory.map(entry => {
-                const when = entry.timestamp && entry.timestamp.toDate ? entry.timestamp.toDate().toLocaleString() : 'Unknown time';
+                const when = formatTimestamp(entry.timestamp);
                 return `
                     <div style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;margin-bottom:12px;background:#FAFBFD;">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">

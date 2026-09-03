@@ -43,11 +43,7 @@ auth.onAuthStateChanged(async (user) => {
 // ============ DOM REFS ============
 const submitBtn = document.getElementById('submit-request');
 const cancelBtn = document.getElementById('cancel-request');
-const formCard = document.getElementById('formCard');
 const errorSummary = document.getElementById('form-error');
-
-// All form inputs (for disabling during processing)
-const formInputs = document.querySelectorAll('#form-section input, #form-section select, #form-section textarea');
 
 // ============ ASTERISK HELPERS ============
 const asterisks = {
@@ -76,7 +72,69 @@ function updateAsterisk(key, value) {
     }
 }
 
-// ============ CLEAR ERRORS ============
+// ============ VALIDATION ============
+function isFieldValid(fieldId, value) {
+    switch (fieldId) {
+        case 'request-type':
+            return value && value.trim() !== '';
+        case 'item-name':
+            return value && value.trim() !== '';
+        case 'amount':
+            const num = parseFloat(value);
+            return !isNaN(num) && num > 0;
+        case 'description':
+            return value && value.trim() !== '';
+        case 'budget-form':
+            const fileB = document.getElementById('budget-form').files[0];
+            return fileB && /\.(xlsx|xls)$/i.test(fileB.name);
+        case 'meeting-minutes':
+            const fileM = document.getElementById('meeting-minutes').files[0];
+            return fileM && /\.pdf$/i.test(fileM.name);
+        case 'vendor-quotation':
+            const fileQ = document.getElementById('vendor-quotation').files[0];
+            return fileQ && /\.pdf$/i.test(fileQ.name);
+        default:
+            return true;
+    }
+}
+
+function isFormValid() {
+    const type = document.getElementById('request-type').value;
+    const item = document.getElementById('item-name').value;
+    const amount = document.getElementById('amount').value;
+    const desc = document.getElementById('description').value;
+
+    return isFieldValid('request-type', type) &&
+           isFieldValid('item-name', item) &&
+           isFieldValid('amount', amount) &&
+           isFieldValid('description', desc) &&
+           isFieldValid('budget-form') &&
+           isFieldValid('meeting-minutes') &&
+           isFieldValid('vendor-quotation');
+}
+
+function updateFormState() {
+    // Update asterisks
+    updateAsterisk('type', document.getElementById('request-type').value);
+    updateAsterisk('item', document.getElementById('item-name').value);
+    updateAsterisk('amount', document.getElementById('amount').value);
+    updateAsterisk('description', document.getElementById('description').value);
+    updateAsterisk('budget', document.getElementById('budget-form').files[0] ? document.getElementById('budget-form').files[0].name : '');
+    updateAsterisk('meeting', document.getElementById('meeting-minutes').files[0] ? document.getElementById('meeting-minutes').files[0].name : '');
+    updateAsterisk('quotation', document.getElementById('vendor-quotation').files[0] ? document.getElementById('vendor-quotation').files[0].name : '');
+
+    // Enable/disable submit button
+    const valid = isFormValid();
+    submitBtn.disabled = !valid;
+
+    // If valid, hide any previous error summary
+    if (valid) {
+        errorSummary.classList.remove('show');
+        errorSummary.textContent = '';
+    }
+}
+
+// ============ CLEAR & SHOW ERRORS (only on submit) ============
 function clearAllErrors() {
     document.querySelectorAll('.form-group input, .form-group select, .form-group textarea').forEach(el => {
         el.classList.remove('error');
@@ -88,7 +146,6 @@ function clearAllErrors() {
     errorSummary.textContent = '';
 }
 
-// ============ SHOW ERROR ON A FIELD ============
 function showFieldError(inputId, errorId, message) {
     const input = document.getElementById(inputId);
     if (input) input.classList.add('error');
@@ -99,156 +156,68 @@ function showFieldError(inputId, errorId, message) {
     }
 }
 
-// ============ VALIDATE ALL FIELDS (returns errors without displaying them) ============
-function validateAllFields(displayErrors = false) {
-    if (displayErrors) {
-        clearAllErrors();
-    }
-
+function validateAllFields() {
+    clearAllErrors();
     let isValid = true;
-    const errors = [];
 
     const type = document.getElementById('request-type').value;
     if (!type || type.trim() === '') {
-        if (displayErrors) {
-            showFieldError('request-type', 'type-error', 'Request type is required.');
-        }
-        errors.push({ field: 'request-type', message: 'Request type is required.' });
+        showFieldError('request-type', 'type-error', 'Request type is required.');
         isValid = false;
     }
 
     const item = document.getElementById('item-name').value.trim();
     if (!item) {
-        if (displayErrors) {
-            showFieldError('item-name', 'item-error', 'Event or item name is required.');
-        }
-        errors.push({ field: 'item-name', message: 'Event or item name is required.' });
+        showFieldError('item-name', 'item-error', 'Event or item name is required.');
         isValid = false;
     }
 
     const amountVal = document.getElementById('amount').value.trim();
     const amount = parseFloat(amountVal);
     if (!amountVal || isNaN(amount) || amount <= 0) {
-        if (displayErrors) {
-            showFieldError('amount', 'amount-error', 'Amount requested is required and must be greater than zero.');
-        }
-        errors.push({ field: 'amount', message: 'Amount requested is required and must be greater than zero.' });
+        showFieldError('amount', 'amount-error', 'Amount requested is required and must be greater than zero.');
         isValid = false;
     }
 
     const desc = document.getElementById('description').value.trim();
     if (!desc) {
-        if (displayErrors) {
-            showFieldError('description', 'description-error', 'Description is required.');
-        }
-        errors.push({ field: 'description', message: 'Description is required.' });
+        showFieldError('description', 'description-error', 'Description is required.');
         isValid = false;
     }
 
     const budgetFile = document.getElementById('budget-form').files[0];
     if (!budgetFile) {
-        if (displayErrors) {
-            showFieldError('budget-form', 'budget-error', 'Budget Form is required.');
-        }
-        errors.push({ field: 'budget-form', message: 'Budget Form is required.' });
+        showFieldError('budget-form', 'budget-error', 'Budget Form is required.');
         isValid = false;
     } else if (!/\.(xlsx|xls)$/i.test(budgetFile.name)) {
-        if (displayErrors) {
-            showFieldError('budget-form', 'budget-error', 'Budget Form must be an Excel file (.xlsx or .xls).');
-        }
-        errors.push({ field: 'budget-form', message: 'Budget Form must be an Excel file (.xlsx or .xls).' });
+        showFieldError('budget-form', 'budget-error', 'Budget Form must be an Excel file (.xlsx or .xls).');
         isValid = false;
     }
 
     const meetingFile = document.getElementById('meeting-minutes').files[0];
     if (!meetingFile) {
-        if (displayErrors) {
-            showFieldError('meeting-minutes', 'meeting-error', 'Meeting Minutes are required.');
-        }
-        errors.push({ field: 'meeting-minutes', message: 'Meeting Minutes are required.' });
+        showFieldError('meeting-minutes', 'meeting-error', 'Meeting Minutes are required.');
         isValid = false;
     } else if (!/\.pdf$/i.test(meetingFile.name)) {
-        if (displayErrors) {
-            showFieldError('meeting-minutes', 'meeting-error', 'Meeting Minutes must be a PDF file.');
-        }
-        errors.push({ field: 'meeting-minutes', message: 'Meeting Minutes must be a PDF file.' });
+        showFieldError('meeting-minutes', 'meeting-error', 'Meeting Minutes must be a PDF file.');
         isValid = false;
     }
 
     const quotationFile = document.getElementById('vendor-quotation').files[0];
     if (!quotationFile) {
-        if (displayErrors) {
-            showFieldError('vendor-quotation', 'quotation-error', 'Vendor Quotation is required.');
-        }
-        errors.push({ field: 'vendor-quotation', message: 'Vendor Quotation is required.' });
+        showFieldError('vendor-quotation', 'quotation-error', 'Vendor Quotation is required.');
         isValid = false;
     } else if (!/\.pdf$/i.test(quotationFile.name)) {
-        if (displayErrors) {
-            showFieldError('vendor-quotation', 'quotation-error', 'Vendor Quotation must be a PDF file.');
-        }
-        errors.push({ field: 'vendor-quotation', message: 'Vendor Quotation must be a PDF file.' });
+        showFieldError('vendor-quotation', 'quotation-error', 'Vendor Quotation must be a PDF file.');
         isValid = false;
     }
 
-    if (!isValid && displayErrors) {
+    if (!isValid) {
         errorSummary.textContent = 'Please fix the highlighted fields before submitting.';
         errorSummary.classList.add('show');
     }
 
-    return { isValid, errors };
-}
-
-// ============ ENABLE / DISABLE FORM ============
-function setFormProcessing(processing) {
-    formInputs.forEach(input => {
-        if (input.id !== 'society-name') {
-            input.disabled = processing;
-        }
-    });
-    submitBtn.disabled = processing;
-    cancelBtn.disabled = processing;
-
-    if (processing) {
-        formCard.classList.add('processing');
-    } else {
-        formCard.classList.remove('processing');
-    }
-}
-
-// ============ UPDATE BUTTON STATE ============
-function setButtonState(state) {
-    submitBtn.innerHTML = '';
-    submitBtn.disabled = true;
-
-    switch (state) {
-        case 'idle':
-            submitBtn.innerHTML = 'Submit Request';
-            submitBtn.disabled = false;
-            break;
-        case 'validating':
-            submitBtn.innerHTML = `<span class="spinner"></span> Validating request…`;
-            submitBtn.disabled = true;
-            break;
-        case 'passed':
-            submitBtn.innerHTML = `✅ Validation passed`;
-            submitBtn.disabled = true;
-            break;
-        case 'failed':
-            submitBtn.innerHTML = `Validation failed`;
-            submitBtn.disabled = true;
-            break;
-        case 'submitting':
-            submitBtn.innerHTML = `<span class="spinner"></span> Submitting request…`;
-            submitBtn.disabled = true;
-            break;
-        case 'error':
-            submitBtn.innerHTML = 'Submit Request';
-            submitBtn.disabled = false;
-            break;
-        default:
-            submitBtn.innerHTML = 'Submit Request';
-            submitBtn.disabled = false;
-    }
+    return isValid;
 }
 
 // ============ RESET FORM ============
@@ -261,30 +230,17 @@ function resetForm() {
     clearAllErrors();
     document.getElementById('form-section').classList.remove('hidden');
     document.getElementById('success-section').classList.add('hidden');
-    setFormProcessing(false);
-    setButtonState('idle');
-    updateAsterisks();
-}
-
-// ============ UPDATE ASTERISKS ============
-function updateAsterisks() {
-    updateAsterisk('type', document.getElementById('request-type').value);
-    updateAsterisk('item', document.getElementById('item-name').value);
-    updateAsterisk('amount', document.getElementById('amount').value);
-    updateAsterisk('description', document.getElementById('description').value);
-    updateAsterisk('budget', document.getElementById('budget-form').files[0] ? document.getElementById('budget-form').files[0].name : '');
-    updateAsterisk('meeting', document.getElementById('meeting-minutes').files[0] ? document.getElementById('meeting-minutes').files[0].name : '');
-    updateAsterisk('quotation', document.getElementById('vendor-quotation').files[0] ? document.getElementById('vendor-quotation').files[0].name : '');
+    updateFormState();
 }
 
 // ============ EVENT LISTENERS ============
-document.getElementById('request-type').addEventListener('input', updateAsterisks);
-document.getElementById('item-name').addEventListener('input', updateAsterisks);
-document.getElementById('amount').addEventListener('input', updateAsterisks);
-document.getElementById('description').addEventListener('input', updateAsterisks);
-document.getElementById('budget-form').addEventListener('change', updateAsterisks);
-document.getElementById('meeting-minutes').addEventListener('change', updateAsterisks);
-document.getElementById('vendor-quotation').addEventListener('change', updateAsterisks);
+document.getElementById('request-type').addEventListener('input', updateFormState);
+document.getElementById('item-name').addEventListener('input', updateFormState);
+document.getElementById('amount').addEventListener('input', updateFormState);
+document.getElementById('description').addEventListener('input', updateFormState);
+document.getElementById('budget-form').addEventListener('change', updateFormState);
+document.getElementById('meeting-minutes').addEventListener('change', updateFormState);
+document.getElementById('vendor-quotation').addEventListener('change', updateFormState);
 
 // Cancel button
 cancelBtn.addEventListener('click', function (e) {
@@ -304,45 +260,18 @@ document.getElementById('submit-another').addEventListener('click', function () 
 submitBtn.addEventListener('click', async (e) => {
     e.preventDefault();
 
-    // Clear old errors
-    clearAllErrors();
-
-    // Step 1: Show validating spinner immediately
-    setFormProcessing(true);
-    setButtonState('validating');
-
-    // Step 2: Wait minimum 800ms (AC 3)
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    // Step 3: Run validation (without displaying errors yet)
-    const result = validateAllFields(false);
-
-    if (!result.isValid) {
-        // Validation failed – show "Validation failed" on button (no errors yet)
-        setButtonState('failed');
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Now show the errors and restore form
-        setFormProcessing(false);
-        setButtonState('error');
-
-        // Display all errors
-        validateAllFields(true);
-
-        // Scroll to first error
-        const firstError = document.querySelector('.form-group .error');
-        if (firstError) {
-            firstError.focus();
-        }
+    // Double-check validation (button should be enabled only if valid, but we validate again for safety)
+    if (!isFormValid()) {
+        validateAllFields();
         return;
     }
 
-    // Step 4: Validation passed – show "Validation passed ✓" for 1s
-    setButtonState('passed');
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Clear any old errors
+    clearAllErrors();
 
-    // Step 5: Start submission
-    setButtonState('submitting');
+    // Disable button to prevent double submission
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
 
     const type = document.getElementById('request-type').value.trim();
     const itemName = document.getElementById('item-name').value.trim();
@@ -397,21 +326,17 @@ submitBtn.addEventListener('click', async (e) => {
         await db.collection('requests').add(requestData);
 
         // Success – show success page
-        setFormProcessing(false);
         document.getElementById('form-section').classList.add('hidden');
         document.getElementById('success-section').classList.remove('hidden');
 
     } catch (error) {
         console.error('Error submitting request:', error);
-
-        // Error – restore form
-        setFormProcessing(false);
-        setButtonState('error');
         errorSummary.textContent = 'Error: ' + error.message;
         errorSummary.classList.add('show');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Request';
     }
 });
 
 // ============ INITIAL STATE ============
-updateAsterisks();
-setButtonState('idle');
+updateFormState();

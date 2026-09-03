@@ -102,7 +102,6 @@
             font-size: 13px;
             color: #8FA6CC;
         }
-        /* Tab styles */
         .tabs {
             display: flex;
             gap: 4px;
@@ -147,7 +146,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
-            min-width: 950px;
+            min-width: 600px;
         }
         thead {
             background: #FAFBFD;
@@ -212,24 +211,6 @@
             background: var(--deleted-bg);
             color: var(--deleted-color);
         }
-        .status-select {
-            padding: 4px 8px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 12px;
-            font-family: 'Inter', sans-serif;
-            background: var(--surface);
-            cursor: pointer;
-            color: var(--text-900);
-        }
-        .status-select:focus {
-            outline: none;
-            border-color: var(--navy-900);
-        }
-        .status-select:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
         .btn-view {
             font-size: 12px;
             color: var(--info);
@@ -277,22 +258,6 @@
         }
         .btn-reverse:hover {
             background: #E65100;
-            color: #fff;
-        }
-        .btn-restore {
-            font-size: 12px;
-            color: var(--success);
-            background: none;
-            border: 1px solid var(--success);
-            border-radius: 6px;
-            padding: 4px 12px;
-            cursor: pointer;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.2s ease;
-        }
-        .btn-restore:hover {
-            background: var(--success);
             color: #fff;
         }
         .empty-state {
@@ -677,15 +642,6 @@
         }
 
         /* ================================================================
-           WAITING TEXT
-           ================================================================ */
-        .waiting-text {
-            color: #E65100;
-            font-weight: 600;
-            font-size: 12px;
-        }
-
-        /* ================================================================
            DETAIL ROW STYLES (for modal detail view)
            ================================================================ */
         .detail-row {
@@ -761,7 +717,7 @@
                 min-width: auto;
             }
             table {
-                min-width: 700px;
+                min-width: 500px;
             }
         }
         @media (max-width: 480px) {
@@ -778,11 +734,6 @@
                 text-align: center;
             }
             .btn-delete {
-                display: block;
-                width: 100%;
-                text-align: center;
-            }
-            .btn-restore {
                 display: block;
                 width: 100%;
                 text-align: center;
@@ -807,18 +758,15 @@
             <div class="results-count" id="resultsCount">Showing 0 of 0 requests</div>
         </div>
 
-        <!-- Tabs -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="active" onclick="switchTab('active')">Active</button>
             <button class="tab-btn" data-tab="deleted" onclick="switchTab('deleted')">Deleted</button>
         </div>
 
-        <!-- Active Tab -->
         <div class="tab-content active" id="tab-active">
             <div id="requests-container"></div>
         </div>
 
-        <!-- Deleted Tab -->
         <div class="tab-content" id="tab-deleted">
             <div id="deleted-requests-container"></div>
         </div>
@@ -910,7 +858,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-    <!-- Supabase is already loaded in the <head> -->
     <script src="/js/officer-all-requests.js"></script>
     <script src="/js/shared-nav.js"></script>
 </body>

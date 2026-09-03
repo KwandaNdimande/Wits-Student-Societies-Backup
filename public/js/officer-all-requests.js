@@ -114,7 +114,7 @@ function searchRequests() {
 }
 
 // ================================================================
-// RENDER TABLE (with Reverse button)
+// RENDER TABLE (with Reverse button in the middle)
 // ================================================================
 
 function renderTable() {
@@ -177,15 +177,18 @@ function renderTable() {
         const hasDocs = r.documents && Object.keys(r.documents).length > 0;
         const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
 
+        // Build action buttons in order: View Details → Reverse → Delete
         let actionButtons = `
             <button class="btn-view" onclick="showRequestDetails('${r.id}')">View Details</button>
             <button class="btn-delete" onclick="deleteRequest('${r.id}')">Delete</button>
         `;
 
+        // Insert Reverse button in the middle for locked requests
         if (isLocked) {
             actionButtons = `
+                <button class="btn-view" onclick="showRequestDetails('${r.id}')">View Details</button>
                 <button class="btn-reverse" onclick="openReverseModal('${r.id}')">Reverse</button>
-                ${actionButtons}
+                <button class="btn-delete" onclick="deleteRequest('${r.id}')">Delete</button>
             `;
         }
 
@@ -447,7 +450,7 @@ function getFileInfo(doc) {
 }
 
 // ================================================================
-// VIEW DOCUMENTS WITH VIEW + DOWNLOAD BUTTONS
+// VIEW DOCUMENTS (no icons)
 // ================================================================
 
 async function viewDocuments(requestId) {
@@ -513,7 +516,7 @@ async function viewDocuments(requestId) {
     }
 }
 
-// ============ VIEW UPDATED DOCUMENTS (COMPARE) ============
+// ============ VIEW UPDATED DOCUMENTS (no icons) ============
 
 async function viewUpdatedDocuments(requestId) {
     try {
@@ -717,7 +720,7 @@ async function viewRequestDetails(requestId) {
 }
 
 // ================================================================
-// ACTIVITY TIMELINE (handles both Firestore Timestamps and ISO strings)
+// ACTIVITY TIMELINE
 // ================================================================
 
 function getRequestHistoryHtml(history = []) {
@@ -861,8 +864,7 @@ function confirmReverse() {
         })
         .catch(err => console.warn('Audit log error:', err));
 
-        // ==== SEND EMAIL NOTIFICATION TO THE LEADER ====
-        // Get the leader's email from the request's submittedBy
+        // Send email notification to the leader
         if (request.submittedBy) {
             db.collection('users').doc(request.submittedBy).get()
                 .then(userDoc => {

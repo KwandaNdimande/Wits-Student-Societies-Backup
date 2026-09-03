@@ -211,6 +211,88 @@ app.get('/', (req, res) => {
 
 // ============ API ROUTES ============
 
+// Helper function to validate email format
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+function normalizeSocietyName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function formatSocietyName(name) {
+  return String(name || '').trim().replace(/\s+/g, ' ').split(' ').map(word =>
+    word.split(/([-'])/).map(part => /^[a-z]/i.test(part)
+      ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+      : part
+    ).join('')
+  ).join(' ');
+}
+
+// Helper function to validate executive committee structure
+function validateExecCommittee(execCommittee) {
+  if (!execCommittee || typeof execCommittee !== 'object') {
+    return { valid: false, error: 'Executive committee must be an object' };
+  }
+
+  const requiredPortfolios = ['chairperson', 'deputyChairperson', 'treasurer', 'secretary', 'organiser'];
+  
+  for (const portfolio of requiredPortfolios) {
+    const portfolioData = execCommittee[portfolio];
+    
+    if (!portfolioData) {
+      return { valid: false, error: `${portfolio} is missing` };
+    }
+
+    const name = portfolioData.name || '';
+    const email = portfolioData.email || '';
+
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      return { valid: false, error: `${portfolio} name is required` };
+    }
+
+    if (!email || typeof email !== 'string' || email.trim() === '') {
+      return { valid: false, error: `${portfolio} email is required` };
+    }
+
+    if (!isValidEmail(email)) {
+      return { valid: false, error: `${portfolio} email is invalid` };
+    }
+  }
+
+  // Validate otherPortfolios if they exist
+  if (execCommittee.otherPortfolios && Array.isArray(execCommittee.otherPortfolios)) {
+    for (let i = 0; i < execCommittee.otherPortfolios.length; i++) {
+      const portfolio = execCommittee.otherPortfolios[i];
+      
+      const title = portfolio.title || '';
+      const name = portfolio.name || '';
+      const email = portfolio.email || '';
+
+      if (!title || typeof title !== 'string' || title.trim() === '') {
+        return { valid: false, error: `Other portfolio ${i + 1} title is required` };
+      }
+
+      if (!name || typeof name !== 'string' || name.trim() === '') {
+        return { valid: false, error: `Other portfolio ${i + 1} member name is required` };
+      }
+
+      if (!email || typeof email !== 'string' || email.trim() === '') {
+        return { valid: false, error: `Other portfolio ${i + 1} member email is required` };
+      }
+
+      if (!isValidEmail(email)) {
+        return { valid: false, error: `Other portfolio ${i + 1} member email is invalid` };
+      }
+    }
+  }
+
+  return { valid: true };
+}
+
+// ============ API ROUTES ============
+
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -346,26 +428,44 @@ app.post('/api/societies', async (req, res) => {
       description,
       category,
       contactEmail,
-      website
+      website,
+      email,
+      execCommittee,
+      createdBy
     } = req.body;
 
 
-    if (!name || !description) {
+    if (!name || !category || !email) {
 
       return res.status(400).json({
-        error: 'Name and description are required'
+        error: 'Name, category, and email are required'
       });
 
     }
 
+    const formattedName = formatSocietyName(name);
+    const normalizedName = normalizeSocietyName(formattedName);
+
+    // Validate executive committee if provided
+    if (execCommittee) {
+      const validation = validateExecCommittee(execCommittee);
+      if (!validation.valid) {
+        return res.status(400).json({
+          error: 'Invalid executive committee: ' + validation.error
+        });
+      }
+    }
 
     const newSociety = {
 
-      name,
-      description,
-      category: category || 'General',
-      contactEmail: contactEmail || '',
+      name: formattedName,
+      normalizedName,
+      description: description || '',
+      category,
+      email,
       website: website || '',
+      execCommittee: execCommittee || {},
+      createdBy: createdBy || '',
 
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -373,7 +473,25 @@ app.post('/api/societies', async (req, res) => {
     };
 
 
-    const docRef = await db.collection('societies').add(newSociety);
+    const docRef = db.collection('societies').doc();
+    const nameRef = db.collection('societyNames').doc(normalizedName);
+
+    await db.runTransaction(async transaction => {
+      const nameReservation = await transaction.get(nameRef);
+      const existingSocieties = await transaction.get(db.collection('societies'));
+      const duplicate = existingSocieties.docs.some(doc =>
+        normalizeSocietyName(doc.data().name || doc.data().normalizedName) === normalizedName
+      );
+
+      if (nameReservation.exists || duplicate) {
+        const error = new Error('A society with this name already exists');
+        error.code = 'duplicate-society-name';
+        throw error;
+      }
+
+      transaction.create(docRef, newSociety);
+      transaction.create(nameRef, { societyId: docRef.id, name: formattedName });
+    });
 
 
     res.status(201).json({
@@ -386,8 +504,8 @@ app.post('/api/societies', async (req, res) => {
 
     console.error('Error creating society:', error);
 
-    res.status(500).json({
-      error: 'Failed to create society'
+    res.status(error.code === 'duplicate-society-name' ? 409 : 500).json({
+      error: error.code === 'duplicate-society-name' ? error.message : 'Failed to create society'
     });
 
   }
@@ -400,22 +518,78 @@ app.put('/api/societies/:id', async (req, res) => {
 
   try {
 
-    const updateData = {
+    const {
+      name,
+      description,
+      category,
+      email,
+      website,
+      execCommittee
+    } = req.body;
 
-      name: req.body.name,
-      description: req.body.description,
-      category: req.body.category || 'General',
-      contactEmail: req.body.contactEmail || '',
-      website: req.body.website || '',
+    if (name !== undefined && (!name || typeof name !== 'string')) {
+      return res.status(400).json({ error: 'Society name is required' });
+    }
+
+    // Validate executive committee if provided
+    if (execCommittee) {
+      const validation = validateExecCommittee(execCommittee);
+      if (!validation.valid) {
+        return res.status(400).json({
+          error: 'Invalid executive committee: ' + validation.error
+        });
+      }
+    }
+
+    const updateData = {
 
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
 
     };
 
+    if (name !== undefined) {
+      updateData.name = formatSocietyName(name);
+      updateData.normalizedName = normalizeSocietyName(updateData.name);
+    }
+    if (description !== undefined) updateData.description = description;
+    if (category !== undefined) updateData.category = category;
+    if (email !== undefined) updateData.email = email;
+    if (website !== undefined) updateData.website = website;
+    if (execCommittee !== undefined) updateData.execCommittee = execCommittee;
 
-    await db.collection('societies')
-      .doc(req.params.id)
-      .update(updateData);
+    const societyRef = db.collection('societies').doc(req.params.id);
+    await db.runTransaction(async transaction => {
+      const societySnapshot = await transaction.get(societyRef);
+      if (!societySnapshot.exists) {
+        const error = new Error('Society not found');
+        error.code = 'society-not-found';
+        throw error;
+      }
+
+      if (name !== undefined) {
+        const normalizedName = updateData.normalizedName;
+        const nameRef = db.collection('societyNames').doc(normalizedName);
+        const nameReservation = await transaction.get(nameRef);
+        const existingSocieties = await transaction.get(db.collection('societies'));
+        const duplicate = existingSocieties.docs.some(doc => doc.id !== req.params.id &&
+          normalizeSocietyName(doc.data().name || doc.data().normalizedName) === normalizedName
+        );
+
+        if ((nameReservation.exists && nameReservation.data().societyId !== req.params.id) || duplicate) {
+          const error = new Error('A society with this name already exists');
+          error.code = 'duplicate-society-name';
+          throw error;
+        }
+
+        const previousName = normalizeSocietyName(societySnapshot.data().name || societySnapshot.data().normalizedName);
+        if (previousName && previousName !== normalizedName) {
+          transaction.delete(db.collection('societyNames').doc(previousName));
+        }
+        transaction.set(nameRef, { societyId: req.params.id, name: updateData.name });
+      }
+
+      transaction.update(societyRef, updateData);
+    });
 
 
     res.json({
@@ -428,8 +602,9 @@ app.put('/api/societies/:id', async (req, res) => {
 
     console.error('Error updating society:', error);
 
-    res.status(500).json({
-      error: 'Failed to update society'
+    const status = error.code === 'duplicate-society-name' ? 409 : error.code === 'society-not-found' ? 404 : 500;
+    res.status(status).json({
+      error: status === 409 || status === 404 ? error.message : 'Failed to update society'
     });
 
   }
@@ -437,31 +612,34 @@ app.put('/api/societies/:id', async (req, res) => {
 });
 
 
-// Delete a society
+// Deletion is intentionally unsupported; societies are retained by archiving.
 app.delete('/api/societies/:id', async (req, res) => {
+  res.status(405).json({ error: 'Society deletion is not supported' });
 
+
+// Archive a society after quota has not been met.
+app.post('/api/societies/:id/archive', async (req, res) => {
   try {
+    const societyRef = db.collection('societies').doc(req.params.id);
+    const archivedBy = String(req.body.archivedBy || '').trim();
+    if (!archivedBy) return res.status(400).json({ error: 'archivedBy is required' });
+    if (req.body.subscriptionQuota !== 'not-met') {
+      return res.status(400).json({ error: 'Society can only be archived when subscription quota is not met' });
+    }
 
-    await db.collection('societies')
-      .doc(req.params.id)
-      .delete();
-
-
-    res.json({
-      message: 'Society deleted successfully'
+    await societyRef.update({
+      status: 'archived',
+      subscriptionQuota: 'not-met',
+      archivedBy,
+      archivedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
-
-
+    res.json({ message: 'Society archived successfully' });
   } catch (error) {
-
-    console.error('Error deleting society:', error);
-
-    res.status(500).json({
-      error: 'Failed to delete society'
-    });
-
+    console.error('Error archiving society:', error);
+    res.status(500).json({ error: 'Failed to archive society' });
   }
-
+});
 });
 
 

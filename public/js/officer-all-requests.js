@@ -366,7 +366,6 @@ function renderDeletedTable() {
 
     pageItems.forEach((r, index) => {
         const num = startIndex + index + 1;
-        const originalStatus = r.originalData?.status || 'Unknown';
 
         html += `
             <tr>
@@ -432,7 +431,7 @@ function changeDeletedPage(page) {
 }
 
 // ================================================================
-// VIEW DELETED REQUEST DETAILS
+// VIEW DELETED REQUEST DETAILS (UPDATED - CLEAN LAYOUT)
 // ================================================================
 
 function viewDeletedRequestDetails(deletedId) {
@@ -445,12 +444,67 @@ function viewDeletedRequestDetails(deletedId) {
     const data = request.originalData || {};
     const itemName = request.requestName || data.itemName || 'Untitled Request';
     const society = request.societyName || 'Unknown Society';
-    const status = data.status || 'N/A';
+    const status = 'Deleted';
     const type = data.type || 'N/A';
     const amount = data.amount ? `R${data.amount.toLocaleString()}` : 'N/A';
     const submittedAt = data.submittedAt ? new Date(data.submittedAt.seconds * 1000).toLocaleString() : 'N/A';
     const description = data.description || 'No description provided.';
+    const documents = data.documents || {};
+    const history = data.statusHistory || [];
+    const deletedBy = request.deletedBy || 'Unknown';
+    const deletedAt = formatTimestamp(request.deletedAt);
+    const deletionReason = request.reason || 'No reason provided';
 
+    // Build documents HTML
+    const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
+    const docLabels = {
+        'budgetForm': 'Budget Form',
+        'meetingMinutes': 'Meeting Minutes',
+        'vendorQuotation': 'Vendor Quotation'
+    };
+
+    let docsHtml = '';
+    const hasDocs = Object.keys(documents).length > 0;
+
+    if (hasDocs) {
+        docsHtml = docOrder.map(key => {
+            const doc = documents[key];
+            if (!doc) {
+                return `
+                    <div class="doc-item">
+                        <span class="doc-name">${docLabels[key] || key}</span>
+                        <span class="doc-detail">No file uploaded</span>
+                    </div>
+                `;
+            }
+            const info = getFileInfo(doc);
+            if (!info.path) {
+                return `
+                    <div class="doc-item">
+                        <span class="doc-name">${docLabels[key] || key}</span>
+                        <span class="doc-detail">${info.name || 'File not found'}</span>
+                    </div>
+                `;
+            }
+            return `
+                <div class="doc-item">
+                    <span class="doc-name">${docLabels[key] || key}</span>
+                    <span class="doc-detail">${info.name}</span>
+                    <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
+                        <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
+                        <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">Download</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } else {
+        docsHtml = '<div style="color:var(--text-500);font-size:13px;">No documents were uploaded for this request.</div>';
+    }
+
+    // Build activity timeline
+    const historyHtml = getRequestHistoryHtml(history);
+
+    // Build modal body
     const modalBody = `
         <div style="margin-bottom:16px;">
             <div style="font-size:14px;color:var(--text-500);margin-bottom:4px;">${society}</div>
@@ -459,18 +513,27 @@ function viewDeletedRequestDetails(deletedId) {
                 <span class="status-badge status-deleted">Deleted</span>
             </div>
         </div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
             <div><strong>Request Type</strong><div style="margin-top:4px;color:var(--text-600);">${type}</div></div>
             <div><strong>Amount</strong><div style="margin-top:4px;color:var(--text-600);">${amount}</div></div>
             <div><strong>Submitted</strong><div style="margin-top:4px;color:var(--text-600);">${submittedAt}</div></div>
-            <div><strong>Deleted By</strong><div style="margin-top:4px;color:var(--text-600);">${request.deletedBy || 'Unknown'}</div></div>
-            <div><strong>Deleted At</strong><div style="margin-top:4px;color:var(--text-600);">${formatTimestamp(request.deletedAt)}</div></div>
-            <div><strong>Deletion Reason</strong><div style="margin-top:4px;color:var(--text-600);">${request.reason || 'No reason provided'}</div></div>
+            <div><strong>Deleted By</strong><div style="margin-top:4px;color:var(--text-600);">${deletedBy}</div></div>
+            <div><strong>Deleted At</strong><div style="margin-top:4px;color:var(--text-600);">${deletedAt}</div></div>
+            <div><strong>Deletion Reason</strong><div style="margin-top:4px;color:var(--text-600);">${deletionReason}</div></div>
         </div>
+
         <div style="margin-bottom:16px;">
             <strong>Description</strong>
             <div style="margin-top:4px;color:var(--text-600);">${description}</div>
         </div>
+
+        <div style="margin-bottom:16px;">
+            <h3 style="font-size:15px;color:var(--navy-900);margin-bottom:10px;">Documents</h3>
+            ${docsHtml}
+        </div>
+
+        ${historyHtml}
     `;
 
     document.getElementById('modalTitle').textContent = `Deleted Request - ${itemName}`;
@@ -1170,11 +1233,9 @@ function confirmDelete() {
     const actorName = localStorage.getItem('userName') || 'Officer';
     const actorRole = localStorage.getItem('userRole') || 'officer';
 
-    // Create a copy of the request data for the audit log
     const requestData = { ...request };
-    delete requestData.id; // Remove the ID as it will be stored separately
+    delete requestData.id;
 
-    // Create deletion log entry
     const deletionEntry = {
         requestId: pendingDeleteRequestId,
         requestName: request.itemName || request.name || 'Untitled',
@@ -1186,10 +1247,8 @@ function confirmDelete() {
         deletedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    // Add to deletedRequests collection
     db.collection('deletedRequests').add(deletionEntry)
     .then(() => {
-        // Add deletion entry to the original request's history before deleting
         const historyEntry = {
             timestamp: new Date().toISOString(),
             status: 'Deleted',
@@ -1200,7 +1259,6 @@ function confirmDelete() {
             deletionReason: reason
         };
 
-        // Update the original request to mark it as deleted in history, then delete it
         return db.collection('requests').doc(pendingDeleteRequestId).update({
             statusHistory: firebase.firestore.FieldValue.arrayUnion(historyEntry)
         })

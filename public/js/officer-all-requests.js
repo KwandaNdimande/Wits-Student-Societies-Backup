@@ -169,7 +169,7 @@ function searchRequests() {
 }
 
 // ================================================================
-// RENDER ACTIVE TABLE (simplified: #, Society, Type, Status, Action)
+// RENDER ACTIVE TABLE (with Update Status dropdown)
 // ================================================================
 
 function renderTable() {
@@ -206,6 +206,7 @@ function renderTable() {
                         <th>Society</th>
                         <th>Type</th>
                         <th>Status</th>
+                        <th>Update Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -216,7 +217,17 @@ function renderTable() {
         const num = startIndex + index + 1;
         const statusClass = statusColors[r.status] || 'status-submitted';
         const isLocked = r.status === 'Approved' || r.status === 'Rejected';
+        const isRevisionLocked = r.status === 'Revision Required';
+        const isResubmitted = r.status === 'Resubmitted';
         const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
+        
+        const optionValues = [...statusOptions];
+        if (!optionValues.includes(r.status)) {
+            optionValues.unshift(r.status);
+        }
+        const optionsHTML = optionValues.map(s => 
+            `<option value="${s}" ${s === r.status ? 'selected' : ''}>${s}</option>`
+        ).join('');
 
         let actionButtons = `
             <button class="btn-view" onclick="showRequestDetails('${r.id}')">View Details</button>
@@ -239,6 +250,15 @@ function renderTable() {
                 <td>
                     <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
                     ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">${r.officerComment}</span>` : ''}
+                </td>
+                <td>
+                    ${isRevisionLocked ? 
+                        `<span class="waiting-text">Awaiting Resubmission</span>` :
+                        `<select class="status-select" onchange="prepareStatusChange('${r.id}', this.value)" ${isLocked ? 'disabled' : ''}>
+                            ${optionsHTML}
+                        </select>`
+                    }
+                    ${isResubmitted ? `<button class="btn-view" onclick="viewUpdatedDocuments('${r.id}')">Compare</button>` : ''}
                 </td>
                 <td>
                     ${actionButtons}

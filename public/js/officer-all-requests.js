@@ -45,6 +45,7 @@ const statusColors = {
 const statusOptions = ["Submitted", "Under Review", "Revision Required", "Approved", "Rejected"];
 
 let pendingStatusUpdate = null;
+let pendingReverseRequestId = null;
 
 // ================================================================
 // HELPER: Get timestamp in milliseconds from any format
@@ -113,7 +114,7 @@ function searchRequests() {
 }
 
 // ================================================================
-// RENDER TABLE (UPDATED: removed Request, Amount, Date columns)
+// RENDER TABLE (with Reverse button)
 // ================================================================
 
 function renderTable() {
@@ -176,6 +177,20 @@ function renderTable() {
         const hasDocs = r.documents && Object.keys(r.documents).length > 0;
         const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
 
+        // Build action buttons
+        let actionButtons = `
+            <button class="btn-view" onclick="showRequestDetails('${r.id}')">View Details</button>
+            <button class="btn-delete" onclick="deleteRequest('${r.id}')">Delete</button>
+        `;
+
+        // Add Reverse button for Approved or Rejected requests
+        if (isLocked) {
+            actionButtons = `
+                <button class="btn-reverse" onclick="openReverseModal('${r.id}')">Reverse</button>
+                ${actionButtons}
+            `;
+        }
+
         html += `
             <tr>
                 <td style="color:#6c757d;font-weight:500;">${num}</td>
@@ -200,8 +215,7 @@ function renderTable() {
                     ${isResubmitted ? `<button class="btn-view" onclick="viewUpdatedDocuments('${r.id}')">📂 Compare</button>` : ''}
                 </td>
                 <td>
-                    <button class="btn-view" onclick="showRequestDetails('${r.id}')">View Details</button>
-                    <button class="btn-delete" onclick="deleteRequest('${r.id}')">Delete</button>
+                    ${actionButtons}
                 </td>
             </tr>
         `;
@@ -519,7 +533,7 @@ async function viewUpdatedDocuments(requestId) {
 
         let modalBody = `
             <div style="margin-bottom:16px;padding:12px;background:#FFF3E0;border-radius:8px;">
-                <strong style="color:#E65100;">📝 Revision Requested:</strong>
+                <strong style="color:#E65100;">Revision Requested:</strong>
                 <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${officerComment || 'No comment provided'}</p>
             </div>
         `;
@@ -527,7 +541,7 @@ async function viewUpdatedDocuments(requestId) {
         if (leaderComment) {
             modalBody += `
                 <div style="margin-bottom:16px;padding:12px;background:#E3F2FD;border-radius:8px;">
-                    <strong style="color:#0D47A1;">📤 Leader's Note:</strong>
+                    <strong style="color:#0D47A1;">Leader's Note:</strong>
                     <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${leaderComment}</p>
                 </div>
             `;
@@ -585,7 +599,7 @@ async function viewUpdatedDocuments(requestId) {
     }
 }
 
-// ============ REQUEST DETAIL VIEW (FIXED - CLEAN LAYOUT) ============
+// ============ REQUEST DETAIL VIEW ============
 
 function showRequestDetails(requestId) {
     return viewRequestDetails(requestId);
@@ -711,7 +725,7 @@ async function viewRequestDetails(requestId) {
 }
 
 // ================================================================
-// ACTIVITY TIMELINE (FIXED: handles both Firestore Timestamps and ISO strings)
+// ACTIVITY TIMELINE (handles both Firestore Timestamps and ISO strings)
 // ================================================================
 
 function getRequestHistoryHtml(history = []) {
@@ -731,16 +745,22 @@ function getRequestHistoryHtml(history = []) {
             <h3 style="font-size:15px;color:var(--navy-900);margin-bottom:12px;">Activity Timeline</h3>
             ${sortedHistory.map(entry => {
                 const when = formatTimestamp(entry.timestamp);
+                let statusLabel = entry.status || 'Status changed';
+                // Add a reversal indicator
+                if (entry.isReversal) {
+                    statusLabel = `Reversed to ${entry.status}`;
+                }
                 return `
                     <div style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;margin-bottom:12px;background:#FAFBFD;">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-                            <span style="font-weight:600;color:var(--text-900);">${entry.status || 'Status changed'}</span>
+                            <span style="font-weight:600;color:var(--text-900);">${statusLabel}</span>
                             <span style="font-size:12px;color:var(--text-500);">${when}</span>
                         </div>
                         <div style="margin-top:8px;font-size:13px;color:var(--text-600);">
                             ${entry.actorName || 'Officer'} · ${entry.actorRole || 'officer'}
                         </div>
                         ${entry.note ? `<div style="margin-top:8px;font-size:13px;color:var(--text-600);">${entry.note}</div>` : ''}
+                        ${entry.isReversal ? `<div style="margin-top:8px;font-size:12px;color:#E65100;font-style:italic;">Reversal reason: ${entry.note || 'No reason provided'}</div>` : ''}
                     </div>
                 `;
             }).join('')}
@@ -748,11 +768,135 @@ function getRequestHistoryHtml(history = []) {
     `;
 }
 
+// ================================================================
+// REVERSE DECISION FUNCTIONS
+// ================================================================
+
+function openReverseModal(requestId) {
+    const request = allRequests.find(r => r.id === requestId);
+    if (!request) {
+        alert('Request not found.');
+        return;
+    }
+
+    pendingReverseRequestId = requestId;
+
+    // Determine new status (Under Review is the default reversal status)
+    const newStatus = 'Under Review';
+
+    // Build request info HTML
+    const statusClass = statusColors[request.status] || 'status-submitted';
+    const infoHtml = `
+        <div class="info-row">
+            <span class="label">Society</span>
+            <span class="value">${request.societyName || 'Unknown'}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Request</span>
+            <span class="value">${request.itemName || request.name || 'Untitled'}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Current Status</span>
+            <span class="value"><span class="status-badge ${statusClass}">${request.status || 'N/A'}</span></span>
+        </div>
+        <div class="info-row">
+            <span class="label">New Status</span>
+            <span class="value"><span class="status-badge status-under-review">${newStatus}</span></span>
+        </div>
+    `;
+
+    document.getElementById('reverseRequestInfo').innerHTML = infoHtml;
+    document.getElementById('reverseReason').value = '';
+    document.getElementById('reverseModal').classList.add('active');
+    document.getElementById('reverseReason').focus();
+}
+
+function closeReverseModal() {
+    document.getElementById('reverseModal').classList.remove('active');
+    pendingReverseRequestId = null;
+}
+
+function confirmReverse() {
+    if (!pendingReverseRequestId) return;
+
+    const reason = document.getElementById('reverseReason').value.trim();
+    if (!reason) {
+        alert('Please provide a reason for the reversal.');
+        document.getElementById('reverseReason').focus();
+        return;
+    }
+
+    const request = allRequests.find(r => r.id === pendingReverseRequestId);
+    if (!request) {
+        alert('Request not found.');
+        closeReverseModal();
+        return;
+    }
+
+    const newStatus = 'Under Review';
+    const btn = document.getElementById('confirmReverseBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+
+    // Store the original status for the history entry
+    const originalStatus = request.status;
+
+    // Build the reversal history entry
+    const actorName = localStorage.getItem('userName') || 'Officer';
+    const actorRole = localStorage.getItem('userRole') || 'officer';
+
+    const historyEntry = {
+        timestamp: new Date().toISOString(),
+        status: newStatus,
+        actorName: actorName,
+        actorRole: actorRole,
+        note: `Reversal from ${originalStatus}: ${reason}`,
+        isReversal: true,
+        reversedFrom: originalStatus,
+        reversalReason: reason
+    };
+
+    // Update Firestore
+    db.collection('requests').doc(pendingReverseRequestId).update({
+        status: newStatus,
+        officerComment: `Reversed from ${originalStatus} - ${reason}`,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        statusHistory: firebase.firestore.FieldValue.arrayUnion(historyEntry)
+    })
+    .then(() => {
+        // Also log the reversal in a separate collection for audit (optional)
+        db.collection('reversalLogs').add({
+            requestId: pendingReverseRequestId,
+            requestName: request.itemName || request.name || 'Untitled',
+            societyName: request.societyName || 'Unknown',
+            reversedFrom: originalStatus,
+            reversedTo: newStatus,
+            reason: reason,
+            officerName: actorName,
+            officerUid: userUid,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        })
+        .catch(err => console.warn('Audit log error:', err));
+
+        closeReverseModal();
+        loadRequests();
+        alert(`✅ Request has been reversed from "${originalStatus}" to "Under Review".`);
+    })
+    .catch(error => {
+        console.error('Error reversing request:', error);
+        alert('Error reversing request: ' + error.message);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Confirm Reversal';
+    });
+}
+
 function prepareStatusChange(requestId, newStatus) {
     const request = allRequests.find(r => r.id === requestId);
     if (!request) return;
     if (request.status === 'Approved' || request.status === 'Rejected') {
-        alert('This request is locked and cannot be changed.');
+        alert('This request is locked and cannot be changed. Use the Reverse button instead.');
         renderTable();
         return;
     }
@@ -955,6 +1099,13 @@ document.getElementById('docModal').addEventListener('click', function(e) {
     }
 });
 
+// Close reverse modal on overlay click
+document.getElementById('reverseModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeReverseModal();
+    }
+});
+
 // ================================================================
 // DELETE REQUEST
 // ================================================================
@@ -984,7 +1135,7 @@ async function deleteRequest(requestId) {
                 .from('documents')
                 .remove(filePaths);
             
-            console.log('🗑️ Delete response:', { data, error });
+            console.log('Delete response:', { data, error });
             
             if (error) {
                 console.error('❌ Error deleting files from Supabase:', error);

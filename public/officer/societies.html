@@ -38,7 +38,7 @@
             color: #fff;
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
-            padding: 90px 24px 40px 24px; /* Top padding clears navigation */
+            padding: 90px 24px 40px 24px;
         }
         .container {
             max-width: 1200px;
@@ -94,6 +94,35 @@
             font-size: 13px;
             color: #8FA6CC;
         }
+
+        /* ===== FILTER BUTTONS (styled like Add Society button) ===== */
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .filter-button {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #E9ECEF;
+            color: var(--text-600);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .filter-button:hover {
+            background: #DEE2E6;
+        }
+        .filter-button.active {
+            background: var(--navy-900);
+            color: #fff;
+        }
+        .filter-button.active:hover {
+            background: var(--navy-800);
+        }
+
         .add-section {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -397,7 +426,6 @@
             box-shadow: 0 2px 8px rgba(11, 31, 58, 0.3);
         }
 
-        .filter-button.active { background: #fff; color: var(--navy-900); }
         .quota-options { display: flex; flex-direction: column; gap: 8px; }
         .quota-options label { font-size: 14px; color: var(--text-900); }
         .quota-options input { margin-right: 8px; }
@@ -617,6 +645,9 @@
                 min-width: auto;
                 width: 100%;
             }
+            .filter-buttons {
+                justify-content: center;
+            }
             .pagination {
                 flex-direction: column;
                 text-align: center;
@@ -673,7 +704,6 @@
                     <option value="Religious">Religious</option>
                     <option value="Political">Political</option>
                     <option value="Business">Business & Entrepreneur</option>
-                    
                 </select>
                 <input id="society-email" placeholder="Contact Email" />
                 <textarea id="society-description" placeholder="Short description of the society"></textarea>

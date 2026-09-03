@@ -146,7 +146,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
-            min-width: 600px;
+            min-width: 800px;
         }
         thead {
             background: #FAFBFD;
@@ -210,6 +210,24 @@
         .status-deleted {
             background: var(--deleted-bg);
             color: var(--deleted-color);
+        }
+        .status-select {
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+            background: var(--surface);
+            cursor: pointer;
+            color: var(--text-900);
+        }
+        .status-select:focus {
+            outline: none;
+            border-color: var(--navy-900);
+        }
+        .status-select:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
         .btn-view {
             font-size: 12px;
@@ -678,6 +696,15 @@
         }
 
         /* ================================================================
+           WAITING TEXT
+           ================================================================ */
+        .waiting-text {
+            color: #E65100;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        /* ================================================================
            RESPONSIVE
            ================================================================ */
         @media (max-width: 768px) {
@@ -728,7 +755,7 @@
                 min-width: auto;
             }
             table {
-                min-width: 500px;
+                min-width: 700px;
             }
         }
         @media (max-width: 480px) {

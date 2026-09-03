@@ -354,7 +354,7 @@
         }
 
         /* ================================================================
-           ACTION BUTTONS (View, Edit, Delete)
+           ACTION BUTTONS (View, Edit)
            ================================================================ */
 
         .btn-action {
@@ -397,16 +397,10 @@
             box-shadow: 0 2px 8px rgba(11, 31, 58, 0.3);
         }
 
-        /* Delete button - Red */
-        .btn-delete-society {
-            background: #C0392B;
-            color: #fff;
-        }
-        .btn-delete-society:hover {
-            background: #922B21;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(192, 57, 43, 0.3);
-        }
+        .filter-button.active { background: #fff; color: var(--navy-900); }
+        .quota-options { display: flex; flex-direction: column; gap: 8px; }
+        .quota-options label { font-size: 14px; color: var(--text-900); }
+        .quota-options input { margin-right: 8px; }
 
         /* ================================================================
            MODAL STYLES (with backdrop blur)
@@ -597,6 +591,8 @@
         .btn-secondary:hover {
             background: #d0d7e0;
         }
+        .btn-archive { background: var(--danger); color: #fff; }
+        .btn-archive:disabled { opacity: 0.45; cursor: not-allowed; }
 
         /* ================================================================
            RESPONSIVE
@@ -736,6 +732,11 @@
             <div class="search-box">
                 <input id="searchInput" type="text" placeholder="🔍 Search societies..." oninput="searchSocieties()" />
             </div>
+            <div class="filter-buttons" aria-label="Society status filter">
+                <button class="filter-button active" data-society-filter="active" onclick="setSocietyFilter('active')">Active</button>
+                <button class="filter-button" data-society-filter="archived" onclick="setSocietyFilter('archived')">Archived</button>
+                <button class="filter-button" data-society-filter="all" onclick="setSocietyFilter('all')">All</button>
+            </div>
             <div class="results-count" id="resultsCount">Showing 0 of 0 societies</div>
         </div>
 
@@ -755,6 +756,7 @@
                 Loading...
             </div>
             <div class="modal-footer">
+                <button class="btn btn-archive" id="societyArchiveBtn" onclick="archiveSociety(document.getElementById('societyModal').dataset.viewingId)" style="display:none;" disabled>Archive</button>
                 <button class="btn btn-primary" id="societySaveBtn" onclick="saveSocietyEdits()" style="display:none;">Save Changes</button>
                 <button class="btn btn-secondary" onclick="closeSocietyModal()">Close</button>
             </div>

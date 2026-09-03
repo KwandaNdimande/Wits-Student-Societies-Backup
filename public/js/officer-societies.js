@@ -31,6 +31,7 @@ let allSocieties = [];
 let filteredSocieties = [];
 let currentPage = 1;
 const pageSize = 5;
+let societyFilter = 'active';
 let otherPortfolios = []; // Store other portfolios for the add form
 let editingOtherPortfolios = []; // Store other portfolios for the edit form
 
@@ -41,6 +42,25 @@ let editingOtherPortfolios = []; // Store other portfolios for the edit form
 function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+}
+
+function formatSocietyName(name) {
+    return String(name || '').trim().replace(/\s+/g, ' ').split(' ').map(word =>
+        word.split(/([-'])/).map(part => /^[a-z]/i.test(part)
+            ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+            : part
+        ).join('')
+    ).join(' ');
+}
+
+async function societyApi(path, options = {}) {
+    const response = await fetch(path, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Society request failed');
+    return data;
 }
 
 function showFieldError(fieldName, message) {
@@ -156,14 +176,7 @@ function validateEditKeyPortfolios() {
 // Load societies
 async function loadSocieties() {
     try {
-        const societiesSnapshot = await db.collection('societies')
-            .orderBy('name', 'asc')
-            .get();
-
-        allSocieties = [];
-        societiesSnapshot.forEach(doc => {
-            allSocieties.push({ id: doc.id, ...doc.data() });
-        });
+        allSocieties = await societyApi('/api/societies');
 
         filteredSocieties = [...allSocieties];
         currentPage = 1;
@@ -180,10 +193,12 @@ function searchSocieties() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
     
     if (searchTerm === '') {
-        filteredSocieties = [...allSocieties];
+        filteredSocieties = allSocieties.filter(s => societyFilter === 'all' ||
+            (societyFilter === 'archived' ? s.status === 'archived' : s.status !== 'archived'));
     } else {
-        filteredSocieties = allSocieties.filter(s => 
-            (s.name && s.name.toLowerCase().includes(searchTerm)) ||
+        filteredSocieties = allSocieties.filter(s =>
+            (societyFilter === 'all' || (societyFilter === 'archived' ? s.status === 'archived' : s.status !== 'archived')) &&
+            ((s.name && s.name.toLowerCase().includes(searchTerm)) ||
             (s.category && s.category.toLowerCase().includes(searchTerm)) ||
             (s.email && s.email.toLowerCase().includes(searchTerm)) ||
             (s.description && s.description.toLowerCase().includes(searchTerm)) ||
@@ -195,12 +210,20 @@ function searchSocieties() {
                 // Backward compatibility for old key name
                 (s.execCommittee.deputychairperson && (s.execCommittee.deputychairperson.name || '').toLowerCase().includes(searchTerm)) ||
                 (s.execCommittee.deputychairperson && (s.execCommittee.deputychairperson.email || '').toLowerCase().includes(searchTerm))
-            ))
+            )))
         );
     }
     
     currentPage = 1;
     renderTable();
+}
+
+function setSocietyFilter(filter) {
+    societyFilter = filter;
+    document.querySelectorAll('[data-society-filter]').forEach(button => {
+        button.classList.toggle('active', button.dataset.societyFilter === filter);
+    });
+    searchSocieties();
 }
 
 // Render table with pagination
@@ -252,7 +275,6 @@ function renderTable() {
                 <td>
                     <button class="btn-action btn-view-society" onclick="viewSociety('${s.id}')">View</button>
                     <button class="btn-action btn-edit-society" onclick="openEditSociety('${s.id}')">Edit</button>
-                    <button class="btn-action btn-delete-society" onclick="deleteSociety('${s.id}')">Delete</button>
                 </td>
             </tr>
         `;
@@ -447,7 +469,7 @@ function renderEditOtherPortfolios() {
 // ================================================================
 
 async function addSociety() {
-    const name = document.getElementById('society-name').value.trim();
+    const name = formatSocietyName(document.getElementById('society-name').value);
     const category = document.getElementById('society-category').value;
     const email = document.getElementById('society-email').value.trim();
     const description = document.getElementById('society-description')?.value.trim() || '';
@@ -493,14 +515,16 @@ async function addSociety() {
         btn.disabled = true;
         btn.textContent = 'Adding...';
 
-        await db.collection('societies').add({
+        await societyApi('/api/societies', {
+            method: 'POST',
+            body: JSON.stringify({
             name: name,
             category: category,
             email: email,
             description: description,
             execCommittee: execCommittee,
             createdBy: userUid,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
         });
 
         // Clear form
@@ -546,7 +570,9 @@ function closeSocietyModal() {
     document.getElementById('societyModal').classList.remove('active');
     document.getElementById('societyModalBody').innerHTML = '';
     document.getElementById('societySaveBtn').style.display = 'none';
+    document.getElementById('societyArchiveBtn').style.display = 'none';
     delete document.getElementById('societyModal').dataset.editingId;
+    delete document.getElementById('societyModal').dataset.viewingId;
 }
 
 function escapeHtml(str) {
@@ -559,12 +585,7 @@ function escapeHtml(str) {
 
 async function viewSociety(societyId) {
     try {
-        const doc = await db.collection('societies').doc(societyId).get();
-        if (!doc.exists) {
-            alert('Society not found.');
-            return;
-        }
-        const s = doc.data();
+        const s = await societyApi(`/api/societies/${societyId}`);
         const exec = s.execCommittee || {};
 
         // Handle both old and new key names for backward compatibility
@@ -601,6 +622,7 @@ async function viewSociety(societyId) {
         // Add other portfolios if they exist
         if (exec.otherPortfolios && Array.isArray(exec.otherPortfolios) && exec.otherPortfolios.length > 0) {
             exec.otherPortfolios.forEach(portfolio => {
+                portfolio = portfolio || {};
                 execHtml += `
                     <div class="exec-card">
                         <strong>${escapeHtml(portfolio.title || 'Other Portfolio')}</strong>
@@ -627,8 +649,14 @@ async function viewSociety(societyId) {
                 <div class="value">${escapeHtml(s.email || '—')}</div>
             </div>
 
+            <div class="view-detail quota-options">
+                <strong>Subscription Quota</strong>
+                <label><input type="radio" name="subscription-quota" value="met" onchange="updateArchiveButton()"> Subscription Quota Met</label>
+                <label><input type="radio" name="subscription-quota" value="not-met" onchange="updateArchiveButton()"> Subscription Quota Not Met</label>
+            </div>
+
             <div style="margin-top:16px;">
-                <h3 style="font-size:15px;color:var(--text-600);margin-bottom:10px;">Executive Committee</h3>
+                <h3 style="font-size:15px;color:var(--text-600);margin-bottom:10px;">Organogram</h3>
                 <div class="exec-grid-view">
                     ${execHtml}
                 </div>
@@ -637,11 +665,39 @@ async function viewSociety(societyId) {
 
         document.getElementById('societyModalTitle').textContent = escapeHtml(s.name || 'Society');
         document.getElementById('societyModalBody').innerHTML = html;
+        document.getElementById('societyModal').dataset.viewingId = societyId;
         document.getElementById('societySaveBtn').style.display = 'none';
+        document.getElementById('societyArchiveBtn').style.display = s.status === 'archived' ? 'none' : 'inline-block';
+        updateArchiveButton();
         document.getElementById('societyModal').classList.add('active');
     } catch (error) {
         console.error('Error viewing society:', error);
         alert('Error viewing society. ' + error.message);
+    }
+}
+
+function updateArchiveButton() {
+    const archiveButton = document.getElementById('societyArchiveBtn');
+    const selected = document.querySelector('input[name="subscription-quota"]:checked');
+    archiveButton.disabled = !selected || selected.value !== 'not-met';
+}
+
+async function archiveSociety(societyId) {
+    const selected = document.querySelector('input[name="subscription-quota"]:checked');
+    if (!selected || selected.value !== 'not-met') return;
+    if (!confirm('Archive this society because its subscription quota was not met?')) return;
+
+    try {
+        await societyApi(`/api/societies/${societyId}/archive`, {
+            method: 'POST',
+            body: JSON.stringify({ archivedBy: userUid, subscriptionQuota: selected.value })
+        });
+        closeSocietyModal();
+        await loadSocieties();
+        alert('Society archived successfully.');
+    } catch (error) {
+        console.error('Error archiving society:', error);
+        alert('Error archiving society. ' + error.message);
     }
 }
 
@@ -651,12 +707,7 @@ async function viewSociety(societyId) {
 
 async function openEditSociety(societyId) {
     try {
-        const doc = await db.collection('societies').doc(societyId).get();
-        if (!doc.exists) {
-            alert('Society not found.');
-            return;
-        }
-        const s = doc.data();
+        const s = await societyApi(`/api/societies/${societyId}`);
         const exec = s.execCommittee || {};
 
         // Handle both old and new key names for backward compatibility
@@ -793,13 +844,15 @@ async function saveSocietyEdits() {
     };
 
     try {
-        await db.collection('societies').doc(societyId).update({
+        await societyApi(`/api/societies/${societyId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
             name,
             category,
             email,
             description,
             execCommittee,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
         });
 
         closeSocietyModal();
@@ -812,21 +865,6 @@ async function saveSocietyEdits() {
 }
 
 // ================================================================
-// DELETE SOCIETY
-// ================================================================
-
-async function deleteSociety(societyId) {
-    if (!confirm('Are you sure you want to delete this society? This cannot be undone.')) return;
-
-    try {
-        await db.collection('societies').doc(societyId).delete();
-        loadSocieties();
-    } catch (error) {
-        console.error('Error deleting society:', error);
-        alert('Error deleting society. ' + error.message);
-    }
-}
-
 // ================================================================
 // LOAD DATA
 // ================================================================

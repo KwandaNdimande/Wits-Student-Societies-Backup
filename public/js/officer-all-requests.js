@@ -403,7 +403,7 @@ function changeDeletedPage(page) {
 }
 
 // ================================================================
-// VIEW DELETED REQUEST DETAILS (CLEAN WITH LABELS)
+// VIEW DELETED REQUEST DETAILS (matching active view style)
 // ================================================================
 
 function viewDeletedRequestDetails(deletedId) {
@@ -476,35 +476,32 @@ function viewDeletedRequestDetails(deletedId) {
     // Build activity timeline
     const historyHtml = getRequestHistoryHtml(history);
 
-    // Build modal body with clean labels
+    // Build modal body using the same row style as active view
+    const detailRows = `
+        <div class="detail-row"><span class="detail-label">Request Type</span><span class="detail-value">${type}</span></div>
+        <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${amount}</span></div>
+        <div class="detail-row"><span class="detail-label">Submitted</span><span class="detail-value">${submittedAt}</span></div>
+        <div class="detail-row"><span class="detail-label">Deleted By</span><span class="detail-value">${deletedBy}</span></div>
+        <div class="detail-row"><span class="detail-label">Deleted At</span><span class="detail-value">${deletedAt}</span></div>
+        <div class="detail-row"><span class="detail-label">Deletion Reason</span><span class="detail-value">${deletionReason}</span></div>
+        <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">${description}</span></div>
+    `;
+
     const modalBody = `
         <div style="margin-bottom:16px;">
-            <div style="font-size:14px;color:var(--text-500);margin-bottom:4px;">Society: ${society}</div>
+            <div style="font-size:14px;color:var(--text-500);margin-bottom:4px;">${society}</div>
             <div style="font-size:20px;font-weight:700;color:var(--navy-900);">${itemName}</div>
             <div style="margin-top:8px;">
                 <span class="status-badge status-deleted">Deleted</span>
             </div>
         </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
-            <div><strong>Request Type:</strong><div style="margin-top:4px;color:var(--text-600);">${type}</div></div>
-            <div><strong>Amount:</strong><div style="margin-top:4px;color:var(--text-600);">${amount}</div></div>
-            <div><strong>Submitted:</strong><div style="margin-top:4px;color:var(--text-600);">${submittedAt}</div></div>
-            <div><strong>Deleted By:</strong><div style="margin-top:4px;color:var(--text-600);">${deletedBy}</div></div>
-            <div><strong>Deleted At:</strong><div style="margin-top:4px;color:var(--text-600);">${deletedAt}</div></div>
-            <div><strong>Deletion Reason:</strong><div style="margin-top:4px;color:var(--text-600);">${deletionReason}</div></div>
-        </div>
-
         <div style="margin-bottom:16px;">
-            <strong>Description:</strong>
-            <div style="margin-top:4px;color:var(--text-600);">${description}</div>
+            ${detailRows}
         </div>
-
         <div style="margin-bottom:16px;">
             <h3 style="font-size:15px;color:var(--navy-900);margin-bottom:10px;">Documents</h3>
             ${docsHtml}
         </div>
-
         ${historyHtml}
     `;
 

@@ -168,7 +168,7 @@ function searchRequests() {
 }
 
 // ================================================================
-// RENDER ACTIVE TABLE
+// RENDER ACTIVE TABLE (simplified: #, Society, Type, Status, Action)
 // ================================================================
 
 function renderTable() {
@@ -205,8 +205,6 @@ function renderTable() {
                         <th>Society</th>
                         <th>Type</th>
                         <th>Status</th>
-                        <th>Documents</th>
-                        <th>Update Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -217,18 +215,6 @@ function renderTable() {
         const num = startIndex + index + 1;
         const statusClass = statusColors[r.status] || 'status-submitted';
         const isLocked = r.status === 'Approved' || r.status === 'Rejected';
-        const isRevisionLocked = r.status === 'Revision Required';
-        const isResubmitted = r.status === 'Resubmitted';
-        
-        const optionValues = [...statusOptions];
-        if (!optionValues.includes(r.status)) {
-            optionValues.unshift(r.status);
-        }
-        const optionsHTML = optionValues.map(s => 
-            `<option value="${s}" ${s === r.status ? 'selected' : ''}>${s}</option>`
-        ).join('');
-
-        const hasDocs = r.documents && Object.keys(r.documents).length > 0;
         const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
 
         let actionButtons = `
@@ -252,20 +238,6 @@ function renderTable() {
                 <td>
                     <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
                     ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">${r.officerComment}</span>` : ''}
-                </td>
-                <td>
-                    <button class="btn-view" onclick="viewDocuments('${r.id}')">
-                        ${hasDocs ? 'View' : 'No Docs'}
-                    </button>
-                </td>
-                <td>
-                    ${isRevisionLocked ? 
-                        `<span class="waiting-text">Awaiting Resubmission</span>` :
-                        `<select class="status-select" onchange="prepareStatusChange('${r.id}', this.value)" ${isLocked ? 'disabled' : ''}>
-                            ${optionsHTML}
-                        </select>`
-                    }
-                    ${isResubmitted ? `<button class="btn-view" onclick="viewUpdatedDocuments('${r.id}')">Compare</button>` : ''}
                 </td>
                 <td>
                     ${actionButtons}
@@ -431,7 +403,7 @@ function changeDeletedPage(page) {
 }
 
 // ================================================================
-// VIEW DELETED REQUEST DETAILS (UPDATED - CLEAN LAYOUT)
+// VIEW DELETED REQUEST DETAILS (CLEAN WITH LABELS)
 // ================================================================
 
 function viewDeletedRequestDetails(deletedId) {
@@ -504,10 +476,10 @@ function viewDeletedRequestDetails(deletedId) {
     // Build activity timeline
     const historyHtml = getRequestHistoryHtml(history);
 
-    // Build modal body
+    // Build modal body with clean labels
     const modalBody = `
         <div style="margin-bottom:16px;">
-            <div style="font-size:14px;color:var(--text-500);margin-bottom:4px;">${society}</div>
+            <div style="font-size:14px;color:var(--text-500);margin-bottom:4px;">Society: ${society}</div>
             <div style="font-size:20px;font-weight:700;color:var(--navy-900);">${itemName}</div>
             <div style="margin-top:8px;">
                 <span class="status-badge status-deleted">Deleted</span>
@@ -515,16 +487,16 @@ function viewDeletedRequestDetails(deletedId) {
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
-            <div><strong>Request Type</strong><div style="margin-top:4px;color:var(--text-600);">${type}</div></div>
-            <div><strong>Amount</strong><div style="margin-top:4px;color:var(--text-600);">${amount}</div></div>
-            <div><strong>Submitted</strong><div style="margin-top:4px;color:var(--text-600);">${submittedAt}</div></div>
-            <div><strong>Deleted By</strong><div style="margin-top:4px;color:var(--text-600);">${deletedBy}</div></div>
-            <div><strong>Deleted At</strong><div style="margin-top:4px;color:var(--text-600);">${deletedAt}</div></div>
-            <div><strong>Deletion Reason</strong><div style="margin-top:4px;color:var(--text-600);">${deletionReason}</div></div>
+            <div><strong>Request Type:</strong><div style="margin-top:4px;color:var(--text-600);">${type}</div></div>
+            <div><strong>Amount:</strong><div style="margin-top:4px;color:var(--text-600);">${amount}</div></div>
+            <div><strong>Submitted:</strong><div style="margin-top:4px;color:var(--text-600);">${submittedAt}</div></div>
+            <div><strong>Deleted By:</strong><div style="margin-top:4px;color:var(--text-600);">${deletedBy}</div></div>
+            <div><strong>Deleted At:</strong><div style="margin-top:4px;color:var(--text-600);">${deletedAt}</div></div>
+            <div><strong>Deletion Reason:</strong><div style="margin-top:4px;color:var(--text-600);">${deletionReason}</div></div>
         </div>
 
         <div style="margin-bottom:16px;">
-            <strong>Description</strong>
+            <strong>Description:</strong>
             <div style="margin-top:4px;color:var(--text-600);">${description}</div>
         </div>
 
@@ -711,154 +683,6 @@ function getFileInfo(doc) {
         return { path: doc.filePath || null, name: doc.name };
     }
     return { path: null, name: null };
-}
-
-// ================================================================
-// VIEW DOCUMENTS
-// ================================================================
-
-async function viewDocuments(requestId) {
-    try {
-        const docRef = await db.collection('requests').doc(requestId).get();
-        if (!docRef.exists) {
-            showModal('Request not found', '<p>No documents found for this request.</p>');
-            return;
-        }
-
-        const data = docRef.data();
-        const documents = data.documents || {};
-        const itemName = data.itemName || 'Request';
-
-        let modalBody = '';
-
-        if (Object.keys(documents).length === 0) {
-            modalBody = '<p class="no-docs">No documents uploaded for this request.</p>';
-        } else {
-            const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
-            const docLabels = {
-                'budgetForm': 'Budget Form',
-                'meetingMinutes': 'Meeting Minutes',
-                'vendorQuotation': 'Vendor Quotation'
-            };
-
-            modalBody = docOrder.map(key => {
-                const doc = documents[key];
-                if (!doc) {
-                    return `
-                        <div class="doc-item">
-                            <div class="doc-name">${docLabels[key] || key}</div>
-                            <div class="doc-detail">No file uploaded</div>
-                        </div>
-                    `;
-                }
-                const info = getFileInfo(doc);
-                if (!info.path) {
-                    return `
-                        <div class="doc-item">
-                            <div class="doc-name">${docLabels[key] || key}</div>
-                            <div class="doc-detail">${info.name || 'File not found'}</div>
-                        </div>
-                    `;
-                }
-                return `
-                    <div class="doc-item">
-                        <div class="doc-name">${docLabels[key] || key}</div>
-                        <div class="doc-detail">${info.name}</div>
-                        <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
-                            <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
-                            <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">Download</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        showModal(`Documents - ${itemName}`, modalBody);
-    } catch (error) {
-        console.error('Error viewing documents:', error);
-        alert('Error loading documents. ' + error.message);
-    }
-}
-
-async function viewUpdatedDocuments(requestId) {
-    try {
-        const docRef = await db.collection('requests').doc(requestId).get();
-        if (!docRef.exists) {
-            showModal('Request not found', '<p>No documents found for this request.</p>');
-            return;
-        }
-
-        const data = docRef.data();
-        const documents = data.documents || {};
-        const itemName = data.itemName || 'Request';
-        const officerComment = data.officerComment || '';
-        const leaderComment = data.leaderComment || '';
-
-        let modalBody = `
-            <div style="margin-bottom:16px;padding:12px;background:#FFF3E0;border-radius:8px;">
-                <strong style="color:#E65100;">Revision Requested:</strong>
-                <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${officerComment || 'No comment provided'}</p>
-            </div>
-        `;
-
-        if (leaderComment) {
-            modalBody += `
-                <div style="margin-bottom:16px;padding:12px;background:#E3F2FD;border-radius:8px;">
-                    <strong style="color:#0D47A1;">Leader's Note:</strong>
-                    <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${leaderComment}</p>
-                </div>
-            `;
-        }
-
-        if (Object.keys(documents).length === 0) {
-            modalBody += '<p class="no-docs">No documents uploaded for this request.</p>';
-        } else {
-            const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
-            const docLabels = {
-                'budgetForm': 'Budget Form',
-                'meetingMinutes': 'Meeting Minutes',
-                'vendorQuotation': 'Vendor Quotation'
-            };
-
-            modalBody += '<h3 style="margin-top:12px;font-size:16px;color:var(--navy-900);">Updated Documents</h3>';
-            
-            modalBody += docOrder.map(key => {
-                const doc = documents[key];
-                if (!doc) {
-                    return `
-                        <div class="doc-item">
-                            <div class="doc-name">${docLabels[key] || key}</div>
-                            <div class="doc-detail">No file uploaded</div>
-                        </div>
-                    `;
-                }
-                const info = getFileInfo(doc);
-                if (!info.path) {
-                    return `
-                        <div class="doc-item">
-                            <div class="doc-name">${docLabels[key] || key}</div>
-                            <div class="doc-detail">${info.name || 'File not found'}</div>
-                        </div>
-                    `;
-                }
-                return `
-                    <div class="doc-item">
-                        <div class="doc-name">${docLabels[key] || key}</div>
-                        <div class="doc-detail">${info.name}</div>
-                        <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
-                            <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
-                            <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">Download</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        showModal(`Updated Documents - ${itemName}`, modalBody);
-    } catch (error) {
-        console.error('Error viewing updated documents:', error);
-        alert('Error loading documents. ' + error.message);
-    }
 }
 
 // ================================================================

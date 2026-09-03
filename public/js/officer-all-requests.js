@@ -177,13 +177,11 @@ function renderTable() {
         const hasDocs = r.documents && Object.keys(r.documents).length > 0;
         const hasOfficerComment = r.status === 'Revision Required' && r.officerComment && r.officerComment !== '';
 
-        // Build action buttons
         let actionButtons = `
             <button class="btn-view" onclick="showRequestDetails('${r.id}')">View Details</button>
             <button class="btn-delete" onclick="deleteRequest('${r.id}')">Delete</button>
         `;
 
-        // Add Reverse button for Approved or Rejected requests
         if (isLocked) {
             actionButtons = `
                 <button class="btn-reverse" onclick="openReverseModal('${r.id}')">Reverse</button>
@@ -198,21 +196,21 @@ function renderTable() {
                 <td style="color:#6c757d;">${r.type || 'N/A'}</td>
                 <td>
                     <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
-                    ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">📝 ${r.officerComment}</span>` : ''}
+                    ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">${r.officerComment}</span>` : ''}
                 </td>
                 <td>
                     <button class="btn-view" onclick="viewDocuments('${r.id}')">
-                        ${hasDocs ? '📄 View' : 'No Docs'}
+                        ${hasDocs ? 'View' : 'No Docs'}
                     </button>
                 </td>
                 <td>
                     ${isRevisionLocked ? 
-                        `<span class="waiting-text">⏳ Awaiting Resubmission</span>` :
+                        `<span class="waiting-text">Awaiting Resubmission</span>` :
                         `<select class="status-select" onchange="prepareStatusChange('${r.id}', this.value)" ${isLocked ? 'disabled' : ''}>
                             ${optionsHTML}
                         </select>`
                     }
-                    ${isResubmitted ? `<button class="btn-view" onclick="viewUpdatedDocuments('${r.id}')">📂 Compare</button>` : ''}
+                    ${isResubmitted ? `<button class="btn-view" onclick="viewUpdatedDocuments('${r.id}')">Compare</button>` : ''}
                 </td>
                 <td>
                     ${actionButtons}
@@ -500,8 +498,8 @@ async function viewDocuments(requestId) {
                         <div class="doc-name">${docLabels[key] || key}</div>
                         <div class="doc-detail">${info.name}</div>
                         <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
-                            <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">👁️ View</button>
-                            <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
+                            <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
+                            <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">Download</button>
                         </div>
                     </div>
                 `;
@@ -583,8 +581,8 @@ async function viewUpdatedDocuments(requestId) {
                         <div class="doc-name">${docLabels[key] || key}</div>
                         <div class="doc-detail">${info.name}</div>
                         <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
-                            <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">👁️ View</button>
-                            <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
+                            <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
+                            <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">Download</button>
                         </div>
                     </div>
                 `;
@@ -659,13 +657,12 @@ async function viewRequestDetails(requestId) {
                     <span class="doc-detail">${info.name}</span>
                     <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
                         <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
-                        <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">⬇ Download</button>
+                        <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">Download</button>
                     </div>
                 </div>
             `;
         }).join('');
 
-        // Build detail rows
         const detailRows = `
             <div class="detail-row"><span class="detail-label">Request Type</span><span class="detail-value">${type}</span></div>
             <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${amount}</span></div>
@@ -673,7 +670,6 @@ async function viewRequestDetails(requestId) {
             <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">${description}</span></div>
         `;
 
-        // Officer comment
         const officerCommentHtml = officerComment ? `
             <div class="detail-row" style="background:#FFF3E0;padding:8px 12px;border-radius:6px;margin-bottom:12px;border-left:4px solid #E65100;">
                 <span class="detail-label" style="font-weight:600;color:#E65100;">Officer Feedback</span>
@@ -681,7 +677,6 @@ async function viewRequestDetails(requestId) {
             </div>
         ` : '';
 
-        // Leader comment
         const leaderCommentHtml = leaderComment ? `
             <div class="detail-row" style="background:#E3F2FD;padding:8px 12px;border-radius:6px;margin-bottom:12px;border-left:4px solid #0D47A1;">
                 <span class="detail-label" style="font-weight:600;color:#0D47A1;">Leader's Note</span>
@@ -689,10 +684,8 @@ async function viewRequestDetails(requestId) {
             </div>
         ` : '';
 
-        // Activity timeline
         const historyHtml = getRequestHistoryHtml(history);
 
-        // Build modal body
         const modalBody = `
             <div style="margin-bottom:16px;">
                 <div style="font-size:14px;color:var(--text-500);margin-bottom:4px;">${society}</div>
@@ -713,7 +706,6 @@ async function viewRequestDetails(requestId) {
             ${historyHtml}
         `;
 
-        // Set modal title and body
         document.getElementById('modalTitle').textContent = `Request Details - ${itemName}`;
         document.getElementById('modalBody').innerHTML = modalBody;
         document.getElementById('docModal').classList.add('active');
@@ -733,7 +725,6 @@ function getRequestHistoryHtml(history = []) {
         return `<div style="margin-top:16px;padding:16px 0;color:var(--text-500);font-size:13px;">No activity history yet.</div>`;
     }
 
-    // Sort by timestamp descending (most recent first)
     const sortedHistory = [...history].sort((a, b) => {
         const aTime = getTimestampMs(a.timestamp);
         const bTime = getTimestampMs(b.timestamp);
@@ -746,7 +737,6 @@ function getRequestHistoryHtml(history = []) {
             ${sortedHistory.map(entry => {
                 const when = formatTimestamp(entry.timestamp);
                 let statusLabel = entry.status || 'Status changed';
-                // Add a reversal indicator
                 if (entry.isReversal) {
                     statusLabel = `Reversed to ${entry.status}`;
                 }
@@ -781,10 +771,7 @@ function openReverseModal(requestId) {
 
     pendingReverseRequestId = requestId;
 
-    // Determine new status (Under Review is the default reversal status)
     const newStatus = 'Under Review';
-
-    // Build request info HTML
     const statusClass = statusColors[request.status] || 'status-submitted';
     const infoHtml = `
         <div class="info-row">
@@ -838,10 +825,7 @@ function confirmReverse() {
     btn.disabled = true;
     btn.textContent = 'Processing...';
 
-    // Store the original status for the history entry
     const originalStatus = request.status;
-
-    // Build the reversal history entry
     const actorName = localStorage.getItem('userName') || 'Officer';
     const actorRole = localStorage.getItem('userRole') || 'officer';
 
@@ -856,7 +840,6 @@ function confirmReverse() {
         reversalReason: reason
     };
 
-    // Update Firestore
     db.collection('requests').doc(pendingReverseRequestId).update({
         status: newStatus,
         officerComment: `Reversed from ${originalStatus} - ${reason}`,
@@ -864,7 +847,7 @@ function confirmReverse() {
         statusHistory: firebase.firestore.FieldValue.arrayUnion(historyEntry)
     })
     .then(() => {
-        // Also log the reversal in a separate collection for audit (optional)
+        // Audit log
         db.collection('reversalLogs').add({
             requestId: pendingReverseRequestId,
             requestName: request.itemName || request.name || 'Untitled',
@@ -878,9 +861,37 @@ function confirmReverse() {
         })
         .catch(err => console.warn('Audit log error:', err));
 
+        // ==== SEND EMAIL NOTIFICATION TO THE LEADER ====
+        // Get the leader's email from the request's submittedBy
+        if (request.submittedBy) {
+            db.collection('users').doc(request.submittedBy).get()
+                .then(userDoc => {
+                    if (userDoc.exists) {
+                        const userData = userDoc.data();
+                        if (userData.email) {
+                            fetch('/api/send-status-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    email: userData.email,
+                                    requestName: request.itemName || request.name || 'Your Request',
+                                    status: newStatus,
+                                    officerComment: `Your request has been reversed from "${originalStatus}" to "Under Review". Reason: ${reason}`
+                                })
+                            })
+                            .then(res => {
+                                if (!res.ok) console.warn('Email notification failed.');
+                            })
+                            .catch(err => console.warn('Email error:', err));
+                        }
+                    }
+                })
+                .catch(err => console.warn('Failed to fetch leader email:', err));
+        }
+
         closeReverseModal();
         loadRequests();
-        alert(`✅ Request has been reversed from "${originalStatus}" to "Under Review".`);
+        alert(`Request has been reversed from "${originalStatus}" to "Under Review". The leader has been notified.`);
     })
     .catch(error => {
         console.error('Error reversing request:', error);
@@ -1092,14 +1103,12 @@ function closeModal() {
     document.getElementById('docModal').classList.remove('active');
 }
 
-// Close modal on overlay click
 document.getElementById('docModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeModal();
     }
 });
 
-// Close reverse modal on overlay click
 document.getElementById('reverseModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeReverseModal();
@@ -1128,7 +1137,7 @@ async function deleteRequest(requestId) {
         if (documents.meetingMinutes) filePaths.push(documents.meetingMinutes);
         if (documents.vendorQuotation) filePaths.push(documents.vendorQuotation);
 
-        console.log('🔍 File paths to delete:', filePaths);
+        console.log('File paths to delete:', filePaths);
 
         if (filePaths.length > 0) {
             const { data, error } = await window.supabaseClient.storage
@@ -1138,18 +1147,18 @@ async function deleteRequest(requestId) {
             console.log('Delete response:', { data, error });
             
             if (error) {
-                console.error('❌ Error deleting files from Supabase:', error);
-                alert('⚠️ Failed to delete some files from storage. Check console for details.');
+                console.error('Error deleting files from Supabase:', error);
+                alert('Failed to delete some files from storage. Check console for details.');
             } else {
-                console.log('✅ Files successfully deleted:', data);
+                console.log('Files successfully deleted:', data);
             }
         }
 
         await docRef.delete();
         loadRequests();
-        alert('✅ Request deleted successfully.');
+        alert('Request deleted successfully.');
     } catch (error) {
-        console.error('❌ Error deleting request:', error);
+        console.error('Error deleting request:', error);
         alert('Error deleting request. ' + error.message);
     }
 }
@@ -1158,5 +1167,4 @@ async function deleteRequest(requestId) {
 
 loadRequests();
 
-// Make search function global for HTML
 window.searchRequests = searchRequests;

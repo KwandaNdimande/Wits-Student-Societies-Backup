@@ -222,7 +222,6 @@
             background: var(--danger);
             color: #fff;
         }
-        /* ===== Reverse button ===== */
         .btn-reverse {
             font-size: 12px;
             color: #E65100;
@@ -748,7 +747,7 @@
 
         <div class="controls">
             <div class="search-box">
-                <input id="searchInput" type="text" placeholder="🔍 Search requests..." oninput="searchRequests()" />
+                <input id="searchInput" type="text" placeholder="Search requests..." oninput="searchRequests()" />
             </div>
             <div class="results-count" id="resultsCount">Showing 0 of 0 requests</div>
         </div>
@@ -789,14 +788,12 @@
         </div>
     </div>
 
-    <!-- ================================================================
-         Reverse Decision Modal
-         ================================================================ -->
+    <!-- Reverse Decision Modal -->
     <div class="modal-overlay" id="reverseModal">
         <div class="modal">
             <div class="modal-header">
                 <button class="modal-back" onclick="closeReverseModal()">← Back to Requests</button>
-                <h2>⚠️ Reverse Decision</h2>
+                <h2>Reverse Decision</h2>
             </div>
             <div class="modal-body" id="reverseModalBody">
                 <div class="warning-text">
@@ -810,7 +807,7 @@
                 <textarea id="reverseReason" placeholder="Explain why this decision is being reversed (required for audit)"></textarea>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-warning" id="confirmReverseBtn" onclick="confirmReverse()">↩Confirm Reversal</button>
+                <button class="btn btn-warning" id="confirmReverseBtn" onclick="confirmReverse()">Confirm Reversal</button>
                 <button class="btn btn-secondary" onclick="closeReverseModal()">Cancel</button>
             </div>
         </div>

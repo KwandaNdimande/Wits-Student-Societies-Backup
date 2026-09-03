@@ -295,7 +295,7 @@ function changePage(page) {
 }
 
 // ================================================================
-// RENDER DELETED TABLE
+// RENDER DELETED TABLE (simplified: #, Society, Request, Type, Action)
 // ================================================================
 
 function renderDeletedTable() {
@@ -327,9 +327,6 @@ function renderDeletedTable() {
                         <th>Society</th>
                         <th>Request</th>
                         <th>Type</th>
-                        <th>Deleted By</th>
-                        <th>Deleted At</th>
-                        <th>Reason</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -345,9 +342,6 @@ function renderDeletedTable() {
                 <td class="strong">${r.societyName || 'Unknown'}</td>
                 <td>${r.requestName || r.originalData?.itemName || 'Untitled'}</td>
                 <td style="color:#6c757d;">${r.originalData?.type || 'N/A'}</td>
-                <td>${r.deletedBy || 'Unknown'}</td>
-                <td style="color:#6c757d;">${formatTimestamp(r.deletedAt)}</td>
-                <td style="color:#6c757d;max-width:200px;word-wrap:break-word;">${r.reason || 'No reason provided'}</td>
                 <td>
                     <button class="btn-view" onclick="viewDeletedRequestDetails('${r.id}')">View</button>
                 </td>

@@ -12,26 +12,23 @@
 
     <style>
         :root {
-            --navy-900: #0B1F3A;
-            --navy-800: #13315C;
-            --navy-700: #1B3E73;
-            --blue-600: #2E6FBA;
-            --blue-500: #3E7CB1;
-            --bg: #0B1F3A;
-            --surface: #FFFFFF;
-            --text-900: #0B1F3A;
-            --text-600: #3D4A63;
-            --text-500: #5A6B87;
-            --border: #E1E7F0;
+            --wits-blue: #003366;
+            --wits-gold: #FFCC00;
+            --wits-dark: #002a54;
+            --wits-darker: #001f3f;
+            --wits-text: #f7f9ff;
+            --wits-muted: #a8bbd8;
+            --wits-border: rgba(255, 255, 255, 0.12);
+            --wits-surface: rgba(0, 51, 102, 0.85);
             --radius: 12px;
-            --success: #1E8E5A;
-            --success-bg: #E5F5EC;
-            --warning: #B9720B;
-            --warning-bg: #FCF1DE;
-            --danger: #C0392B;
-            --danger-bg: #FBEAE8;
-            --info: #2E6FBA;
-            --info-bg: #E7F0FB;
+            --success: #4CAF50;
+            --success-bg: rgba(76, 175, 80, 0.15);
+            --warning: #FFC107;
+            --warning-bg: rgba(255, 193, 7, 0.15);
+            --danger: #ef5350;
+            --danger-bg: rgba(239, 83, 80, 0.15);
+            --info: #4a9eff;
+            --info-bg: rgba(74, 158, 255, 0.15);
         }
         * {
             margin: 0;
@@ -40,11 +37,15 @@
         }
         body {
             font-family: 'Inter', sans-serif;
-            background: var(--bg);
-            color: #fff;
+            background: var(--wits-blue);
+            color: var(--wits-text);
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
             padding: 90px 24px 40px 24px;
+            background:
+                radial-gradient(circle at 78% 35%, rgba(0, 51, 102, 0.6), transparent 32%),
+                radial-gradient(circle at 18% 70%, rgba(0, 51, 102, 0.9), transparent 30%),
+                linear-gradient(135deg, #003366 0%, #002a54 55%, #001f3f 100%);
         }
         .container {
             max-width: 1200px;
@@ -57,11 +58,11 @@
             font-family: 'Space Grotesk', sans-serif;
             font-size: 28px;
             font-weight: 600;
-            color: #fff;
+            color: var(--wits-text);
         }
         .header p {
             font-size: 15px;
-            color: #8FA6CC;
+            color: var(--wits-muted);
             margin-top: 4px;
         }
         .controls {
@@ -79,43 +80,47 @@
         }
         .controls .search-box input {
             padding: 10px 14px;
-            border: 1px solid rgba(255,255,255,0.15);
+            border: 1px solid var(--wits-border);
             border-radius: 8px;
             font-size: 14px;
             font-family: 'Inter', sans-serif;
-            color: #fff;
-            background: rgba(255,255,255,0.06);
+            color: var(--wits-text);
+            background: rgba(255, 255, 255, 0.06);
             min-width: 250px;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
         .controls .search-box input::placeholder {
-            color: #8FA6CC;
+            color: var(--wits-muted);
         }
         .controls .search-box input:focus {
             outline: none;
-            border-color: #fff;
-            box-shadow: 0 0 0 3px rgba(255,255,255,0.08);
+            border-color: var(--wits-gold);
+            box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.15);
         }
         .controls .results-count {
             font-size: 13px;
-            color: #8FA6CC;
+            color: var(--wits-muted);
         }
         .table-container {
-            background: var(--surface);
-            border: 1px solid var(--border);
+            background: rgba(0, 51, 102, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--wits-border);
             border-radius: var(--radius);
             overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
         }
         .hidden {
             display: none !important;
         }
         .detail-view {
-            background: var(--surface);
-            border: 1px solid var(--border);
+            background: rgba(0, 51, 102, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--wits-border);
             border-radius: var(--radius);
             padding: 28px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
             margin-bottom: 20px;
         }
         .detail-row {
@@ -127,12 +132,12 @@
         }
         .detail-label {
             font-size: 13px;
-            color: var(--text-500);
+            color: var(--wits-muted);
             min-width: 110px;
         }
         .detail-value {
             font-size: 14px;
-            color: var(--text-900);
+            color: var(--wits-text);
             flex: 1;
         }
         .detail-docs {
@@ -144,19 +149,19 @@
             align-items: center;
             gap: 12px;
             padding: 14px 16px;
-            border: 1px solid var(--border);
+            border: 1px solid var(--wits-border);
             border-radius: 12px;
             margin-bottom: 12px;
-            background: #FAFBFD;
+            background: rgba(255, 255, 255, 0.04);
         }
         .detail-docs .doc-item strong {
             font-weight: 600;
-            color: var(--text-900);
+            color: var(--wits-text);
             min-width: 140px;
             font-size: 14px;
         }
         .detail-docs .doc-item div {
-            color: var(--text-500);
+            color: var(--wits-muted);
             font-size: 13px;
             flex: 1;
             word-break: break-word;
@@ -170,8 +175,8 @@
             font-size: 14px;
         }
         thead {
-            background: #FAFBFD;
-            border-bottom: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid var(--wits-border);
         }
         th {
             padding: 14px 18px;
@@ -180,19 +185,22 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            color: var(--text-500);
+            color: var(--wits-muted);
         }
         td {
             padding: 14px 18px;
-            border-bottom: 1px solid var(--border);
-            color: var(--text-600);
+            border-bottom: 1px solid var(--wits-border);
+            color: var(--wits-muted);
         }
         tr:last-child td {
             border-bottom: none;
         }
         td.strong {
-            color: var(--text-900);
+            color: var(--wits-text);
             font-weight: 600;
+        }
+        tr:hover {
+            background: rgba(255, 255, 255, 0.04);
         }
         .status-badge {
             display: inline-block;
@@ -218,17 +226,17 @@
             color: var(--danger);
         }
         .status-revision {
-            background: #FFF3E0;
-            color: #E65100;
+            background: rgba(255, 152, 0, 0.15);
+            color: #FF9800;
         }
         .status-resubmitted {
-            background: #E3F2FD;
-            color: #0D47A1;
+            background: rgba(74, 158, 255, 0.15);
+            color: #4a9eff;
         }
         .btn-update {
             font-size: 12px;
-            color: #fff;
-            background: var(--warning);
+            color: var(--wits-blue);
+            background: var(--wits-gold);
             border: none;
             border-radius: 6px;
             padding: 6px 14px;
@@ -238,12 +246,14 @@
             transition: all 0.2s ease;
         }
         .btn-update:hover {
-            background: #8d5a0a;
+            background: #e6b800;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(255, 204, 0, 0.3);
         }
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: var(--text-500);
+            color: var(--wits-muted);
         }
         .empty-state p {
             font-size: 15px;
@@ -252,8 +262,8 @@
         .empty-state a {
             display: inline-block;
             padding: 10px 28px;
-            background: #fff;
-            color: var(--navy-900);
+            background: var(--wits-gold);
+            color: var(--wits-blue);
             text-decoration: none;
             border-radius: 8px;
             font-weight: 600;
@@ -261,21 +271,23 @@
             transition: all 0.2s ease;
         }
         .empty-state a:hover {
-            background: #e0e0e0;
+            background: #e6b800;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 204, 0, 0.3);
         }
         .pagination {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 16px 18px;
-            border-top: 1px solid var(--border);
-            background: #FAFBFD;
+            border-top: 1px solid var(--wits-border);
+            background: rgba(255, 255, 255, 0.04);
             flex-wrap: wrap;
             gap: 10px;
         }
         .pagination .info {
             font-size: 13px;
-            color: var(--text-500);
+            color: var(--wits-muted);
         }
         .pagination .pages {
             display: flex;
@@ -284,30 +296,30 @@
         }
         .pagination .pages button {
             padding: 6px 12px;
-            border: 1px solid var(--border);
+            border: 1px solid var(--wits-border);
             border-radius: 6px;
-            background: var(--surface);
-            color: var(--text-600);
+            background: transparent;
+            color: var(--wits-muted);
             cursor: pointer;
             font-family: 'Inter', sans-serif;
             font-size: 13px;
             transition: all 0.2s ease;
         }
         .pagination .pages button:hover:not(:disabled) {
-            border-color: var(--navy-900);
-            color: var(--navy-900);
+            border-color: var(--wits-gold);
+            color: var(--wits-text);
         }
         .pagination .pages button.active {
-            background: var(--navy-900);
-            color: #fff;
-            border-color: var(--navy-900);
+            background: var(--wits-gold);
+            color: var(--wits-blue);
+            border-color: var(--wits-gold);
         }
         .pagination .pages button:disabled {
             opacity: 0.4;
             cursor: not-allowed;
         }
         .pagination .pages .ellipsis {
-            color: var(--text-500);
+            color: var(--wits-muted);
             padding: 0 4px;
         }
         .nav-bell {
@@ -319,9 +331,9 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            color: #8FA6CC;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.12);
+            color: var(--wits-muted);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--wits-border);
             border-radius: 999px;
             padding: 8px 12px;
             cursor: pointer;
@@ -329,14 +341,14 @@
             font-size: 14px;
         }
         .nav-bell-btn:hover {
-            background: rgba(255,255,255,0.12);
+            background: rgba(255, 255, 255, 0.1);
         }
         .notification-badge {
             min-width: 18px;
             height: 18px;
             padding: 0 6px;
             border-radius: 999px;
-            background: #E53935;
+            background: var(--danger);
             color: #fff;
             font-size: 11px;
             font-weight: 700;
@@ -350,11 +362,13 @@
             right: 0;
             width: 320px;
             max-width: calc(100vw - 40px);
-            background: var(--surface);
-            color: var(--text-900);
-            border: 1px solid var(--border);
+            background: rgba(0, 51, 102, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: var(--wits-text);
+            border: 1px solid var(--wits-border);
             border-radius: 14px;
-            box-shadow: 0 18px 48px rgba(0,0,0,0.16);
+            box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
             z-index: 1000;
             display: none;
         }
@@ -363,46 +377,44 @@
         }
         .notification-item {
             padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--wits-border);
             cursor: pointer;
         }
         .notification-item:last-child {
             border-bottom: none;
         }
         .notification-item:hover {
-            background: #F4F7FB;
+            background: rgba(255, 255, 255, 0.06);
         }
         .notification-item .title {
             font-weight: 700;
-            color: var(--text-900);
+            color: var(--wits-text);
             margin-bottom: 5px;
         }
         .notification-item .meta {
             font-size: 12px;
-            color: var(--text-500);
+            color: var(--wits-muted);
         }
         .notification-item .note {
             margin-top: 8px;
             font-size: 13px;
-            color: var(--text-600);
+            color: var(--wits-muted);
         }
         .notification-item.empty {
             cursor: default;
-            color: var(--text-500);
+            color: var(--wits-muted);
         }
         .wits-badge {
             text-align: center;
             margin-top: 28px;
             font-size: 11px;
-            color: #8FA6CC;
+            color: var(--wits-muted);
             letter-spacing: 0.06em;
             text-transform: uppercase;
             font-weight: 500;
         }
 
-        /* ================================================================
-           MODAL STYLES (with backdrop blur)
-           ================================================================ */
+        /* Modal Styles */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -410,7 +422,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(4px);
             -webkit-backdrop-filter: blur(4px);
             z-index: 1000;
@@ -421,14 +433,17 @@
             display: flex;
         }
         .modal {
-            background: var(--surface);
+            background: rgba(0, 51, 102, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--wits-border);
             border-radius: var(--radius);
             max-width: 550px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
             padding: 32px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
         .modal-header {
             display: flex;
@@ -436,42 +451,44 @@
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 12px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--wits-border);
         }
         .modal-header h2 {
             font-family: 'Space Grotesk', sans-serif;
             font-size: 20px;
             font-weight: 600;
-            color: var(--navy-900);
+            color: var(--wits-text);
         }
-        .modal-close {
+        .modal-back {
             background: none;
             border: none;
-            font-size: 24px;
+            font-size: 14px;
             cursor: pointer;
-            color: var(--text-500);
+            color: var(--wits-muted);
+            padding: 4px 8px;
+            font-family: 'Inter', sans-serif;
         }
-        .modal-close:hover {
-            color: var(--text-900);
+        .modal-back:hover {
+            color: var(--wits-text);
         }
         .modal-body {
             padding: 4px 0;
-            color: var(--text-900);
+            color: var(--wits-text);
         }
         .modal-body .doc-item {
             padding: 10px 0;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--wits-border);
         }
         .modal-body .doc-item:last-child {
             border-bottom: none;
         }
         .modal-body .doc-name {
             font-weight: 600;
-            color: var(--text-900);
+            color: var(--wits-text);
         }
         .modal-body .doc-detail {
             font-size: 13px;
-            color: var(--text-500);
+            color: var(--wits-muted);
             margin-top: 2px;
         }
         .modal-body .file-input {
@@ -481,11 +498,12 @@
         .modal-body .file-input input[type="file"] {
             width: 100%;
             padding: 6px 10px;
-            border: 1px solid var(--border);
+            border: 1px solid var(--wits-border);
             border-radius: 6px;
             font-size: 13px;
             font-family: 'Inter', sans-serif;
-            background: var(--bg);
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--wits-text);
         }
         .modal-body .comment-area {
             margin-top: 16px;
@@ -493,21 +511,27 @@
         .modal-body .comment-area textarea {
             width: 100%;
             padding: 10px 14px;
-            border: 1px solid var(--border);
+            border: 1px solid var(--wits-border);
             border-radius: 8px;
             font-size: 14px;
             font-family: 'Inter', sans-serif;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--wits-text);
             resize: vertical;
             min-height: 60px;
         }
         .modal-body .comment-area textarea:focus {
             outline: none;
-            border-color: var(--navy-900);
+            border-color: var(--wits-gold);
+            box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.15);
+        }
+        .modal-body .comment-area textarea::placeholder {
+            color: var(--wits-muted);
         }
         .modal-footer {
             margin-top: 20px;
             padding-top: 16px;
-            border-top: 1px solid var(--border);
+            border-top: 1px solid var(--wits-border);
             display: flex;
             gap: 12px;
         }
@@ -522,38 +546,37 @@
             transition: all 0.2s ease;
         }
         .btn-primary {
-            background: var(--navy-900);
-            color: #fff;
+            background: var(--wits-gold);
+            color: var(--wits-blue);
         }
         .btn-primary:hover {
-            background: var(--navy-800);
+            background: #e6b800;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 204, 0, 0.3);
         }
         .btn-primary:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
         .btn-secondary {
-            background: var(--border);
-            color: var(--text-600);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--wits-muted);
+            border: 1px solid var(--wits-border);
         }
         .btn-secondary:hover {
-            background: #d0d7e0;
+            background: rgba(255, 255, 255, 0.15);
         }
         .officer-comment {
-            background: #FFF3E0;
+            background: rgba(255, 152, 0, 0.15);
             padding: 8px 12px;
             border-radius: 6px;
             font-size: 13px;
-            color: #E65100;
+            color: #FF9800;
             margin-top: 4px;
             display: inline-block;
         }
 
-        /* ================================================================
-           ACTION BUTTONS (Details, View Docs, Update)
-           ================================================================ */
-
-        /* Base button styling for all action buttons */
+        /* Action Buttons */
         .btn-action {
             display: inline-block;
             padding: 6px 14px;
@@ -567,90 +590,71 @@
             text-align: center;
             white-space: nowrap;
         }
-
-        /* "Details" button - Navy color */
         .btn-details {
-            background: #0B1F3A;
-            color: #fff;
+            background: var(--wits-gold);
+            color: var(--wits-blue);
         }
         .btn-details:hover {
-            background: #1B3E73;
+            background: #e6b800;
             transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(11, 31, 58, 0.3);
+            box-shadow: 0 2px 8px rgba(255, 204, 0, 0.3);
         }
-
-        /* "View Docs" button - Blue color */
         .btn-docs {
-            background: #2E6FBA;
-            color: #fff;
+            background: rgba(74, 158, 255, 0.3);
+            color: #4a9eff;
+            border: 1px solid rgba(74, 158, 255, 0.3);
         }
         .btn-docs:hover {
-            background: #1B4F8A;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(46, 111, 186, 0.3);
+            background: rgba(74, 158, 255, 0.4);
         }
-
-        /* "No Docs" button - Grey/disabled looking */
         .btn-no-docs {
-            background: #e9ecef;
-            color: #6c757d;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--wits-muted);
             cursor: not-allowed;
+            border: 1px solid var(--wits-border);
         }
-
-        /* "Update" button - Orange/Warning color */
         .btn-update-action {
-            background: #E65100;
-            color: #fff;
+            background: #FF9800;
+            color: var(--wits-blue);
         }
         .btn-update-action:hover {
-            background: #BF360C;
+            background: #e68900;
             transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(230, 81, 0, 0.3);
+            box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
         }
-
-        /* ================================================================
-           DOCUMENT VIEW/DOWNLOAD BUTTONS (inside modals)
-           ================================================================ */
-
-        /* Download button - Dark Blue */
-        .btn-download {
-            padding: 5px 16px;
-            background: #003B5C;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            transition: background 0.2s ease;
-            white-space: nowrap;
-        }
-        .btn-download:hover {
-            background: #1B3E73;
-        }
-
-        /* View button - Medium Blue */
         .btn-view-doc {
             padding: 5px 16px;
-            background: #2E6FBA;
-            color: #fff;
+            background: var(--wits-gold);
+            color: var(--wits-blue);
             border: none;
             border-radius: 6px;
             font-size: 13px;
             font-weight: 500;
             cursor: pointer;
             font-family: 'Inter', sans-serif;
-            transition: background 0.2s ease;
+            transition: all 0.2s ease;
             white-space: nowrap;
         }
         .btn-view-doc:hover {
-            background: #1B4F8A;
+            background: #e6b800;
+        }
+        .btn-download {
+            padding: 5px 16px;
+            background: rgba(255, 255, 255, 0.15);
+            color: var(--wits-text);
+            border: 1px solid var(--wits-border);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .btn-download:hover {
+            background: rgba(255, 255, 255, 0.25);
         }
 
-        /* ================================================================
-           RESPONSIVE
-           ================================================================ */
         @media (max-width: 768px) {
             .controls {
                 flex-direction: column;
@@ -663,7 +667,7 @@
             .table-container {
                 overflow-x: auto;
             }
-            body { 
+            body {
                 padding: 80px 16px 20px 16px;
             }
             th, td { padding: 10px 12px; font-size: 13px; }
@@ -720,7 +724,7 @@
             </div>
             <div class="detail-row" style="margin-bottom:18px; align-items:flex-start; gap:12px;">
                 <div style="flex:1;">
-                    <h2 id="detail-title" style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:600;color:var(--navy-900);margin-bottom:8px;">Request Details</h2>
+                    <h2 id="detail-title" style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:600;color:var(--wits-text);margin-bottom:8px;">Request Details</h2>
                     <div class="detail-status-row" style="display:flex;align-items:center;gap:10px;">
                         <span class="detail-label" style="min-width:auto;">Status</span>
                         <span id="detail-status" class="status-badge status-submitted"></span>
@@ -740,7 +744,7 @@
         <div class="modal">
             <div class="modal-header">
                 <h2 id="modalTitle">Update Documents</h2>
-                <button class="modal-back" onclick="closeUpdateModal()" style="background:none;border:none;cursor:pointer;font-size:14px;margin-right:12px;">← Back to Requests</button>
+                <button class="modal-back" onclick="closeUpdateModal()" style="background:none;border:none;cursor:pointer;font-size:14px;margin-right:12px;color:var(--wits-muted);">← Back to Requests</button>
             </div>
             <div class="modal-body" id="modalBody">
                 <div class="no-docs">Loading...</div>

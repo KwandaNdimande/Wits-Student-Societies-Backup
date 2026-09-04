@@ -424,6 +424,11 @@
             background: var(--surface);
             border-radius: var(--radius);
             max-width: 550px;
+                    .modal {
+                        max-width: 90%;
+                        max-height: 90vh;
+                        overflow-y: auto;
+                    }
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
@@ -662,6 +667,28 @@
             }
             .table-container {
                 overflow-x: auto;
+                        .modal {
+                            max-width: 90%;
+                            max-height: 85vh;
+                        }
+                        .modal {
+                            max-width: 95%;
+                            padding: 16px;
+                        }
+                        .modal-header h2 {
+                            font-size: 16px;
+                        }
+                        th, td { 
+                            padding: 8px 10px; 
+                            font-size: 12px; 
+                        }
+                        .doc-item {
+                            flex-direction: column;
+                            gap: 8px;
+                        }
+                        .doc-item .doc-name {
+                            width: 100%;
+                        }
             }
             body { 
                 padding: 80px 16px 20px 16px;

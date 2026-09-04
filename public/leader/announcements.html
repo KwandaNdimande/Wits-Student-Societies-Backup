@@ -186,6 +186,11 @@
             background: var(--surface);
             border-radius: var(--radius);
             max-width: 500px;
+                    .modal {
+                        max-width: 90%;
+                        max-height: 90vh;
+                        overflow-y: auto;
+                    }
             width: 90%;
             padding: 28px 32px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
@@ -273,6 +278,16 @@
         }
 
         @media (max-width: 768px) {
+                        .modal {
+                            max-width: 90%;
+                            max-height: 85vh;
+                        }
+                        .table-container {
+                            overflow-x: auto;
+                        }
+                        table {
+                            min-width: 600px;
+                        }
             body {
                 padding: 80px 16px 20px 16px;
             }
@@ -292,6 +307,17 @@
             }
         }
         @media (max-width: 480px) {
+                        .modal {
+                            max-width: 95%;
+                            padding: 16px;
+                        }
+                        .modal-header h2 {
+                            font-size: 16px;
+                        }
+                        th, td { 
+                            padding: 8px 10px; 
+                            font-size: 12px; 
+                        }
             .btn-action {
                 display: block;
                 width: 100%;

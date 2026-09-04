@@ -217,6 +217,16 @@ function isValidEmail(email) {
   return emailRegex.test(email);
 }
 
+// Helper function to validate text fields (name, description, etc.)
+// Must contain at least one letter; reject numeric-only values
+function isValidTextField(value) {
+  const text = String(value || '').trim();
+  if (!text || text.length === 0) return false;
+  // Must contain at least one letter (a-z, A-Z)
+  if (!/[a-zA-Z]/.test(text)) return false;
+  return true;
+}
+
 function normalizeSocietyName(name) {
   return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
@@ -443,6 +453,20 @@ app.post('/api/societies', async (req, res) => {
 
     }
 
+    // Validate name contains at least one letter
+    if (!isValidTextField(name)) {
+      return res.status(400).json({
+        error: 'Society name must contain at least one letter and cannot be numeric-only'
+      });
+    }
+
+    // Validate description if provided
+    if (description && !isValidTextField(description)) {
+      return res.status(400).json({
+        error: 'Description must contain at least one letter and cannot be numeric-only'
+      });
+    }
+
     const formattedName = formatSocietyName(name);
     const normalizedName = normalizeSocietyName(formattedName);
 
@@ -531,6 +555,20 @@ app.put('/api/societies/:id', async (req, res) => {
       return res.status(400).json({ error: 'Society name is required' });
     }
 
+    // Validate name contains at least one letter if being updated
+    if (name !== undefined && !isValidTextField(name)) {
+      return res.status(400).json({
+        error: 'Society name must contain at least one letter and cannot be numeric-only'
+      });
+    }
+
+    // Validate description if provided
+    if (description !== undefined && description && !isValidTextField(description)) {
+      return res.status(400).json({
+        error: 'Description must contain at least one letter and cannot be numeric-only'
+      });
+    }
+
     // Validate executive committee if provided
     if (execCommittee) {
       const validation = validateExecCommittee(execCommittee);
@@ -615,6 +653,7 @@ app.put('/api/societies/:id', async (req, res) => {
 // Deletion is intentionally unsupported; societies are retained by archiving.
 app.delete('/api/societies/:id', async (req, res) => {
   res.status(405).json({ error: 'Society deletion is not supported' });
+});
 
 
 // Archive a society after quota has not been met.
@@ -640,6 +679,70 @@ app.post('/api/societies/:id/archive', async (req, res) => {
     res.status(500).json({ error: 'Failed to archive society' });
   }
 });
+
+
+// ============ DELETION RECORDS ENDPOINTS ============
+
+// Get all deletion records
+app.get('/api/deletionRecords', async (req, res) => {
+  try {
+    const snapshot = await db.collection('deletionRecords')
+      .orderBy('deletedAt', 'desc')
+      .get();
+
+    const records = [];
+    snapshot.forEach(doc => {
+      records.push({ id: doc.id, ...doc.data() });
+    });
+
+    res.json(records);
+  } catch (error) {
+    console.error('Error fetching deletion records:', error);
+    res.status(500).json({ error: 'Failed to fetch deletion records' });
+  }
+});
+
+// Create a deletion record (when a request is deleted)
+app.post('/api/deletionRecords', async (req, res) => {
+  try {
+    const {
+      requestId,
+      requestName,
+      type,
+      society,
+      previousStatus,
+      deletedBy,
+      reason
+    } = req.body;
+
+    if (!requestId || !requestName || !society || !previousStatus || !deletedBy) {
+      return res.status(400).json({
+        error: 'Missing required fields: requestId, requestName, society, previousStatus, deletedBy'
+      });
+    }
+
+    const deletionRecord = {
+      requestId,
+      requestName,
+      type: type || 'Unknown',
+      society,
+      previousStatus,
+      deletedBy,
+      reason: reason || '',
+      deletedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    const docRef = await db.collection('deletionRecords').add(deletionRecord);
+
+    res.status(201).json({
+      id: docRef.id,
+      ...deletionRecord
+    });
+  } catch (error) {
+    console.error('Error creating deletion record:', error);
+    res.status(500).json({ error: 'Failed to create deletion record' });
+  }
 });
 
 

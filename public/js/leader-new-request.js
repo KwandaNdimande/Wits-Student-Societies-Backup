@@ -73,17 +73,27 @@ function updateAsterisk(key, value) {
 }
 
 // ============ VALIDATION ============
+// Helper function to validate text fields (name, description, etc.)
+// Must contain at least one letter; reject numeric-only values
+function isValidTextField(value) {
+    const text = String(value || '').trim();
+    if (!text || text.length === 0) return false;
+    // Must contain at least one letter (a-z, A-Z)
+    if (!/[a-zA-Z]/.test(text)) return false;
+    return true;
+}
+
 function isFieldValid(fieldId, value) {
     switch (fieldId) {
         case 'request-type':
             return value && value.trim() !== '';
         case 'item-name':
-            return value && value.trim() !== '';
+            return isValidTextField(value);
         case 'amount':
             const num = parseFloat(value);
             return !isNaN(num) && num > 0;
         case 'description':
-            return value && value.trim() !== '';
+            return isValidTextField(value);
         case 'budget-form':
             const fileB = document.getElementById('budget-form').files[0];
             return fileB && /\.(xlsx|xls)$/i.test(fileB.name);
@@ -167,8 +177,8 @@ function validateAllFields() {
     }
 
     const item = document.getElementById('item-name').value.trim();
-    if (!item) {
-        showFieldError('item-name', 'item-error', 'Event or item name is required.');
+    if (!isValidTextField(item)) {
+        showFieldError('item-name', 'item-error', 'Event or item name must contain at least one letter.');
         isValid = false;
     }
 
@@ -180,8 +190,8 @@ function validateAllFields() {
     }
 
     const desc = document.getElementById('description').value.trim();
-    if (!desc) {
-        showFieldError('description', 'description-error', 'Description is required.');
+    if (!isValidTextField(desc)) {
+        showFieldError('description', 'description-error', 'Description must contain at least one letter.');
         isValid = false;
     }
 

@@ -58,6 +58,11 @@
         .form-card {
             background: var(--surface);
             border: 1px solid var(--border);
+                    .modal {
+                        max-width: 90%;
+                        max-height: 90vh;
+                        overflow-y: auto;
+                    }
             border-radius: var(--radius);
             padding: 28px 32px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
@@ -240,6 +245,19 @@
             font-weight: 500;
         }
         @media (max-width: 480px) {
+                        .modal {
+                            max-width: 95%;
+                            padding: 16px;
+                        }
+                        #submitBtn, #cancel-request {
+                            width: 100%;
+                        }
+                        .form-group {
+                            margin-bottom: 12px;
+                        }
+                        input, select, textarea {
+                            font-size: 16px;
+                        }
             body { padding: 20px 16px; }
             .form-card { padding: 20px 16px; }
             .form-actions { flex-direction: column; }

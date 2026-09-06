@@ -447,11 +447,17 @@
             background: var(--surface);
             border-radius: var(--radius);
             max-width: 600px;
+                    .modal {
+                        max-width: 90%;
+                        max-height: 90vh;
+                        overflow-y: auto;
+                    }
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
             padding: 28px 32px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            position: relative;
         }
         .modal-header {
             display: flex;
@@ -459,6 +465,8 @@
             margin-bottom: 20px;
             padding-bottom: 12px;
             border-bottom: 1px solid var(--border);
+            position: relative;
+            min-height: 40px;
         }
         .modal-header h2 {
             font-family: 'Space Grotesk', sans-serif;
@@ -466,6 +474,7 @@
             font-weight: 600;
             color: var(--navy-900);
             flex: 1;
+            margin: 0;
         }
         .modal-back {
             background: none;
@@ -475,6 +484,11 @@
             color: var(--text-500);
             padding: 4px 8px;
             font-family: 'Inter', sans-serif;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 0;
+            margin: 0;
         }
         .modal-back:hover {
             color: var(--text-900);
@@ -719,6 +733,10 @@
             body { padding: 80px 16px 20px 16px; }
             th, td { padding: 10px 12px; font-size: 13px; }
             .modal { padding: 20px; }
+                        .modal {
+                            max-width: 90%;
+                            max-height: 85vh;
+                        }
             .pagination {
                 flex-direction: column;
                 text-align: center;
@@ -778,6 +796,22 @@
             }
             td .btn-reverse {
                 margin-right: 0 !important;
+                        .modal {
+                            max-width: 95%;
+                            padding: 16px;
+                        }
+                        .modal-header h2 {
+                            font-size: 16px;
+                            margin-left: 30px;
+                        }
+                        th, td { 
+                            padding: 8px 10px; 
+                            font-size: 12px; 
+                        }
+                        .btn-action {
+                            font-size: 11px;
+                            padding: 6px 10px;
+                        }
             }
         }
     </style>
@@ -816,8 +850,8 @@
     <div class="modal-overlay" id="docModal">
         <div class="modal">
             <div class="modal-header">
-                <button class="modal-back" onclick="closeModal()">← Back to Requests</button>
-                <h2 id="modalTitle">Request Documents</h2>
+                <button class="modal-back" onclick="closeModal()">← Back</button>
+                <h2 id="modalTitle" style="margin-left: 40px;">Request Documents</h2>
             </div>
             <div id="modalBody">
                 <div class="no-docs">Loading...</div>
@@ -829,8 +863,8 @@
     <div class="modal-overlay" id="statusModal">
         <div class="modal">
             <div class="modal-header">
-                <button class="modal-back" onclick="closeStatusModal(true)">← Back to Requests</button>
-                <h2 id="statusModalTitle">Update Request Status</h2>
+                <button class="modal-back" onclick="closeStatusModal(true)">← Back</button>
+                <h2 id="statusModalTitle" style="margin-left: 40px;">Update Request Status</h2>
             </div>
             <div class="modal-body" id="statusModalBody">
                 <label for="statusReasonDetails">Note</label>
@@ -847,8 +881,8 @@
     <div class="modal-overlay" id="reverseModal">
         <div class="modal">
             <div class="modal-header">
-                <button class="modal-back" onclick="closeReverseModal()">← Back to Requests</button>
-                <h2>Reverse Decision</h2>
+                <button class="modal-back" onclick="closeReverseModal()">← Back</button>
+                <h2 style="margin-left: 40px;">Reverse Decision</h2>
             </div>
             <div class="modal-body" id="reverseModalBody">
                 <div class="warning-text">
@@ -871,12 +905,12 @@
     <div class="modal-overlay" id="deleteModal">
         <div class="modal">
             <div class="modal-header">
-                <button class="modal-back" onclick="closeDeleteModal()">← Back to Requests</button>
-                <h2>Delete Request</h2>
+                <button class="modal-back" onclick="closeDeleteModal()">← Back</button>
+                <h2 style="margin-left: 40px;">Delete Request</h2>
             </div>
             <div class="modal-body" id="deleteModalBody">
                 <div class="warning-text">
-                    Are you sure you want to delete this request?
+                    Are you sure you want to delete this request? This will create an immutable deletion record.
                 </div>
                 <div class="request-info" id="deleteRequestInfo">
                     <!-- Filled by JavaScript -->
@@ -885,37 +919,8 @@
                 <textarea id="deleteReason" placeholder="Explain why this request is being deleted (required for audit)"></textarea>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">Confirm Delete</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">Delete Request</button>
                 <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Permanent Delete Modal -->
-    <div class="modal-overlay" id="permanentDeleteModal">
-        <div class="modal">
-            <div class="modal-header">
-                <button class="modal-back" onclick="closePermanentDeleteModal()">← Back to Requests</button>
-                <h2>Permanently Delete Request</h2>
-            </div>
-            <div class="modal-body" id="permanentDeleteModalBody">
-                <div style="color:#C0392B;font-weight:600;font-size:14px;margin-bottom:16px;">
-                    This action cannot be undone. The request and all its data will be permanently removed from the system.
-                </div>
-                <div class="request-info" id="permanentDeleteRequestInfo">
-                    <!-- Filled by JavaScript -->
-                </div>
-                <label for="permanentDeleteConfirm">Type "DELETE" to confirm:</label>
-                <input
-                    type="text"
-                    id="permanentDeleteConfirm"
-                    placeholder="DELETE"
-                />
-                <div id="permanentDeleteError" style="color:#C0392B;font-size:13px;margin-top:8px;display:none;">Please type "DELETE" to confirm.</div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-danger" id="confirmPermanentDeleteBtn" onclick="confirmPermanentDelete()" disabled>Permanently Delete</button>
-                <button class="btn btn-secondary" onclick="closePermanentDeleteModal()">Cancel</button>
             </div>
         </div>
     </div>

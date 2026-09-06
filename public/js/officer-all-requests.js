@@ -123,11 +123,11 @@ async function loadRequests() {
 }
 
 // ================================================================
-// LOAD DELETED REQUESTS
+// LOAD DELETION RECORDS
 // ================================================================
 async function loadDeletedRequests() {
     try {
-        const snapshot = await db.collection('deletedRequests')
+        const snapshot = await db.collection('deletionRecords')
             .orderBy('deletedAt', 'desc')
             .get();
 
@@ -142,8 +142,8 @@ async function loadDeletedRequests() {
             renderDeletedTable();
         }
     } catch (error) {
-        console.error('Error loading deleted requests:', error);
-        document.getElementById('deleted-requests-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading deleted requests.</p>';
+        console.error('Error loading deletion records:', error);
+        document.getElementById('deleted-requests-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading deletion records.</p>';
     }
 }
 
@@ -365,7 +365,6 @@ function renderDeletedTable() {
                 <td style="color:#6c757d;">${r.originalData?.type || 'N/A'}</td>
                 <td>
                     <button class="btn-view" onclick="viewDeletedRequestDetails('${r.id}')">View</button>
-                    <button class="btn-delete" onclick="openPermanentDeleteModal('${r.id}')">Permanently Delete</button>
                 </td>
             </tr>
         `;
@@ -419,88 +418,40 @@ function changeDeletedPage(page) {
 }
 
 // ================================================================
-// VIEW DELETED REQUEST DETAILS (matching active view style)
+// VIEW DELETION RECORD DETAILS
 // ================================================================
 
 function viewDeletedRequestDetails(deletedId) {
-    const request = deletedRequests.find(r => r.id === deletedId);
-    if (!request) {
-        alert('Deleted request not found.');
+    const record = deletedRequests.find(r => r.id === deletedId);
+    if (!record) {
+        alert('Deletion record not found.');
         return;
     }
 
-    const data = request.originalData || {};
-    const itemName = request.requestName || data.itemName || 'Untitled Request';
-    const society = request.societyName || 'Unknown Society';
+    const itemName = record.requestName || 'Untitled Request';
+    const society = record.society || 'Unknown Society';
     const status = 'Deleted';
-    const type = data.type || 'N/A';
-    const amount = data.amount ? `R${data.amount.toLocaleString()}` : 'N/A';
-    const submittedAt = data.submittedAt ? new Date(data.submittedAt.seconds * 1000).toLocaleString() : 'N/A';
-    const description = data.description || 'No description provided.';
-    const documents = data.documents || {};
-    const history = data.statusHistory || [];
-    const deletedBy = request.deletedBy || 'Unknown';
-    const deletedAt = formatTimestamp(request.deletedAt);
-    const deletionReason = request.reason || 'No reason provided';
-
-    // Build documents HTML
-    const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
-    const docLabels = {
-        'budgetForm': 'Budget Form',
-        'meetingMinutes': 'Meeting Minutes',
-        'vendorQuotation': 'Vendor Quotation'
-    };
-
-    let docsHtml = '';
-    const hasDocs = Object.keys(documents).length > 0;
-
-    if (hasDocs) {
-        docsHtml = docOrder.map(key => {
-            const doc = documents[key];
-            if (!doc) {
-                return `
-                    <div class="doc-item">
-                        <span class="doc-name">${docLabels[key] || key}</span>
-                        <span class="doc-detail">No file uploaded</span>
-                    </div>
-                `;
-            }
-            const info = getFileInfo(doc);
-            if (!info.path) {
-                return `
-                    <div class="doc-item">
-                        <span class="doc-name">${docLabels[key] || key}</span>
-                        <span class="doc-detail">${info.name || 'File not found'}</span>
-                    </div>
-                `;
-            }
-            return `
-                <div class="doc-item">
-                    <span class="doc-name">${docLabels[key] || key}</span>
-                    <span class="doc-detail">${info.name}</span>
-                    <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
-                        <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
-                        <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">Download</button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    } else {
-        docsHtml = '<div style="color:var(--text-500);font-size:13px;">No documents were uploaded for this request.</div>';
-    }
-
-    // Build activity timeline
-    const historyHtml = getRequestHistoryHtml(history);
+    const type = record.type || 'Unknown';
+    const previousStatus = record.previousStatus || 'Unknown';
+    const deletedBy = record.deletedBy || 'Unknown';
+    const deletedAt = formatTimestamp(record.deletedAt);
+    const deletionReason = record.reason || 'No reason provided';
 
     // Build modal body using the same row style as active view
     const detailRows = `
         <div class="detail-row"><span class="detail-label">Request Type</span><span class="detail-value">${type}</span></div>
-        <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${amount}</span></div>
-        <div class="detail-row"><span class="detail-label">Submitted</span><span class="detail-value">${submittedAt}</span></div>
+        <div class="detail-row"><span class="detail-label">Previous Status</span><span class="detail-value">${previousStatus}</span></div>
         <div class="detail-row"><span class="detail-label">Deleted By</span><span class="detail-value">${deletedBy}</span></div>
         <div class="detail-row"><span class="detail-label">Deleted At</span><span class="detail-value">${deletedAt}</span></div>
         <div class="detail-row"><span class="detail-label">Deletion Reason</span><span class="detail-value">${deletionReason}</span></div>
-        <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">${description}</span></div>
+    `;
+
+    const noteHtml = `
+        <div style="margin-top:16px; padding:12px 16px; background:#F3F4F6; border-radius:8px; border-left:4px solid #9CA3AF;">
+            <p style="margin:0; color:var(--text-600); font-size:13px;">
+                <strong>Note:</strong> This deletion record is immutable and contains only the essential information about the deleted request. Associated files have been permanently removed from storage.
+            </p>
+        </div>
     `;
 
     const modalBody = `
@@ -514,14 +465,10 @@ function viewDeletedRequestDetails(deletedId) {
         <div style="margin-bottom:16px;">
             ${detailRows}
         </div>
-        <div style="margin-bottom:16px;">
-            <h3 style="font-size:15px;color:var(--navy-900);margin-bottom:10px;">Documents</h3>
-            ${docsHtml}
-        </div>
-        ${historyHtml}
+        ${noteHtml}
     `;
 
-    document.getElementById('modalTitle').textContent = `Deleted Request - ${itemName}`;
+    document.getElementById('modalTitle').textContent = `Deletion Record - ${itemName}`;
     document.getElementById('modalBody').innerHTML = modalBody;
     document.getElementById('docModal').classList.add('active');
 }
@@ -1068,151 +1015,57 @@ function confirmDelete() {
     btn.textContent = 'Processing...';
 
     const actorName = localStorage.getItem('userName') || 'Officer';
-    const actorRole = localStorage.getItem('userRole') || 'officer';
+    const userUid = localStorage.getItem('userUid') || 'unknown';
 
-    const requestData = { ...request };
-    delete requestData.id;
-
-    const deletionEntry = {
+    // Create immutable deletion record with only essential fields
+    const deletionRecord = {
         requestId: pendingDeleteRequestId,
         requestName: request.itemName || request.name || 'Untitled',
-        societyName: request.societyName || 'Unknown',
-        originalData: requestData,
+        type: request.type || 'Unknown',
+        society: request.societyName || 'Unknown',
+        previousStatus: request.status || 'Submitted',
         deletedBy: actorName,
-        deletedByUid: userUid,
         reason: reason,
-        deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+        deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    db.collection('deletedRequests').add(deletionEntry)
-    .then(() => {
-        const historyEntry = {
-            timestamp: new Date().toISOString(),
-            status: 'Deleted',
-            actorName: actorName,
-            actorRole: actorRole,
-            note: `Deleted: ${reason}`,
-            isDeletion: true,
-            deletionReason: reason
-        };
+    // Step 1: Create the deletion record
+    db.collection('deletionRecords').add(deletionRecord)
+    .then(async (deletionDocRef) => {
+        // Step 2: Get list of files to delete from Supabase
+        const filesToDelete = [];
+        if (request.documents) {
+            for (const [key, path] of Object.entries(request.documents)) {
+                if (path && typeof path === 'string') {
+                    filesToDelete.push(path);
+                }
+            }
+        }
 
-        return db.collection('requests').doc(pendingDeleteRequestId).update({
-            statusHistory: firebase.firestore.FieldValue.arrayUnion(historyEntry)
-        })
-        .then(() => {
-            return db.collection('requests').doc(pendingDeleteRequestId).delete();
-        });
+        // Step 3: Delete files from Supabase storage (fire and forget)
+        if (filesToDelete.length > 0) {
+            window.supabaseClient.storage
+                .from('documents')
+                .remove(filesToDelete)
+                .catch(err => console.warn('File deletion warning:', err.message));
+        }
+
+        // Step 4: Delete the original request from Firestore
+        return db.collection('requests').doc(pendingDeleteRequestId).delete();
     })
     .then(() => {
         closeDeleteModal();
         loadRequests();
         loadDeletedRequests();
-        alert('Request deleted successfully. Audit log has been created.');
+        alert('Request deleted successfully. A deletion record has been created.');
     })
     .catch(error => {
         console.error('Error deleting request:', error);
         alert('Error deleting request: ' + error.message);
-    })
-    .finally(() => {
         btn.disabled = false;
-        btn.textContent = 'Confirm Delete';
+        btn.textContent = 'Delete Request';
     });
-}
-
-// ================================================================
-// PERMANENT DELETE FUNCTIONS
-// ================================================================
-
-function openPermanentDeleteModal(deletedId) {
-    const request = deletedRequests.find(r => r.id === deletedId);
-    if (!request) {
-        alert('Deleted request not found.');
-        return;
-    }
-
-    pendingPermanentDeleteId = deletedId;
-
-    const infoHtml = `
-        <div class="info-row">
-            <span class="label">Society</span>
-            <span class="value">${request.societyName || 'Unknown'}</span>
-        </div>
-        <div class="info-row">
-            <span class="label">Request</span>
-            <span class="value">${request.requestName || request.originalData?.itemName || 'Untitled'}</span>
-        </div>
-        <div class="info-row">
-            <span class="label">Deleted By</span>
-            <span class="value">${request.deletedBy || 'Unknown'}</span>
-        </div>
-        <div class="info-row">
-            <span class="label">Deleted At</span>
-            <span class="value">${formatTimestamp(request.deletedAt)}</span>
-        </div>
-    `;
-
-    document.getElementById('permanentDeleteRequestInfo').innerHTML = infoHtml;
-    document.getElementById('permanentDeleteConfirm').value = '';
-    document.getElementById('permanentDeleteError').style.display = 'none';
-    document.getElementById('confirmPermanentDeleteBtn').disabled = true;
-    document.getElementById('permanentDeleteModal').classList.add('active');
-    document.getElementById('permanentDeleteConfirm').focus();
-
-    const input = document.getElementById('permanentDeleteConfirm');
-    const btn = document.getElementById('confirmPermanentDeleteBtn');
-    const errorEl = document.getElementById('permanentDeleteError');
-
-    input.oninput = function() {
-        if (this.value === 'DELETE') {
-            btn.disabled = false;
-            errorEl.style.display = 'none';
-        } else {
-            btn.disabled = true;
-            errorEl.style.display = 'none';
-        }
-    };
-}
-
-function closePermanentDeleteModal() {
-    document.getElementById('permanentDeleteModal').classList.remove('active');
-    pendingPermanentDeleteId = null;
-    document.getElementById('permanentDeleteConfirm').value = '';
-    document.getElementById('confirmPermanentDeleteBtn').disabled = true;
-    document.getElementById('permanentDeleteError').style.display = 'none';
-}
-
-function confirmPermanentDelete() {
-    const input = document.getElementById('permanentDeleteConfirm');
-    const errorEl = document.getElementById('permanentDeleteError');
-
-    if (input.value !== 'DELETE') {
-        errorEl.style.display = 'block';
-        return;
-    }
-
-    if (!pendingPermanentDeleteId) {
-        alert('No request selected.');
-        return;
-    }
-
-    const btn = document.getElementById('confirmPermanentDeleteBtn');
-    btn.disabled = true;
-    btn.textContent = 'Deleting...';
-
-    db.collection('deletedRequests').doc(pendingPermanentDeleteId).delete()
-        .then(() => {
-            closePermanentDeleteModal();
-            loadDeletedRequests();
-            alert('Request permanently deleted from the system.');
-        })
-        .catch(error => {
-            console.error('Error permanently deleting request:', error);
-            alert('Error permanently deleting request: ' + error.message);
-        })
-        .finally(() => {
-            btn.disabled = false;
-            btn.textContent = 'Permanently Delete';
-        });
 }
 
 // ================================================================

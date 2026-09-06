@@ -455,6 +455,11 @@
             background: var(--surface);
             border-radius: var(--radius);
             max-width: 700px;
+                    .modal {
+                        max-width: 90%;
+                        max-height: 90vh;
+                        overflow-y: auto;
+                    }
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
@@ -618,6 +623,32 @@
         }
         .btn-secondary:hover {
             background: #d0d7e0;
+                .form-buttons {
+                    display: flex;
+                    gap: 12px;
+                    grid-column: 1 / -1;
+                }
+                .form-buttons .btn-add,
+                .form-buttons .btn-cancel {
+                    grid-column: auto;
+                    justify-self: auto;
+                }
+                .btn-cancel {
+                    font-family: 'Inter', sans-serif;
+                    font-size: 14px;
+                    font-weight: 600;
+                    padding: 10px 28px;
+                    border: none;
+                    border-radius: 8px;
+                    background: var(--border);
+                    color: var(--text-600);
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                .btn-cancel:hover {
+                    background: #d0d7e0;
+                    transform: translateY(-1px);
+                }
         }
         .btn-archive { background: var(--danger); color: #fff; }
         .btn-archive:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -636,10 +667,24 @@
                 grid-column: 1 / -1;
                 width: 100%;
                 justify-self: stretch;
+                        .form-buttons {
+                            flex-direction: column;
+                        }
+                        .form-buttons .btn-add,
+                        .form-buttons .btn-cancel {
+                            width: 100%;
+                        }
             }
             .controls {
                 flex-direction: column;
                 align-items: stretch;
+                        .table-container {
+                            overflow-x: auto;
+                        }
+                        table {
+                            width: 100%;
+                            min-width: 600px;
+                        }
             }
             .controls .search-box input {
                 min-width: auto;
@@ -682,6 +727,24 @@
             .add-section { padding: 18px 16px; }
             .table-container { overflow-x: auto; }
             th, td { padding: 10px 12px; font-size: 13px; }
+                    .modal {
+                        max-width: 95%;
+                        padding: 16px;
+                    }
+                    .form-buttons {
+                        flex-direction: column;
+                        gap: 8px;
+                    }
+                    .form-buttons .btn-add,
+                    .form-buttons .btn-cancel {
+                        width: 100%;
+                        padding: 10px 16px;
+                        font-size: 13px;
+                    }
+                    .btn-action {
+                        font-size: 11px;
+                        padding: 6px 10px;
+                    }
         }
     </style>
 </head>
@@ -754,7 +817,10 @@
                     <div id="other-portfolios-list"></div>
                 </div>
 
-                <button class="btn-add" onclick="addSociety()">Add Society</button>
+                <div class="form-buttons">
+                    <button class="btn-add" onclick="addSociety()">Add Society</button>
+                    <button type="button" class="btn-cancel" onclick="cancelAddSociety()">Cancel</button>
+                </div>
             </div>
         </div>
 

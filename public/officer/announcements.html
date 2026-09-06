@@ -289,6 +289,11 @@
             background: var(--surface);
             border-radius: var(--radius);
             max-width: 500px;
+                    .modal {
+                        max-width: 90%;
+                        max-height: 90vh;
+                        overflow-y: auto;
+                    }
             width: 90%;
             padding: 28px 32px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
@@ -376,6 +381,17 @@
         }
 
         @media (max-width: 768px) {
+                        .modal {
+                            max-width: 90%;
+                            max-height: 85vh;
+                        }
+                        .form-buttons {
+                            flex-direction: column;
+                        }
+                        .form-buttons .btn-post,
+                        .form-buttons .btn-cancel {
+                            width: 100%;
+                        }
             body {
                 padding: 80px 16px 20px 16px;
             }
@@ -401,6 +417,27 @@
             }
         }
         @media (max-width: 480px) {
+                        .modal {
+                            max-width: 95%;
+                            padding: 16px;
+                        }
+                        .modal-header h2 {
+                            font-size: 16px;
+                        }
+                        th, td { 
+                            padding: 8px 10px; 
+                            font-size: 12px; 
+                        }
+                        .form-buttons {
+                            flex-direction: column;
+                            gap: 8px;
+                        }
+                        .form-buttons .btn-post,
+                        .form-buttons .btn-cancel {
+                            width: 100%;
+                            padding: 10px 16px;
+                            font-size: 13px;
+                        }
             .form-grid {
                 grid-template-columns: 1fr;
             }
@@ -458,7 +495,10 @@
                     <label for="announcement-body">Message</label>
                     <textarea id="announcement-body" placeholder="Write your announcement message here..." rows="3"></textarea>
                 </div>
-                <button class="btn-post" id="postButton" onclick="postAnnouncement()">Post Announcement</button>
+                <div class="form-buttons" style="display: flex; gap: 12px; margin-top: 12px;">
+                    <button class="btn-post" id="postButton" onclick="postAnnouncement()">Post Announcement</button>
+                    <button type="button" class="btn-cancel" onclick="cancelAnnouncement()" style="background: #E9ECEF; color: var(--text-600); font-weight: 600; padding: 10px 28px; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">Cancel</button>
+                </div>
             </div>
         </div>
 

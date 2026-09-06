@@ -567,6 +567,36 @@ async function addSociety() {
 // ================================================================
 
 function closeSocietyModal() {
+    function cancelAddSociety() {
+        // Clear all form fields
+        document.getElementById('society-name').value = '';
+        document.getElementById('society-category').value = '';
+        document.getElementById('society-email').value = '';
+        document.getElementById('society-description').value = '';
+        document.getElementById('chairperson-name').value = '';
+        document.getElementById('chairperson-email').value = '';
+        document.getElementById('deputychairperson-name').value = '';
+        document.getElementById('deputychairperson-email').value = '';
+        document.getElementById('treasurer-name').value = '';
+        document.getElementById('treasurer-email').value = '';
+        document.getElementById('secretary-name').value = '';
+        document.getElementById('secretary-email').value = '';
+        document.getElementById('organiser-name').value = '';
+        document.getElementById('organiser-email').value = '';
+        document.getElementById('other-portfolio-title').value = '';
+        document.getElementById('other-portfolio-name').value = '';
+        document.getElementById('other-portfolio-email').value = '';
+
+        otherPortfolios = [];
+        renderOtherPortfolios();
+
+        // Clear all validation errors
+        ['chairperson', 'deputychairperson', 'treasurer', 'secretary', 'organiser'].forEach(field => {
+            hideFieldError(field + '-error');
+        });
+    }
+
+    function closeSocietyModal() {
     document.getElementById('societyModal').classList.remove('active');
     document.getElementById('societyModalBody').innerHTML = '';
     document.getElementById('societySaveBtn').style.display = 'none';

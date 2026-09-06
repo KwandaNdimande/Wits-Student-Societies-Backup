@@ -332,6 +332,14 @@ async function deleteAnnouncement(id) {
     }
 }
 
+function cancelAnnouncement() {
+    document.getElementById('announcement-title').value = '';
+    document.getElementById('announcement-category').value = '';
+    document.getElementById('announcement-date').value = '';
+    document.getElementById('announcement-body').value = '';
+    validateCreateDate();
+}
+
 // ================================================================
 // HELPERS
 // ================================================================

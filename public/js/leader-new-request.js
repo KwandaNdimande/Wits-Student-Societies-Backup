@@ -113,6 +113,33 @@ function isFormValid() {
            isFieldValid('vendor-quotation');
 }
 
+// ============ PROGRESS INDICATOR ============
+function updateProgress() {
+    const fields = [
+        { id: 'request-type', check: () => isFieldValid('request-type', document.getElementById('request-type').value) },
+        { id: 'item-name', check: () => isFieldValid('item-name', document.getElementById('item-name').value) },
+        { id: 'amount', check: () => isFieldValid('amount', document.getElementById('amount').value) },
+        { id: 'description', check: () => isFieldValid('description', document.getElementById('description').value) },
+        { id: 'budget-form', check: () => isFieldValid('budget-form') },
+        { id: 'meeting-minutes', check: () => isFieldValid('meeting-minutes') },
+        { id: 'vendor-quotation', check: () => isFieldValid('vendor-quotation') }
+    ];
+
+    let completed = 0;
+    fields.forEach(field => {
+        if (field.check()) completed++;
+    });
+
+    const total = fields.length;
+    const percent = Math.round((completed / total) * 100);
+
+    document.getElementById('progressFill').style.width = percent + '%';
+    document.getElementById('progressCount').textContent = `${completed} / ${total} fields complete`;
+
+    // Update button state
+    submitBtn.disabled = completed !== total;
+}
+
 function updateFormState() {
     // Update asterisks
     updateAsterisk('type', document.getElementById('request-type').value);
@@ -123,12 +150,11 @@ function updateFormState() {
     updateAsterisk('meeting', document.getElementById('meeting-minutes').files[0] ? document.getElementById('meeting-minutes').files[0].name : '');
     updateAsterisk('quotation', document.getElementById('vendor-quotation').files[0] ? document.getElementById('vendor-quotation').files[0].name : '');
 
-    // Enable/disable submit button
-    const valid = isFormValid();
-    submitBtn.disabled = !valid;
+    // Update progress
+    updateProgress();
 
-    // If valid, hide any previous error summary
-    if (valid) {
+    // If all valid, hide any previous error summary
+    if (isFormValid()) {
         errorSummary.classList.remove('show');
         errorSummary.textContent = '';
     }

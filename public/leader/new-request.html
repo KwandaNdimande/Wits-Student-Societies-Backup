@@ -23,6 +23,8 @@
             --radius: 12px;
             --success: #1E8E5A;
             --error: #C0392B;
+            --progress-bg: #E9ECEF;
+            --progress-fill: #2E6FBA;
         }
         * {
             margin: 0;
@@ -62,6 +64,26 @@
             padding: 28px 32px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
+
+        /* ===== REQUIRED FIELDS INDICATOR ===== */
+        .required-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-500);
+            margin-bottom: 20px;
+            padding: 8px 14px;
+            background: #FAFBFD;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        .required-indicator .asterisk {
+            color: var(--error);
+            font-weight: 700;
+            font-size: 16px;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -106,25 +128,9 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
-        .form-group input.error,
-        .form-group select.error,
-        .form-group textarea.error {
-            border-color: var(--error);
-            box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
-        }
-        .form-group .file-group input.error {
-            border-color: var(--error);
-            box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
-        }
-        .field-error {
-            font-size: 12px;
-            color: var(--error);
-            margin-top: 4px;
-            min-height: 18px;
-            display: none;
-        }
-        .field-error.show {
-            display: block;
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
         }
         .form-hint {
             font-size: 12px;
@@ -158,7 +164,49 @@
             display: flex;
             gap: 12px;
             margin-top: 8px;
+            align-items: center;
         }
+
+        /* ===== BUTTON WRAPPER FOR TOOLTIP ===== */
+        .btn-wrapper {
+            position: relative;
+            display: inline-flex;
+        }
+
+        /* ===== TOOLTIP ===== */
+        .btn-wrapper .tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0B1F3A;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            z-index: 100;
+            pointer-events: none;
+        }
+        .btn-wrapper .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #0B1F3A;
+        }
+
+        /* Show tooltip only when button is disabled and hovered */
+        .btn-wrapper .btn-primary:disabled:hover + .tooltip,
+        .btn-wrapper:hover .tooltip {
+            display: block;
+        }
+
         .btn {
             font-family: 'Inter', sans-serif;
             font-size: 14px;
@@ -189,7 +237,7 @@
             box-shadow: 0 4px 12px rgba(255,255,255,0.15);
         }
         .btn-primary:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
             transform: none;
         }
@@ -206,6 +254,49 @@
             opacity: 0.4;
             cursor: not-allowed;
         }
+
+        /* ===== PROGRESS INDICATOR ===== */
+        .progress-container {
+            margin-bottom: 20px;
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-600);
+            margin-bottom: 6px;
+        }
+        .progress-header .count {
+            font-weight: 600;
+            color: var(--navy-900);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--progress-bg);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            border-radius: 999px;
+            background: var(--progress-fill);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .field-error {
+            font-size: 12px;
+            color: var(--error);
+            margin-top: 4px;
+            display: none;
+        }
+        .field-error.show {
+            display: block;
+        }
+
+        /* ===== SUCCESS PAGE ===== */
         .success-page {
             text-align: center;
             padding: 50px 20px;
@@ -239,11 +330,22 @@
             text-transform: uppercase;
             font-weight: 500;
         }
+
         @media (max-width: 480px) {
             body { padding: 20px 16px; }
             .form-card { padding: 20px 16px; }
             .form-actions { flex-direction: column; }
             .btn { width: 100%; text-align: center; justify-content: center; }
+            .btn-wrapper .tooltip {
+                white-space: normal;
+                min-width: 180px;
+                max-width: 280px;
+                left: 0;
+                transform: translateX(0);
+            }
+            .btn-wrapper .tooltip::after {
+                left: 20%;
+            }
         }
     </style>
 </head>
@@ -256,6 +358,23 @@
 
         <div id="form-section">
             <div class="form-card" id="formCard">
+                <!-- ===== REQUIRED FIELDS INDICATOR ===== -->
+                <div class="required-indicator">
+                    <span class="asterisk">*</span>
+                    <span>Required field</span>
+                </div>
+
+                <!-- ===== PROGRESS INDICATOR ===== -->
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <span>Form completion</span>
+                        <span class="count" id="progressCount">0 / 7 fields complete</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="fill" id="progressFill" style="width: 0%;"></div>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Society Name</label>
                     <input id="society-name" disabled value="Your Society" />
@@ -270,28 +389,28 @@
                         <option value="Regalia">Regalia</option>
                     </select>
                     <div class="form-hint">Choose the type of request to determine review requirements.</div>
-                    <div class="field-error" id="type-error">Request type is required.</div>
+                    <div class="field-error" id="type-error"></div>
                 </div>
 
                 <div class="form-group" id="group-item-name">
                     <label for="item-name">Event / Item Name <span class="required" id="req-item">*</span></label>
                     <input id="item-name" placeholder="e.g. Annual Gala Dinner" />
                     <div class="form-hint">Enter the main event name or item being requested.</div>
-                    <div class="field-error" id="item-error">Event or item name is required.</div>
+                    <div class="field-error" id="item-error"></div>
                 </div>
 
                 <div class="form-group" id="group-amount">
                     <label for="amount">Amount Requested (R) <span class="required" id="req-amount">*</span></label>
                     <input id="amount" type="number" placeholder="0.00" />
                     <div class="form-hint">Enter the total budget amount in rand. Must be greater than zero.</div>
-                    <div class="field-error" id="amount-error">Amount requested is required and must be greater than zero.</div>
+                    <div class="field-error" id="amount-error"></div>
                 </div>
 
                 <div class="form-group" id="group-description">
                     <label for="description">Description <span class="required" id="req-description">*</span></label>
                     <textarea id="description" placeholder="Describe the purpose of this request..." rows="3"></textarea>
                     <div class="form-hint">Explain what the funds will be used for and why the request is needed.</div>
-                    <div class="field-error" id="description-error">Description is required.</div>
+                    <div class="field-error" id="description-error"></div>
                 </div>
 
                 <div class="form-group">
@@ -300,23 +419,27 @@
                     <div class="file-group" id="group-budget-form">
                         <label>Budget Form (Excel only) <span class="required" id="req-budget">*</span></label>
                         <input id="budget-form" type="file" accept=".xlsx,.xls" />
-                        <div class="field-error" id="budget-error">Budget Form is required and must be an Excel file.</div>
+                        <div class="field-error" id="budget-error"></div>
                     </div>
                     <div class="file-group" id="group-meeting-minutes">
                         <label>Meeting Minutes <span class="required" id="req-meeting">*</span></label>
                         <input id="meeting-minutes" type="file" accept=".pdf" />
-                        <div class="field-error" id="meeting-error">Meeting Minutes are required and must be a PDF file.</div>
+                        <div class="field-error" id="meeting-error"></div>
                     </div>
                     <div class="file-group" id="group-vendor-quotation">
                         <label>Vendor Quotation <span class="required" id="req-quotation">*</span></label>
                         <input id="vendor-quotation" type="file" accept=".pdf" />
-                        <div class="field-error" id="quotation-error">Vendor Quotation is required and must be a PDF file.</div>
+                        <div class="field-error" id="quotation-error"></div>
                     </div>
                 </div>
 
                 <div id="form-error" class="field-error" style="margin-bottom:12px;"></div>
                 <div class="form-actions">
-                    <button type="button" class="btn btn-primary" id="submit-request" disabled>Submit Request</button>
+                    <!-- ===== BUTTON WITH TOOLTIP ===== -->
+                    <div class="btn-wrapper">
+                        <button type="button" class="btn btn-primary" id="submit-request" disabled>Submit Request</button>
+                        <div class="tooltip" id="tooltipMessage">Please complete all required fields</div>
+                    </div>
                     <button type="button" class="btn btn-secondary" id="cancel-request">Cancel</button>
                 </div>
             </div>

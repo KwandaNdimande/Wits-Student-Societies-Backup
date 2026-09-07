@@ -57,17 +57,12 @@
             color: #8FA6CC;
             margin-top: 4px;
         }
-
-        /* ===== FIX: Make form card scrollable ===== */
         .form-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
             padding: 28px 32px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-            position: relative;
-            max-height: 650px;
-            overflow-y: auto;
         }
 
         /* ===== REQUIRED FIELDS INDICATOR ===== */
@@ -89,15 +84,18 @@
             font-size: 16px;
         }
 
-        /* ===== STICKY PROGRESS INDICATOR ===== */
+        /* ===== STICKY PROGRESS INDICATOR (sticks to page top) ===== */
         .progress-container {
             position: sticky;
             top: 0;
             background: var(--surface);
             padding: 12px 0;
-            z-index: 10;
-            border-bottom: 1px solid var(--border);
+            z-index: 100;
             margin-bottom: 20px;
+        }
+        /* Add a subtle shadow when stuck */
+        .progress-container.is-stuck {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
         .progress-header {
             display: flex;
@@ -343,7 +341,7 @@
 
         @media (max-width: 480px) {
             body { padding: 20px 16px; }
-            .form-card { padding: 20px 16px; max-height: 500px; }
+            .form-card { padding: 20px 16px; }
             .form-actions { flex-direction: column; }
             .btn { width: 100%; text-align: center; justify-content: center; }
             .btn-wrapper .tooltip {
@@ -374,8 +372,8 @@
                     <span>Required field</span>
                 </div>
 
-                <!-- ===== STICKY PROGRESS INDICATOR ===== -->
-                <div class="progress-container">
+                <!-- ===== STICKY PROGRESS INDICATOR (sticks to page) ===== -->
+                <div class="progress-container" id="progressContainer">
                     <div class="progress-header">
                         <span>Form completion</span>
                         <span class="count" id="progressCount">0 / 7 fields complete</span>
@@ -445,7 +443,6 @@
 
                 <div id="form-error" class="field-error" style="margin-bottom:12px;"></div>
                 <div class="form-actions">
-                    <!-- ===== BUTTON WITH TOOLTIP ===== -->
                     <div class="btn-wrapper">
                         <button type="button" class="btn btn-primary" id="submit-request" disabled>Submit Request</button>
                         <div class="tooltip" id="tooltipMessage">Please complete all required fields</div>
@@ -464,6 +461,34 @@
 
         <div class="wits-badge">University of the Witwatersrand</div>
     </div>
+
+    <script>
+        // ===== ADD STICKY SHADOW ON SCROLL =====
+        document.addEventListener('DOMContentLoaded', function() {
+            const progressContainer = document.getElementById('progressContainer');
+            if (!progressContainer) return;
+
+            const observer = new IntersectionObserver(
+                function(entries) {
+                    entries.forEach(function(entry) {
+                        if (!entry.isIntersecting) {
+                            progressContainer.classList.add('is-stuck');
+                        } else {
+                            progressContainer.classList.remove('is-stuck');
+                        }
+                    });
+                },
+                { threshold: 0 }
+            );
+
+            // Create a sentinel element above the progress bar
+            const sentinel = document.createElement('div');
+            sentinel.style.height = '1px';
+            sentinel.style.marginTop = '-1px';
+            progressContainer.parentNode.insertBefore(sentinel, progressContainer);
+            observer.observe(sentinel);
+        });
+    </script>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>

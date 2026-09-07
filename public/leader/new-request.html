@@ -25,6 +25,7 @@
             --error: #C0392B;
             --progress-bg: #E9ECEF;
             --progress-fill: #2E6FBA;
+            --nav-height: 80px;
         }
         * {
             margin: 0;
@@ -37,7 +38,7 @@
             color: #fff;
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
-            padding: 40px 24px;
+            padding: calc(var(--nav-height) + 20px) 24px 40px 24px;
         }
         .container {
             max-width: 720px;
@@ -58,16 +59,15 @@
             margin-top: 4px;
         }
 
-        /* ===== PROGRESS BAR OUTSIDE FORM CARD (STICKY ON PAGE) ===== */
+        /* ===== STICKY PROGRESS BAR (below navigation) ===== */
         .progress-wrapper {
             position: sticky;
-            top: 0;
-            z-index: 100;
+            top: var(--nav-height);
+            z-index: 99;
             background: var(--bg);
-            padding: 16px 0 12px 0;
+            padding: 12px 0 12px 0;
             margin-bottom: 20px;
         }
-        /* Add a subtle shadow when stuck */
         .progress-wrapper.is-stuck {
             box-shadow: 0 2px 12px rgba(0,0,0,0.15);
         }
@@ -347,7 +347,7 @@
         }
 
         @media (max-width: 480px) {
-            body { padding: 20px 16px; }
+            body { padding: 70px 16px 20px 16px; }
             .form-card { padding: 20px 16px; }
             .form-actions { flex-direction: column; }
             .btn { width: 100%; text-align: center; justify-content: center; }
@@ -364,6 +364,9 @@
             .progress-container {
                 padding: 10px 14px;
             }
+            :root {
+                --nav-height: 70px;
+            }
         }
     </style>
 </head>
@@ -374,7 +377,7 @@
             <p>Fill in all fields and attach the required documents.</p>
         </div>
 
-        <!-- ===== STICKY PROGRESS BAR (outside form card) ===== -->
+        <!-- ===== STICKY PROGRESS BAR (below navigation) ===== -->
         <div class="progress-wrapper" id="progressWrapper">
             <div class="progress-container">
                 <div class="progress-header">

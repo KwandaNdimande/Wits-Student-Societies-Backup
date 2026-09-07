@@ -63,6 +63,7 @@
             border-radius: var(--radius);
             padding: 28px 32px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            position: relative;
         }
 
         /* ===== REQUIRED FIELDS INDICATOR ===== */
@@ -82,6 +83,43 @@
             color: var(--error);
             font-weight: 700;
             font-size: 16px;
+        }
+
+        /* ===== STICKY PROGRESS INDICATOR ===== */
+        .progress-container {
+            position: sticky;
+            top: 0;
+            background: var(--surface);
+            padding: 12px 0;
+            z-index: 10;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-600);
+            margin-bottom: 6px;
+        }
+        .progress-header .count {
+            font-weight: 600;
+            color: var(--navy-900);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--progress-bg);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            border-radius: 999px;
+            background: var(--progress-fill);
+            transition: width 0.3s ease;
+            width: 0%;
         }
 
         .form-group {
@@ -202,8 +240,7 @@
         }
 
         /* Show tooltip ONLY when button is disabled and hovered */
-        .btn-wrapper .btn-primary:disabled:hover + .tooltip,
-        .btn-wrapper .btn-primary:disabled ~ .tooltip:hover {
+        .btn-wrapper .btn-primary:disabled:hover + .tooltip {
             display: block;
         }
 
@@ -253,37 +290,6 @@
         .btn-secondary:disabled {
             opacity: 0.4;
             cursor: not-allowed;
-        }
-
-        /* ===== PROGRESS INDICATOR ===== */
-        .progress-container {
-            margin-bottom: 20px;
-        }
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-            color: var(--text-600);
-            margin-bottom: 6px;
-        }
-        .progress-header .count {
-            font-weight: 600;
-            color: var(--navy-900);
-        }
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: var(--progress-bg);
-            border-radius: 999px;
-            overflow: hidden;
-        }
-        .progress-bar .fill {
-            height: 100%;
-            border-radius: 999px;
-            background: var(--progress-fill);
-            transition: width 0.3s ease;
-            width: 0%;
         }
 
         .field-error {
@@ -364,7 +370,7 @@
                     <span>Required field</span>
                 </div>
 
-                <!-- ===== PROGRESS INDICATOR ===== -->
+                <!-- ===== STICKY PROGRESS INDICATOR ===== -->
                 <div class="progress-container">
                     <div class="progress-header">
                         <span>Form completion</span>

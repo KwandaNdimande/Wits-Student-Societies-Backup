@@ -57,45 +57,25 @@
             color: #8FA6CC;
             margin-top: 4px;
         }
-        .form-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 28px 32px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        }
 
-        /* ===== REQUIRED FIELDS INDICATOR ===== */
-        .required-indicator {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            color: var(--text-500);
-            margin-bottom: 20px;
-            padding: 8px 14px;
-            background: #FAFBFD;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-        }
-        .required-indicator .asterisk {
-            color: var(--error);
-            font-weight: 700;
-            font-size: 16px;
-        }
-
-        /* ===== STICKY PROGRESS INDICATOR (sticks to page top) ===== */
-        .progress-container {
+        /* ===== PROGRESS BAR OUTSIDE FORM CARD (STICKY ON PAGE) ===== */
+        .progress-wrapper {
             position: sticky;
             top: 0;
-            background: var(--surface);
-            padding: 12px 0;
             z-index: 100;
+            background: var(--bg);
+            padding: 16px 0 12px 0;
             margin-bottom: 20px;
         }
         /* Add a subtle shadow when stuck */
-        .progress-container.is-stuck {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        .progress-wrapper.is-stuck {
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        }
+        .progress-container {
+            background: var(--surface);
+            padding: 12px 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
         }
         .progress-header {
             display: flex;
@@ -122,6 +102,33 @@
             background: var(--progress-fill);
             transition: width 0.3s ease;
             width: 0%;
+        }
+
+        .form-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px 32px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        /* ===== REQUIRED FIELDS INDICATOR ===== */
+        .required-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-500);
+            margin-bottom: 20px;
+            padding: 8px 14px;
+            background: #FAFBFD;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        .required-indicator .asterisk {
+            color: var(--error);
+            font-weight: 700;
+            font-size: 16px;
         }
 
         .form-group {
@@ -354,6 +361,9 @@
             .btn-wrapper .tooltip::after {
                 left: 20%;
             }
+            .progress-container {
+                padding: 10px 14px;
+            }
         }
     </style>
 </head>
@@ -364,23 +374,25 @@
             <p>Fill in all fields and attach the required documents.</p>
         </div>
 
+        <!-- ===== STICKY PROGRESS BAR (outside form card) ===== -->
+        <div class="progress-wrapper" id="progressWrapper">
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span>Form completion</span>
+                    <span class="count" id="progressCount">0 / 7 fields complete</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="fill" id="progressFill" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+
         <div id="form-section">
             <div class="form-card" id="formCard">
                 <!-- ===== REQUIRED FIELDS INDICATOR ===== -->
                 <div class="required-indicator">
                     <span class="asterisk">*</span>
                     <span>Required field</span>
-                </div>
-
-                <!-- ===== STICKY PROGRESS INDICATOR (sticks to page) ===== -->
-                <div class="progress-container" id="progressContainer">
-                    <div class="progress-header">
-                        <span>Form completion</span>
-                        <span class="count" id="progressCount">0 / 7 fields complete</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="fill" id="progressFill" style="width: 0%;"></div>
-                    </div>
                 </div>
 
                 <div class="form-group">
@@ -465,27 +477,26 @@
     <script>
         // ===== ADD STICKY SHADOW ON SCROLL =====
         document.addEventListener('DOMContentLoaded', function() {
-            const progressContainer = document.getElementById('progressContainer');
-            if (!progressContainer) return;
+            const progressWrapper = document.getElementById('progressWrapper');
+            if (!progressWrapper) return;
 
             const observer = new IntersectionObserver(
                 function(entries) {
                     entries.forEach(function(entry) {
                         if (!entry.isIntersecting) {
-                            progressContainer.classList.add('is-stuck');
+                            progressWrapper.classList.add('is-stuck');
                         } else {
-                            progressContainer.classList.remove('is-stuck');
+                            progressWrapper.classList.remove('is-stuck');
                         }
                     });
                 },
                 { threshold: 0 }
             );
 
-            // Create a sentinel element above the progress bar
             const sentinel = document.createElement('div');
             sentinel.style.height = '1px';
             sentinel.style.marginTop = '-1px';
-            progressContainer.parentNode.insertBefore(sentinel, progressContainer);
+            progressWrapper.parentNode.insertBefore(sentinel, progressWrapper);
             observer.observe(sentinel);
         });
     </script>

@@ -201,9 +201,9 @@
             border-top-color: #0B1F3A;
         }
 
-        /* Show tooltip only when button is disabled and hovered */
+        /* Show tooltip ONLY when button is disabled and hovered */
         .btn-wrapper .btn-primary:disabled:hover + .tooltip,
-        .btn-wrapper:hover .tooltip {
+        .btn-wrapper .btn-primary:disabled ~ .tooltip:hover {
             display: block;
         }
 

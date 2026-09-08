@@ -23,76 +23,390 @@ if (!userUid) {
     window.location.href = '/login.html';
 }
 
-// Update navigation based on role
-function capitalizeRole(role) {
-    return role ? role.charAt(0).toUpperCase() + role.slice(1) : '';
-}
+// ============================================
+// KNOWLEDGE BASE - Full detailed responses
+// ============================================
+const knowledgeBase = [
+    {
+        keywords: ['required', 'need', 'documents', 'what do i need', 'what is required', 'budget form', 'meeting minutes', 'vendor quotation', 'requirements', 'paperwork'],
+        category: 'requirements',
+        answer: `DOCUMENTS REQUIRED FOR BUDGET REQUEST
 
-// Responses database
-const responses = {
-    "submit": "To submit a request, go to Submit Request in the navigation menu. You will need your Budget Form, Meeting Minutes, and Vendor Quotation in PDF format.",
-    "document": "You need three documents: a Budget Form, Meeting Minutes signed by your executive, and a Vendor Quotation. Download the templates from the Document Repository.",
-    "status": "You can check your request status on the My Requests page. Statuses are colour-coded: blue for Submitted, yellow for Under Review, green for Approved, and red for Rejected.",
-    "contact": "You can contact the SGO office directly at sgo@wits.ac.za or visit Room 101, Senate House, Wits University.",
-    "budget": "Budget requests are submitted through the Submit Request page. Include the amount, purpose, and required documents.",
-    "regalia": "Regalia requests are for society branded items like T-shirts, jackets, or other merchandise. Submit through the Submit Request page.",
-    "approval": "Once approved, you will receive a notification. Approved requests are typically processed within 5-7 business days.",
-    "revision": "If your request is marked 'Revision Required', check the feedback from SGO and resubmit with the requested changes.",
-    "deadline": "Budget deadlines are posted in announcements. Please check the Announcements page for current deadlines."
-};
+You need three documents:
 
-// State
-let messages = [
-    { from: "bot", text: "Hi! I'm the Wits SGO assistant. Ask me about submitting requests, required documents, or checking your status." }
+1. Budget Form — completed with amounts, items, and purpose
+2. Meeting Minutes — signed by your society's executive committee, showing budget approval
+3. Vendor Quotation — at least 3 quotes from different suppliers
+
+All documents must be in PDF format.
+
+You can find templates in the Document Repository.`
+    },
+    {
+        keywords: ['prepare', 'supporting documents', 'how do i prepare', 'format', 'pdf', 'quotation', 'meeting minutes', 'budget form template'],
+        category: 'preparation',
+        answer: `PREPARING SUPPORTING DOCUMENTS
+
+Budget Form:
+- List each expense item with estimated costs
+- Include purpose/justification for each item
+- Ensure totals are correct
+
+Meeting Minutes:
+- Show executive committee approved the budget request
+- Include meeting date and signatures
+- Must be on your society's letterhead
+
+Vendor Quotations:
+- Get at least 3 quotes from reputable suppliers
+- Include item descriptions and prices
+- Quote must be valid for at least 30 days
+
+All documents must be in PDF format.`
+    },
+    {
+        keywords: ['budget form', 'download budget form', 'where to get budget form', 'template', 'document repository'],
+        category: 'form',
+        answer: `BUDGET FORM TEMPLATE
+
+You can download the Budget Form from the Document Repository in the navigation menu.
+
+The form includes:
+- Society name and date
+- Expense items with amounts
+- Purpose description for each item
+- Executive signatures section
+
+Complete all sections before submitting.`
+    },
+    {
+        keywords: ['submit', 'how to submit', 'submission process', 'upload', 'submit request'],
+        category: 'submission',
+        answer: `HOW TO SUBMIT A BUDGET REQUEST
+
+1. Complete the Budget Form
+2. Get Meeting Minutes signed by executive committee
+3. Obtain Vendor Quotations (3 quotes)
+4. Go to Submit Request in the navigation menu
+5. Upload all three documents (PDF format)
+6. Fill in request details and purpose
+7. Click Submit to send to SGO
+
+You will receive a confirmation once submitted.`
+    },
+    {
+        keywords: ['limit', 'maximum', 'how much', 'budget limit', 'amount limit', 'max amount'],
+        category: 'amount',
+        answer: `BUDGET REQUEST AMOUNTS
+
+Budget requests are evaluated on a case-by-case basis:
+
+- No fixed maximum amount
+- Amount must be justified in your Budget Form
+- Must align with your society's activities
+- Supported by Meeting Minutes and Vendor Quotations
+
+SGO reviews each request based on merit and available funding.`
+    },
+    {
+        keywords: ['how long', 'timeline', 'processing time', 'approval time', 'how long does it take', 'when will i know', 'wait'],
+        category: 'timeline',
+        answer: `PROCESSING TIMELINE
+
+Budget requests are processed within:
+- 5-7 business days for standard requests
+- You can check status on My Requests page
+- You will receive a notification when:
+  - Approved
+  - Rejected
+  - Revision Required
+
+Contact SGO if it has been longer than 7 business days.`
+    },
+    {
+        keywords: ['status', 'check status', 'my requests', 'where to see status', 'track request', 'request status'],
+        category: 'status',
+        answer: `CHECK YOUR REQUEST STATUS
+
+Go to My Requests in the navigation menu.
+
+Statuses are colour-coded:
+- Submitted — Pending review
+- Under Review — SGO is reviewing
+- Approved — Request approved
+- Rejected — Request declined
+- Revision Required — Changes needed
+
+Click on any request for detailed information.`
+    },
+    {
+        keywords: ['revision', 'sent back', 'rejected', 'changes needed', 'resubmit', 'revision required', 'my request needs', 'changes'],
+        category: 'revision',
+        answer: `REQUEST REVISIONS
+
+If your request is marked "Revision Required":
+1. Check the SGO feedback in your request details
+2. Make the requested changes to your Budget Form or documents
+3. Go to Submit Request and upload the revised documents
+4. Add a note explaining what you changed
+5. Click Submit to send for re-review
+
+SGO will re-review your revised request within 3-5 business days.`
+    },
+    {
+        keywords: ['contact', 'sgo', 'email', 'office', 'phone', 'help', 'who do i contact', 'where is sgo', 'sgo office'],
+        category: 'contact',
+        answer: `CONTACT THE SGO OFFICE
+
+Email: sgo@wits.ac.za
+
+Location: Room 101, Senate House, Wits University
+
+Office Hours: Monday-Friday, 9:00 AM - 4:00 PM
+
+Phone: Available via email request
+
+SGO is here to help with all your society funding questions.`
+    }
 ];
+
+// ============================================
+// CATEGORIES FOR QUICK REPLIES
+// Two-level navigation: Categories → Questions
+// ============================================
+const categories = [
+    {
+        id: 'budget',
+        label: 'Budget Requests',
+        questions: [
+            'What documents are required for a budget request?',
+            'How do I prepare the supporting documents?',
+            'Where can I get the Budget Form?',
+            'How do I submit a budget request?',
+            'Is there a budget limit?'
+        ]
+    },
+    {
+        id: 'status',
+        label: 'Request Status',
+        questions: [
+            'How do I check my request status?',
+            'What do the status colours mean?',
+            'How long does it take to get approved?'
+        ]
+    },
+    {
+        id: 'revisions',
+        label: 'Revisions',
+        questions: [
+            'My request was sent back. What do I do?',
+            'How do I resubmit a revised request?',
+            'What happens after I resubmit?'
+        ]
+    },
+    {
+        id: 'contact',
+        label: 'Contact SGO',
+        questions: [
+            'How do I contact the SGO office?',
+            'Where is the SGO office located?',
+            'What are SGO office hours?'
+        ]
+    }
+];
+
+// ============================================
+// APPLICATION STATE
+// ============================================
+let messages = [];
+let showCategoryReplies = true;
+let currentCategory = null;
 let typing = false;
 
-// DOM elements
+// ============================================
+// DOM ELEMENTS
+// ============================================
 const messagesContainer = document.getElementById('chat-messages');
 const inputField = document.getElementById('chat-input');
 
-// Render messages
+// ============================================
+// RENDER FUNCTIONS
+// ============================================
+
+// Main render function
 function renderMessages() {
-    messagesContainer.innerHTML = messages.map((m, i) => {
-        const className = m.from === 'user' ? 'message user' : 'message bot';
-        return `<div key="${i}" class="${className}">${m.text}</div>`;
+    let html = messages.map((m, i) => {
+        let messageHtml = `<div class="message ${m.from === 'user' ? 'user' : 'bot'}">${m.text}</div>`;
+        
+        // Show quick replies after the last bot message
+        if (m.from === 'bot' && i === messages.length - 1) {
+            if (currentCategory) {
+                messageHtml += renderQuestions(currentCategory);
+            } else if (showCategoryReplies) {
+                messageHtml += renderCategories();
+            }
+        }
+        
+        return messageHtml;
     }).join('');
 
     if (typing) {
-        messagesContainer.innerHTML += `<div class="message typing">Typing...</div>`;
+        html += `<div class="message typing">Typing...</div>`;
     }
 
+    messagesContainer.innerHTML = html;
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
-// Send message
+// Render category buttons (Level 1)
+function renderCategories() {
+    let html = `<div class="quick-replies">`;
+    categories.forEach(cat => {
+        html += `
+            <button class="quick-reply-btn category-btn" onclick="selectCategory('${cat.id}')">
+                ${cat.label}
+            </button>
+        `;
+    });
+    html += `</div>`;
+    return html;
+}
+
+// Render questions for a category (Level 2)
+function renderQuestions(categoryId) {
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return '';
+
+    let html = `<div class="quick-replies">`;
+    // Back button
+    html += `
+        <button class="quick-reply-btn back-btn" onclick="goBack()">
+            ← Back
+        </button>
+    `;
+    // Questions
+    category.questions.forEach(q => {
+        html += `
+            <button class="quick-reply-btn question-btn" onclick="sendQuickReply('${q.replace(/'/g, "\\'")}')">
+                ${q}
+            </button>
+        `;
+    });
+    html += `</div>`;
+    return html;
+}
+
+// ============================================
+// NAVIGATION FUNCTIONS
+// ============================================
+
+// Select a category and show its questions
+function selectCategory(categoryId) {
+    currentCategory = categoryId;
+    const category = categories.find(c => c.id === categoryId);
+    
+    messages.push({
+        from: 'bot',
+        text: `${category.label} — What would you like to know?`
+    });
+    showCategoryReplies = false;
+    renderMessages();
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// Go back to category selection
+function goBack() {
+    currentCategory = null;
+    showCategoryReplies = true;
+    
+    messages.push({
+        from: 'bot',
+        text: 'Please select a category:'
+    });
+    renderMessages();
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// ============================================
+// CORE CHAT FUNCTIONS
+// ============================================
+
+// Find the best matching answer from knowledge base
+function findAnswer(userMsg) {
+    const lowerMsg = userMsg.toLowerCase();
+    
+    let bestMatch = null;
+    let bestScore = 0;
+    
+    for (const entry of knowledgeBase) {
+        let score = 0;
+        for (const keyword of entry.keywords) {
+            if (lowerMsg.includes(keyword.toLowerCase())) {
+                score++;
+            }
+        }
+        if (score > bestScore) {
+            bestScore = score;
+            bestMatch = entry;
+        }
+    }
+    
+    if (bestMatch && bestScore > 0) {
+        return bestMatch.answer;
+    }
+    
+    // No match found — escalate to SGO
+    return `I could not find an answer to your question in my knowledge base.
+
+Please try:
+1. Using the categories and questions below
+2. Contacting the SGO office directly at sgo@wits.ac.za
+3. Visiting Room 101, Senate House (Mon-Fri, 9AM-4PM)
+
+I am here to help with budget-related questions.`;
+}
+
+// Send a message from the user
 function sendMessage() {
     const userMsg = inputField.value.trim();
     if (!userMsg) return;
 
     messages.push({ from: "user", text: userMsg });
     inputField.value = '';
+    showCategoryReplies = false;
+    currentCategory = null;
     typing = true;
     renderMessages();
 
-    // Find response
-    let reply = "I'm not sure about that. Please contact the SGO office directly at sgo@wits.ac.za";
-    const lowerMsg = userMsg.toLowerCase();
-    
-    for (const [key, value] of Object.entries(responses)) {
-        if (lowerMsg.includes(key)) {
-            reply = value;
-            break;
-        }
-    }
-
-    // Simulate bot response
     setTimeout(() => {
+        const reply = findAnswer(userMsg);
         messages.push({ from: "bot", text: reply });
         typing = false;
+        showCategoryReplies = true;
         renderMessages();
-    }, 800);
+    }, 600);
 }
+
+// Send a quick reply (category question)
+function sendQuickReply(query) {
+    messages.push({ from: "user", text: query });
+    showCategoryReplies = false;
+    currentCategory = null;
+    typing = true;
+    renderMessages();
+
+    setTimeout(() => {
+        const reply = findAnswer(query);
+        messages.push({ from: "bot", text: reply });
+        typing = false;
+        showCategoryReplies = true;
+        renderMessages();
+    }, 600);
+}
+
+// ============================================
+// EVENT LISTENERS
+// ============================================
 
 // Enter key support
 if (inputField) {
@@ -101,10 +415,22 @@ if (inputField) {
     });
 }
 
-// Update navigation when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Navigation is handled by shared-nav.js
+// ============================================
+// INITIALIZATION
+// ============================================
+
+messages.push({
+    from: "bot",
+    text: `Hello ${userName}. I am the SGO Budget Assistant.
+
+I can help you with:
+- Budget requests
+- Required documents
+- Request status
+- Revisions
+- Contacting SGO
+
+Select a category below or type your question:`
 });
 
-// Initial render
 renderMessages();

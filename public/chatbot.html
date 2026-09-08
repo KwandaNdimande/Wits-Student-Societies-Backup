@@ -80,7 +80,7 @@
             background: #FAFBFD;
             display: flex;
             flex-direction: column;
-            height: 420px;
+            height: 460px;
             overflow: hidden;
         }
         .chat-messages {
@@ -92,12 +92,13 @@
             gap: 10px;
         }
         .message {
-            max-width: 80%;
+            max-width: 85%;
             padding: 10px 16px;
             border-radius: 16px;
             font-size: 14px;
-            line-height: 1.5;
+            line-height: 1.6;
             word-wrap: break-word;
+            white-space: pre-wrap;
         }
         .message.user {
             background: var(--navy-900);
@@ -118,6 +119,65 @@
             border-bottom-left-radius: 4px;
             font-style: italic;
         }
+        
+        /* Quick Reply Styles */
+        .quick-replies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            max-width: 100%;
+        }
+        .quick-reply-btn {
+            background: var(--navy-800);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 8px 18px;
+            font-size: 12px;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+        }
+        .quick-reply-btn:hover {
+            background: var(--blue-600);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(46, 111, 186, 0.25);
+        }
+        .quick-reply-btn.back-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .quick-reply-btn.back-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+        }
+        .quick-reply-btn.category-btn {
+            background: var(--navy-700);
+            font-size: 13px;
+            padding: 10px 20px;
+            flex: 1 0 calc(50% - 8px);
+            text-align: center;
+            font-weight: 500;
+        }
+        .quick-reply-btn.category-btn:hover {
+            background: var(--blue-600);
+        }
+        .quick-reply-btn.question-btn {
+            background: var(--navy-800);
+            flex: 1 0 100%;
+            text-align: left;
+            padding: 10px 16px;
+            white-space: normal;
+            font-size: 13px;
+            font-weight: 400;
+        }
+        .quick-reply-btn.question-btn:hover {
+            background: var(--blue-600);
+        }
+        
         .chat-input {
             border-top: 1px solid var(--border);
             padding: 12px 16px;
@@ -160,7 +220,8 @@
             background: var(--navy-800);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
-        }.wits-badge {
+        }
+        .wits-badge {
             text-align: center;
             margin-top: 28px;
             font-size: 11px;
@@ -174,32 +235,29 @@
                 padding: 20px 16px;
             }
             .chat-container {
-                height: 340px;
+                height: 380px;
             }
-            .nav-links a {
-                font-size: 11px;
-                padding: 5px 10px;
+            .quick-reply-btn.category-btn {
+                flex: 1 0 100%;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Chat Card -->
         <div class="card">
             <div class="logo">SGO</div>
-            <h1>SGO Assistant</h1>
-            <p class="subtitle">Ask me anything about submissions, documents, or status</p>
+            <h1>Budget Assistant</h1>
+            <p class="subtitle">Get help with budget requests and SGO processes</p>
 
             <div class="chat-container">
                 <div class="chat-messages" id="chat-messages"></div>
                 <div class="chat-input">
-                    <input id="chat-input" type="text" placeholder="Ask a question..." />
+                    <input id="chat-input" type="text" placeholder="Type a message..." />
                     <button onclick="sendMessage()">Send</button>
                 </div>
             </div>
         </div>
-
         <div class="wits-badge">University of the Witwatersrand</div>
     </div>
 
@@ -209,6 +267,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <script src="/js/chatbot.js"></script>
-<script src="/js/shared-nav.js"></script>
+    <script src="/js/shared-nav.js"></script>
 </body>
 </html>

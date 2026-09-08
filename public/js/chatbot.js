@@ -24,7 +24,7 @@ if (!userUid) {
 }
 
 // ============================================
-// KNOWLEDGE BASE - Full detailed responses
+// KNOWLEDGE BASE
 // ============================================
 const knowledgeBase = [
     {
@@ -172,7 +172,6 @@ SGO is here to help with all your society funding questions.`
 
 // ============================================
 // CATEGORIES FOR QUICK REPLIES
-// Two-level navigation: Categories → Questions
 // ============================================
 const categories = [
     {
@@ -222,6 +221,8 @@ let messages = [];
 let showCategoryReplies = true;
 let currentCategory = null;
 let typing = false;
+let hasInteracted = false;
+let isClosing = false;
 
 // ============================================
 // DOM ELEMENTS
@@ -233,17 +234,17 @@ const inputField = document.getElementById('chat-input');
 // RENDER FUNCTIONS
 // ============================================
 
-// Main render function
 function renderMessages() {
     let html = messages.map((m, i) => {
         let messageHtml = `<div class="message ${m.from === 'user' ? 'user' : 'bot'}">${m.text}</div>`;
         
-        // Show quick replies after the last bot message
-        if (m.from === 'bot' && i === messages.length - 1) {
+        if (m.from === 'bot' && i === messages.length - 1 && !isClosing) {
             if (currentCategory) {
                 messageHtml += renderQuestions(currentCategory);
-            } else if (showCategoryReplies) {
+            } else if (showCategoryReplies && !hasInteracted) {
                 messageHtml += renderCategories();
+            } else if (hasInteracted && !currentCategory) {
+                messageHtml += renderActionButtons();
             }
         }
         
@@ -258,7 +259,6 @@ function renderMessages() {
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
-// Render category buttons (Level 1)
 function renderCategories() {
     let html = `<div class="quick-replies">`;
     categories.forEach(cat => {
@@ -272,19 +272,16 @@ function renderCategories() {
     return html;
 }
 
-// Render questions for a category (Level 2)
 function renderQuestions(categoryId) {
     const category = categories.find(c => c.id === categoryId);
     if (!category) return '';
 
     let html = `<div class="quick-replies">`;
-    // Back button
     html += `
         <button class="quick-reply-btn back-btn" onclick="goBack()">
             ← Back
         </button>
     `;
-    // Questions
     category.questions.forEach(q => {
         html += `
             <button class="quick-reply-btn question-btn" onclick="sendQuickReply('${q.replace(/'/g, "\\'")}')">
@@ -296,11 +293,23 @@ function renderQuestions(categoryId) {
     return html;
 }
 
+function renderActionButtons() {
+    return `
+        <div class="quick-replies" style="margin-top: 12px;">
+            <button class="quick-reply-btn category-btn" onclick="goBackToCategories()" style="flex: 1 0 calc(50% - 4px); text-align: center;">
+                Back to Categories
+            </button>
+            <button class="quick-reply-btn close-btn" onclick="closeChat()" style="flex: 1 0 calc(50% - 4px); text-align: center;">
+                Close
+            </button>
+        </div>
+    `;
+}
+
 // ============================================
 // NAVIGATION FUNCTIONS
 // ============================================
 
-// Select a category and show its questions
 function selectCategory(categoryId) {
     currentCategory = categoryId;
     const category = categories.find(c => c.id === categoryId);
@@ -310,14 +319,27 @@ function selectCategory(categoryId) {
         text: `${category.label} — What would you like to know?`
     });
     showCategoryReplies = false;
+    hasInteracted = true;
     renderMessages();
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
-// Go back to category selection
 function goBack() {
     currentCategory = null;
+    showCategoryReplies = false;
+    
+    messages.push({
+        from: 'bot',
+        text: 'What would you like to do?'
+    });
+    renderMessages();
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function goBackToCategories() {
+    currentCategory = null;
     showCategoryReplies = true;
+    hasInteracted = false;
     
     messages.push({
         from: 'bot',
@@ -328,10 +350,27 @@ function goBack() {
 }
 
 // ============================================
+// CLOSE CHAT FUNCTION
+// ============================================
+function closeChat() {
+    if (isClosing) return;
+    isClosing = true;
+    
+    messages.push({
+        from: 'bot',
+        text: `Thank you for using the SGO Assistant, ${userName}. Redirecting to dashboard...`
+    });
+    renderMessages();
+    
+    setTimeout(() => {
+        window.location.href = '/dashboard.html';
+    }, 1500);
+}
+
+// ============================================
 // CORE CHAT FUNCTIONS
 // ============================================
 
-// Find the best matching answer from knowledge base
 function findAnswer(userMsg) {
     const lowerMsg = userMsg.toLowerCase();
     
@@ -355,26 +394,25 @@ function findAnswer(userMsg) {
         return bestMatch.answer;
     }
     
-    // No match found — escalate to SGO
     return `I could not find an answer to your question in my knowledge base.
 
 Please try:
-1. Using the categories and questions below
+1. Clicking "Back to Categories" below
 2. Contacting the SGO office directly at sgo@wits.ac.za
 3. Visiting Room 101, Senate House (Mon-Fri, 9AM-4PM)
 
 I am here to help with budget-related questions.`;
 }
 
-// Send a message from the user
 function sendMessage() {
     const userMsg = inputField.value.trim();
-    if (!userMsg) return;
+    if (!userMsg || isClosing) return;
 
     messages.push({ from: "user", text: userMsg });
     inputField.value = '';
     showCategoryReplies = false;
     currentCategory = null;
+    hasInteracted = true;
     typing = true;
     renderMessages();
 
@@ -382,16 +420,17 @@ function sendMessage() {
         const reply = findAnswer(userMsg);
         messages.push({ from: "bot", text: reply });
         typing = false;
-        showCategoryReplies = true;
         renderMessages();
     }, 600);
 }
 
-// Send a quick reply (category question)
 function sendQuickReply(query) {
+    if (isClosing) return;
+    
     messages.push({ from: "user", text: query });
     showCategoryReplies = false;
     currentCategory = null;
+    hasInteracted = true;
     typing = true;
     renderMessages();
 
@@ -399,7 +438,6 @@ function sendQuickReply(query) {
         const reply = findAnswer(query);
         messages.push({ from: "bot", text: reply });
         typing = false;
-        showCategoryReplies = true;
         renderMessages();
     }, 600);
 }
@@ -408,7 +446,6 @@ function sendQuickReply(query) {
 // EVENT LISTENERS
 // ============================================
 
-// Enter key support
 if (inputField) {
     inputField.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') sendMessage();

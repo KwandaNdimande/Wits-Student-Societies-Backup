@@ -1,473 +1,773 @@
-// Firebase configuration
+/* =========================================================
+   FIREBASE CONFIGURATION
+   ========================================================= */
+
 const firebaseConfig = {
-    apiKey: "AIzaSyAsWp91SrNnlVHoyJWJyxjvXgGY6debDLE",
-    authDomain: "wits-student-societies-backup.firebaseapp.com",
-    projectId: "wits-student-societies-backup",
-    storageBucket: "wits-student-societies-backup.firebasestorage.app",
-    messagingSenderId: "111338778369",
-    appId: "1:111338778369:web:5633595cd3fec3113c3500",
-    measurementId: "G-D01M5HWGOV"
+    // KEEP YOUR EXISTING FIREBASE CONFIG HERE
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
 const auth = firebase.auth();
+const db = firebase.firestore();
 
-// Check authentication and role
-const userUid = localStorage.getItem('userUid');
-const userRole = localStorage.getItem('userRole');
-const userName = localStorage.getItem('userName') || 'Guest';
 
-// If not logged in, redirect to login
-if (!userUid) {
-    window.location.href = '/login.html';
+/* =========================================================
+   CHATBOT KNOWLEDGE BASE
+   ========================================================= */
+
+const knowledgeBase = {
+
+    requiredDocuments: {
+        question: "What documents do I need for a budget request?",
+
+        answer: `
+            <strong>Budget Request Documents</strong><br><br>
+
+            The required documents are:
+            <br><br>
+
+            1. Budget Form<br>
+            2. Meeting Minutes signed by the executive<br>
+            3. Vendor Quotation
+            <br><br>
+
+            Documents should be uploaded as PDF files.
+            Templates can be found in the Document Repository.
+        `
+    },
+
+    preparation: {
+        question: "How should I prepare my documents?",
+
+        answer: `
+            <strong>Preparing Your Documents</strong><br><br>
+
+            <strong>Budget Form</strong><br>
+            Complete the required expense details, justification and totals.
+            <br><br>
+
+            <strong>Meeting Minutes</strong><br>
+            The minutes should show executive approval, the meeting date
+            and the required signatures.
+            <br><br>
+
+            <strong>Vendor Quotations</strong><br>
+            Include the relevant supplier information, item descriptions
+            and prices.
+            <br><br>
+
+            Make sure all required documents are complete before submitting
+            your request.
+        `
+    },
+
+    budgetForm: {
+        question: "Where can I find the Budget Form?",
+
+        answer: `
+            <strong>Budget Form</strong><br><br>
+
+            The Budget Form template is available in the
+            <strong>Document Repository</strong>.
+            <br><br>
+
+            Complete all required fields before submitting your request.
+        `
+    },
+
+    submission: {
+        question: "How do I submit a budget request?",
+
+        answer: `
+            <strong>Submitting a Budget Request</strong><br><br>
+
+            1. Complete the Budget Form.<br>
+            2. Obtain the required signed Meeting Minutes.<br>
+            3. Obtain the required vendor quotations.<br>
+            4. Go to <strong>Submit Request</strong>.<br>
+            5. Upload your required documents.<br>
+            6. Enter the request details and purpose.<br>
+            7. Submit the request.
+            <br><br>
+
+            A confirmation should be displayed after successful submission.
+        `
+    },
+
+    amount: {
+        question: "Is there a maximum budget amount?",
+
+        answer: `
+            <strong>Budget Amount</strong><br><br>
+
+            There is no fixed maximum amount specified in the current
+            chatbot information.
+            <br><br>
+
+            The requested amount should be properly justified and aligned
+            with the society's activities. Supporting documentation should
+            also support the requested amount.
+        `
+    },
+
+    timeline: {
+        question: "How long does a budget request take?",
+
+        answer: `
+            <strong>Request Processing</strong><br><br>
+
+            The current chatbot information indicates that standard requests
+            may take approximately <strong>5–7 business days</strong>.
+            <br><br>
+
+            You can monitor your request through <strong>My Requests</strong>.
+            <br><br>
+
+            If your request has not been updated after the expected period,
+            contact the SGO for assistance.
+        `
+    },
+
+    status: {
+        question: "How can I check my request status?",
+
+        answer: `
+            <strong>Checking Your Request Status</strong><br><br>
+
+            Go to <strong>My Requests</strong> to view your submitted
+            requests.
+            <br><br>
+
+            Possible statuses include:
+            <br><br>
+
+            • Submitted<br>
+            • Under Review<br>
+            • Approved<br>
+            • Rejected<br>
+            • Revision Required
+            <br><br>
+
+            Select a request to view more information about its status.
+        `
+    },
+
+    revision: {
+        question: "What should I do if revisions are required?",
+
+        answer: `
+            <strong>Revision Required</strong><br><br>
+
+            If your request requires revisions:
+            <br><br>
+
+            1. Check the feedback provided on the request.<br>
+            2. Make the required changes.<br>
+            3. Upload the revised documents if necessary.<br>
+            4. Add any required notes or explanations.<br>
+            5. Resubmit the request.
+            <br><br>
+
+            The request will then go through the review process again.
+        `
+    },
+
+    rejected: {
+        question: "What does Rejected mean?",
+
+        answer: `
+            <strong>Rejected Request</strong><br><br>
+
+            A rejected request means that the request was not approved.
+            <br><br>
+
+            Check the request details and any feedback provided by the SGO
+            to understand the reason for the decision.
+            <br><br>
+
+            If you need clarification, contact the SGO.
+        `
+    },
+
+    contact: {
+        question: "How can I contact the SGO?",
+
+        answer: `
+            <strong>Contact SGO</strong><br><br>
+
+            Email: <strong>sgo@wits.ac.za</strong>
+            <br><br>
+
+            Office: <strong>Room 101, Senate House</strong>
+            <br><br>
+
+            Office hours: <strong>Monday–Friday, 09:00–16:00</strong>
+            <br><br>
+
+            For assistance outside the chatbot's available information,
+            please contact the SGO directly.
+        `
+    }
+
+};
+
+
+/* =========================================================
+   CATEGORIES
+   ========================================================= */
+
+const categories = {
+
+    budget: {
+        title: "Budget Requests",
+
+        questions: [
+            "submission",
+            "amount",
+            "timeline"
+        ]
+    },
+
+    documents: {
+        title: "Required Documents",
+
+        questions: [
+            "requiredDocuments",
+            "preparation",
+            "budgetForm"
+        ]
+    },
+
+    status: {
+        title: "Request Status",
+
+        questions: [
+            "status"
+        ]
+    },
+
+    revisions: {
+        title: "Revisions",
+
+        questions: [
+            "revision",
+            "rejected"
+        ]
+    },
+
+    contact: {
+        title: "Contact SGO",
+
+        questions: [
+            "contact"
+        ]
+    }
+
+};
+
+
+/* =========================================================
+   STATE
+   ========================================================= */
+
+let currentView = "categories";
+let isProcessing = false;
+
+
+/* =========================================================
+   DOM
+   ========================================================= */
+
+const chatWindow = document.getElementById("chatWindow");
+const closeChatButton = document.getElementById("closeChat");
+
+
+/* =========================================================
+   USER
+   ========================================================= */
+
+function getUserName() {
+
+    const storedUser = localStorage.getItem("user");
+
+    if (!storedUser) {
+        return "there";
+    }
+
+    try {
+
+        const user = JSON.parse(storedUser);
+
+        return (
+            user.displayName ||
+            user.name ||
+            user.firstName ||
+            "there"
+        );
+
+    } catch (error) {
+
+        return "there";
+
+    }
 }
 
-// ============================================
-// KNOWLEDGE BASE
-// ============================================
-const knowledgeBase = [
-    {
-        keywords: ['required', 'need', 'documents', 'what do i need', 'what is required', 'budget form', 'meeting minutes', 'vendor quotation', 'requirements', 'paperwork'],
-        category: 'requirements',
-        answer: `DOCUMENTS REQUIRED FOR BUDGET REQUEST
 
-You need three documents:
+/* =========================================================
+   MESSAGE RENDERING
+   ========================================================= */
 
-1. Budget Form — completed with amounts, items, and purpose
-2. Meeting Minutes — signed by your society's executive committee, showing budget approval
-3. Vendor Quotation — at least 3 quotes from different suppliers
+function addBotMessage(text) {
 
-All documents must be in PDF format.
+    const message = document.createElement("div");
 
-You can find templates in the Document Repository.`
-    },
-    {
-        keywords: ['prepare', 'supporting documents', 'how do i prepare', 'format', 'pdf', 'quotation', 'meeting minutes', 'budget form template'],
-        category: 'preparation',
-        answer: `PREPARING SUPPORTING DOCUMENTS
+    message.className = "message bot";
 
-Budget Form:
-- List each expense item with estimated costs
-- Include purpose/justification for each item
-- Ensure totals are correct
+    const bubble = document.createElement("div");
 
-Meeting Minutes:
-- Show executive committee approved the budget request
-- Include meeting date and signatures
-- Must be on your society's letterhead
+    bubble.className = "message-bubble";
 
-Vendor Quotations:
-- Get at least 3 quotes from reputable suppliers
-- Include item descriptions and prices
-- Quote must be valid for at least 30 days
+    // Static chatbot responses can contain formatting.
+    bubble.innerHTML = text;
 
-All documents must be in PDF format.`
-    },
-    {
-        keywords: ['budget form', 'download budget form', 'where to get budget form', 'template', 'document repository'],
-        category: 'form',
-        answer: `BUDGET FORM TEMPLATE
+    message.appendChild(bubble);
 
-You can download the Budget Form from the Document Repository in the navigation menu.
+    chatWindow.appendChild(message);
 
-The form includes:
-- Society name and date
-- Expense items with amounts
-- Purpose description for each item
-- Executive signatures section
+    scrollToBottom();
+}
 
-Complete all sections before submitting.`
-    },
-    {
-        keywords: ['submit', 'how to submit', 'submission process', 'upload', 'submit request'],
-        category: 'submission',
-        answer: `HOW TO SUBMIT A BUDGET REQUEST
 
-1. Complete the Budget Form
-2. Get Meeting Minutes signed by executive committee
-3. Obtain Vendor Quotations (3 quotes)
-4. Go to Submit Request in the navigation menu
-5. Upload all three documents (PDF format)
-6. Fill in request details and purpose
-7. Click Submit to send to SGO
+function addUserMessage(text) {
 
-You will receive a confirmation once submitted.`
-    },
-    {
-        keywords: ['limit', 'maximum', 'how much', 'budget limit', 'amount limit', 'max amount'],
-        category: 'amount',
-        answer: `BUDGET REQUEST AMOUNTS
+    const message = document.createElement("div");
 
-Budget requests are evaluated on a case-by-case basis:
+    message.className = "message user";
 
-- No fixed maximum amount
-- Amount must be justified in your Budget Form
-- Must align with your society's activities
-- Supported by Meeting Minutes and Vendor Quotations
+    const bubble = document.createElement("div");
 
-SGO reviews each request based on merit and available funding.`
-    },
-    {
-        keywords: ['how long', 'timeline', 'processing time', 'approval time', 'how long does it take', 'when will i know', 'wait'],
-        category: 'timeline',
-        answer: `PROCESSING TIMELINE
+    bubble.className = "message-bubble";
 
-Budget requests are processed within:
-- 5-7 business days for standard requests
-- You can check status on My Requests page
-- You will receive a notification when:
-  - Approved
-  - Rejected
-  - Revision Required
+    // IMPORTANT:
+    // User-selected text is inserted using textContent.
+    // This prevents HTML injection.
+    bubble.textContent = text;
 
-Contact SGO if it has been longer than 7 business days.`
-    },
-    {
-        keywords: ['status', 'check status', 'my requests', 'where to see status', 'track request', 'request status'],
-        category: 'status',
-        answer: `CHECK YOUR REQUEST STATUS
+    message.appendChild(bubble);
 
-Go to My Requests in the navigation menu.
+    chatWindow.appendChild(message);
 
-Statuses are colour-coded:
-- Submitted — Pending review
-- Under Review — SGO is reviewing
-- Approved — Request approved
-- Rejected — Request declined
-- Revision Required — Changes needed
+    scrollToBottom();
+}
 
-Click on any request for detailed information.`
-    },
-    {
-        keywords: ['revision', 'sent back', 'rejected', 'changes needed', 'resubmit', 'revision required', 'my request needs', 'changes'],
-        category: 'revision',
-        answer: `REQUEST REVISIONS
 
-If your request is marked "Revision Required":
-1. Check the SGO feedback in your request details
-2. Make the requested changes to your Budget Form or documents
-3. Go to Submit Request and upload the revised documents
-4. Add a note explaining what you changed
-5. Click Submit to send for re-review
+/* =========================================================
+   TYPING INDICATOR
+   ========================================================= */
 
-SGO will re-review your revised request within 3-5 business days.`
-    },
-    {
-        keywords: ['contact', 'sgo', 'email', 'office', 'phone', 'help', 'who do i contact', 'where is sgo', 'sgo office'],
-        category: 'contact',
-        answer: `CONTACT THE SGO OFFICE
+function showTyping() {
 
-Email: sgo@wits.ac.za
+    const message = document.createElement("div");
 
-Location: Room 101, Senate House, Wits University
+    message.className = "message bot";
+    message.id = "typingMessage";
 
-Office Hours: Monday-Friday, 9:00 AM - 4:00 PM
+    const typing = document.createElement("div");
 
-Phone: Available via email request
+    typing.className = "typing";
 
-SGO is here to help with all your society funding questions.`
+    typing.innerHTML = `
+        <span></span>
+        <span></span>
+        <span></span>
+    `;
+
+    message.appendChild(typing);
+
+    chatWindow.appendChild(message);
+
+    scrollToBottom();
+}
+
+
+function removeTyping() {
+
+    const typingMessage = document.getElementById("typingMessage");
+
+    if (typingMessage) {
+        typingMessage.remove();
     }
-];
 
-// ============================================
-// CATEGORIES FOR QUICK REPLIES
-// ============================================
-const categories = [
-    {
-        id: 'budget',
-        label: 'Budget Requests',
-        questions: [
-            'What documents are required for a budget request?',
-            'How do I prepare the supporting documents?',
-            'Where can I get the Budget Form?',
-            'How do I submit a budget request?',
-            'Is there a budget limit?'
-        ]
-    },
-    {
-        id: 'status',
-        label: 'Request Status',
-        questions: [
-            'How do I check my request status?',
-            'What do the status colours mean?',
-            'How long does it take to get approved?'
-        ]
-    },
-    {
-        id: 'revisions',
-        label: 'Revisions',
-        questions: [
-            'My request was sent back. What do I do?',
-            'How do I resubmit a revised request?',
-            'What happens after I resubmit?'
-        ]
-    },
-    {
-        id: 'contact',
-        label: 'Contact SGO',
-        questions: [
-            'How do I contact the SGO office?',
-            'Where is the SGO office located?',
-            'What are SGO office hours?'
-        ]
+}
+
+
+/* =========================================================
+   OPTIONS
+   ========================================================= */
+
+function clearOptions() {
+
+    const existingOptions =
+        chatWindow.querySelectorAll(".options-container");
+
+    existingOptions.forEach(options => {
+        options.remove();
+    });
+
+}
+
+
+function createOptionButton(text, callback, secondary = false) {
+
+    const button = document.createElement("button");
+
+    button.type = "button";
+
+    button.className = secondary
+        ? "option-button secondary"
+        : "option-button";
+
+    button.textContent = text;
+
+    button.addEventListener("click", callback);
+
+    return button;
+}
+
+
+/* =========================================================
+   CATEGORY MENU
+   ========================================================= */
+
+function showCategories() {
+
+    currentView = "categories";
+
+    clearOptions();
+
+    const container = document.createElement("div");
+
+    container.className = "options-container";
+
+    Object.entries(categories).forEach(([key, category]) => {
+
+        const button = createOptionButton(
+            category.title,
+            () => selectCategory(key)
+        );
+
+        container.appendChild(button);
+
+    });
+
+    chatWindow.appendChild(container);
+
+    scrollToBottom();
+}
+
+
+/* =========================================================
+   CATEGORY SELECTION
+   ========================================================= */
+
+function selectCategory(categoryKey) {
+
+    if (isProcessing) {
+        return;
     }
-];
 
-// ============================================
-// APPLICATION STATE
-// ============================================
-let messages = [];
-let showCategoryReplies = true;
-let currentCategory = null;
-let typing = false;
-let hasInteracted = false;
-let isClosing = false;
+    const category = categories[categoryKey];
 
-// ============================================
-// DOM ELEMENTS
-// ============================================
-const messagesContainer = document.getElementById('chat-messages');
-const inputField = document.getElementById('chat-input');
+    if (!category) {
+        return;
+    }
 
-// ============================================
-// RENDER FUNCTIONS
-// ============================================
+    currentView = categoryKey;
 
-function renderMessages() {
-    let html = messages.map((m, i) => {
-        let messageHtml = `<div class="message ${m.from === 'user' ? 'user' : 'bot'}">${m.text}</div>`;
-        
-        if (m.from === 'bot' && i === messages.length - 1 && !isClosing) {
-            if (currentCategory) {
-                messageHtml += renderQuestions(currentCategory);
-            } else if (showCategoryReplies && !hasInteracted) {
-                messageHtml += renderCategories();
-            } else if (hasInteracted && !currentCategory) {
-                messageHtml += renderActionButtons();
-            }
+    clearOptions();
+
+    addUserMessage(category.title);
+
+    showTyping();
+
+    isProcessing = true;
+
+    setTimeout(() => {
+
+        removeTyping();
+
+        addBotMessage(
+            `Here are the questions I can help you with under <strong>${category.title}</strong>:`
+        );
+
+        showQuestions(categoryKey);
+
+        isProcessing = false;
+
+    }, 450);
+
+}
+
+
+/* =========================================================
+   QUESTIONS
+   ========================================================= */
+
+function showQuestions(categoryKey) {
+
+    const category = categories[categoryKey];
+
+    if (!category) {
+        return;
+    }
+
+    clearOptions();
+
+    const container = document.createElement("div");
+
+    container.className = "options-container";
+
+    category.questions.forEach(questionKey => {
+
+        const knowledge = knowledgeBase[questionKey];
+
+        if (!knowledge) {
+            return;
         }
-        
-        return messageHtml;
-    }).join('');
 
-    if (typing) {
-        html += `<div class="message typing">Typing...</div>`;
+        const button = createOptionButton(
+            knowledge.question,
+            () => selectQuestion(questionKey)
+        );
+
+        container.appendChild(button);
+
+    });
+
+
+    const backButton = createOptionButton(
+        "Back to Main Menu",
+        () => goBackToCategories(),
+        true
+    );
+
+    container.appendChild(backButton);
+
+    chatWindow.appendChild(container);
+
+    scrollToBottom();
+}
+
+
+/* =========================================================
+   QUESTION SELECTION
+   ========================================================= */
+
+function selectQuestion(questionKey) {
+
+    if (isProcessing) {
+        return;
     }
 
-    messagesContainer.innerHTML = html;
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    const knowledge = knowledgeBase[questionKey];
+
+    if (!knowledge) {
+        return;
+    }
+
+    clearOptions();
+
+    addUserMessage(knowledge.question);
+
+    showTyping();
+
+    isProcessing = true;
+
+    setTimeout(() => {
+
+        removeTyping();
+
+        addBotMessage(knowledge.answer);
+
+        showAnswerActions();
+
+        isProcessing = false;
+
+    }, 600);
+
 }
 
-function renderCategories() {
-    let html = `<div class="quick-replies">`;
-    categories.forEach(cat => {
-        html += `
-            <button class="quick-reply-btn category-btn" onclick="selectCategory('${cat.id}')">
-                ${cat.label}
-            </button>
-        `;
-    });
-    html += `</div>`;
-    return html;
+
+/* =========================================================
+   AFTER ANSWER
+   ========================================================= */
+
+function showAnswerActions() {
+
+    clearOptions();
+
+    const container = document.createElement("div");
+
+    container.className = "options-container";
+
+
+    const category = categories[currentView];
+
+    if (category) {
+
+        const moreQuestionsButton = createOptionButton(
+            "More Questions",
+            () => showQuestions(currentView)
+        );
+
+        container.appendChild(moreQuestionsButton);
+
+    }
+
+
+    const mainMenuButton = createOptionButton(
+        "Back to Main Menu",
+        () => goBackToCategories(),
+        true
+    );
+
+    container.appendChild(mainMenuButton);
+
+
+    const contactButton = createOptionButton(
+        "Contact SGO",
+        () => selectQuestion("contact"),
+        true
+    );
+
+    container.appendChild(contactButton);
+
+    chatWindow.appendChild(container);
+
+    scrollToBottom();
 }
 
-function renderQuestions(categoryId) {
-    const category = categories.find(c => c.id === categoryId);
-    if (!category) return '';
 
-    let html = `<div class="quick-replies">`;
-    html += `
-        <button class="quick-reply-btn back-btn" onclick="goBack()">
-            ← Back
-        </button>
-    `;
-    category.questions.forEach(q => {
-        html += `
-            <button class="quick-reply-btn question-btn" onclick="sendQuickReply('${q.replace(/'/g, "\\'")}')">
-                ${q}
-            </button>
-        `;
-    });
-    html += `</div>`;
-    return html;
-}
-
-function renderActionButtons() {
-    return `
-        <div class="quick-replies" style="margin-top: 12px;">
-            <button class="quick-reply-btn category-btn" onclick="goBackToCategories()" style="flex: 1 0 calc(50% - 4px); text-align: center;">
-                Back to Categories
-            </button>
-            <button class="quick-reply-btn close-btn" onclick="closeChat()" style="flex: 1 0 calc(50% - 4px); text-align: center;">
-                Close
-            </button>
-        </div>
-    `;
-}
-
-// ============================================
-// NAVIGATION FUNCTIONS
-// ============================================
-
-function selectCategory(categoryId) {
-    currentCategory = categoryId;
-    const category = categories.find(c => c.id === categoryId);
-    
-    messages.push({
-        from: 'bot',
-        text: `${category.label} — What would you like to know?`
-    });
-    showCategoryReplies = false;
-    hasInteracted = true;
-    renderMessages();
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
-
-function goBack() {
-    currentCategory = null;
-    showCategoryReplies = false;
-    
-    messages.push({
-        from: 'bot',
-        text: 'What would you like to do?'
-    });
-    renderMessages();
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
 
 function goBackToCategories() {
-    currentCategory = null;
-    showCategoryReplies = true;
-    hasInteracted = false;
-    
-    messages.push({
-        from: 'bot',
-        text: 'Please select a category:'
-    });
-    renderMessages();
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    if (isProcessing) {
+        return;
+    }
+
+    clearOptions();
+
+    addUserMessage("Back to Main Menu");
+
+    showTyping();
+
+    isProcessing = true;
+
+    setTimeout(() => {
+
+        removeTyping();
+
+        addBotMessage(
+            "What would you like help with?"
+        );
+
+        showCategories();
+
+        isProcessing = false;
+
+    }, 350);
+
 }
 
-// ============================================
-// CLOSE CHAT FUNCTION
-// ============================================
+
+/* =========================================================
+   CLOSE CHAT
+   ========================================================= */
+
 function closeChat() {
-    if (isClosing) return;
-    isClosing = true;
-    
-    messages.push({
-        from: 'bot',
-        text: `Thank you for using the SGO Assistant, ${userName}. Redirecting to dashboard...`
-    });
-    renderMessages();
-    
-    setTimeout(() => {
-        window.location.href = '/dashboard.html';
-    }, 1500);
-}
 
-// ============================================
-// CORE CHAT FUNCTIONS
-// ============================================
-
-function findAnswer(userMsg) {
-    const lowerMsg = userMsg.toLowerCase();
-    
-    let bestMatch = null;
-    let bestScore = 0;
-    
-    for (const entry of knowledgeBase) {
-        let score = 0;
-        for (const keyword of entry.keywords) {
-            if (lowerMsg.includes(keyword.toLowerCase())) {
-                score++;
-            }
-        }
-        if (score > bestScore) {
-            bestScore = score;
-            bestMatch = entry;
-        }
+    if (isProcessing) {
+        return;
     }
-    
-    if (bestMatch && bestScore > 0) {
-        return bestMatch.answer;
-    }
-    
-    return `I could not find an answer to your question in my knowledge base.
 
-Please try:
-1. Clicking "Back to Categories" below
-2. Contacting the SGO office directly at sgo@wits.ac.za
-3. Visiting Room 101, Senate House (Mon-Fri, 9AM-4PM)
+    clearOptions();
 
-I am here to help with budget-related questions.`;
-}
+    addUserMessage("Close");
 
-function sendMessage() {
-    const userMsg = inputField.value.trim();
-    if (!userMsg || isClosing) return;
+    showTyping();
 
-    messages.push({ from: "user", text: userMsg });
-    inputField.value = '';
-    showCategoryReplies = false;
-    currentCategory = null;
-    hasInteracted = true;
-    typing = true;
-    renderMessages();
+    isProcessing = true;
 
     setTimeout(() => {
-        const reply = findAnswer(userMsg);
-        messages.push({ from: "bot", text: reply });
-        typing = false;
-        renderMessages();
-    }, 600);
+
+        removeTyping();
+
+        addBotMessage(
+            "Thank you for using the SGO Assistant."
+        );
+
+        setTimeout(() => {
+
+            window.location.href = "/dashboard.html";
+
+        }, 1000);
+
+    }, 400);
+
 }
 
-function sendQuickReply(query) {
-    if (isClosing) return;
-    
-    messages.push({ from: "user", text: query });
-    showCategoryReplies = false;
-    currentCategory = null;
-    hasInteracted = true;
-    typing = true;
-    renderMessages();
 
-    setTimeout(() => {
-        const reply = findAnswer(query);
-        messages.push({ from: "bot", text: reply });
-        typing = false;
-        renderMessages();
-    }, 600);
-}
+closeChatButton.addEventListener("click", closeChat);
 
-// ============================================
-// EVENT LISTENERS
-// ============================================
 
-if (inputField) {
-    inputField.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') sendMessage();
+/* =========================================================
+   SCROLL
+   ========================================================= */
+
+function scrollToBottom() {
+
+    requestAnimationFrame(() => {
+
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+
     });
+
 }
 
-// ============================================
-// INITIALIZATION
-// ============================================
 
-messages.push({
-    from: "bot",
-    text: `Hello ${userName}. I am the SGO Budget Assistant.
+/* =========================================================
+   INITIAL MESSAGE
+   ========================================================= */
 
-I can help you with:
-- Budget requests
-- Required documents
-- Request status
-- Revisions
-- Contacting SGO
+function initializeChat() {
 
-Select a category below:`
+    const userName = getUserName();
+
+    addBotMessage(
+        `Hello ${userName}. I’m the <strong>SGO Assistant</strong>.<br><br>
+        I can help you with budget requests, required documents,
+        request status, revisions and contacting the SGO.
+        <br><br>
+        What would you like help with?`
+    );
+
+    showCategories();
+
+}
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    initializeChat();
+
 });
-
-renderMessages();

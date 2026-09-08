@@ -467,7 +467,7 @@ I can help you with:
 - Revisions
 - Contacting SGO
 
-Select a category below or type your question:`
+Select a category below:`
 });
 
 renderMessages();

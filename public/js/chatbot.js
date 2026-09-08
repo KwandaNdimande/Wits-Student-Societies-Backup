@@ -26,7 +26,6 @@ try {
 const auth = firebase.apps.length ? firebase.auth() : null;
 const db = firebase.apps.length ? firebase.firestore() : null;
 
-
 /* =========================================================
    CHATBOT KNOWLEDGE BASE
    ========================================================= */
@@ -85,7 +84,6 @@ const knowledgeBase = {
 
 };
 
-
 /* =========================================================
    CATEGORIES
    ========================================================= */
@@ -119,7 +117,6 @@ const categories = {
 
 };
 
-
 /* =========================================================
    STATE
    ========================================================= */
@@ -127,14 +124,12 @@ const categories = {
 let currentView = "categories";
 let isProcessing = false;
 
-
 /* =========================================================
    DOM
    ========================================================= */
 
 const chatWindow = document.getElementById("chatWindow");
 const closeChatButton = document.getElementById("closeChat");
-
 
 /* =========================================================
    USER
@@ -150,7 +145,6 @@ function getUserName() {
         return "there";
     }
 }
-
 
 /* =========================================================
    MESSAGE RENDERING
@@ -178,7 +172,6 @@ function addUserMessage(text) {
     scrollToBottom();
 }
 
-
 /* =========================================================
    TYPING INDICATOR
    ========================================================= */
@@ -200,7 +193,6 @@ function removeTyping() {
     if (typingMessage) typingMessage.remove();
 }
 
-
 /* =========================================================
    OPTIONS
    ========================================================= */
@@ -219,7 +211,6 @@ function createOptionButton(text, callback, secondary = false) {
     return button;
 }
 
-
 /* =========================================================
    CATEGORY MENU
    ========================================================= */
@@ -233,10 +224,12 @@ function showCategories() {
         const button = createOptionButton(category.title, () => selectCategory(key));
         container.appendChild(button);
     });
+    // Add Close button to main menu
+    const closeButton = createOptionButton("Close Chat", () => closeChat(), true);
+    container.appendChild(closeButton);
     chatWindow.appendChild(container);
     scrollToBottom();
 }
-
 
 /* =========================================================
    CATEGORY SELECTION
@@ -259,7 +252,6 @@ function selectCategory(categoryKey) {
     }, 450);
 }
 
-
 /* =========================================================
    QUESTIONS
    ========================================================= */
@@ -278,10 +270,12 @@ function showQuestions(categoryKey) {
     });
     const backButton = createOptionButton("Back to Main Menu", () => goBackToCategories(), true);
     container.appendChild(backButton);
+    // Add Close button to questions menu
+    const closeButton = createOptionButton("Close Chat", () => closeChat(), true);
+    container.appendChild(closeButton);
     chatWindow.appendChild(container);
     scrollToBottom();
 }
-
 
 /* =========================================================
    QUESTION SELECTION
@@ -303,7 +297,6 @@ function selectQuestion(questionKey) {
     }, 600);
 }
 
-
 /* =========================================================
    AFTER ANSWER
    ========================================================= */
@@ -321,10 +314,12 @@ function showAnswerActions() {
     container.appendChild(mainMenuButton);
     const contactButton = createOptionButton("Contact SGO", () => selectQuestion("contact"), true);
     container.appendChild(contactButton);
+    // Add Close button to answer menu
+    const closeButton = createOptionButton("Close Chat", () => closeChat(), true);
+    container.appendChild(closeButton);
     chatWindow.appendChild(container);
     scrollToBottom();
 }
-
 
 /* =========================================================
    NAVIGATION
@@ -343,7 +338,6 @@ function goBackToCategories() {
         isProcessing = false;
     }, 350);
 }
-
 
 /* =========================================================
    CLOSE CHAT
@@ -368,17 +362,19 @@ if (closeChatButton) {
     closeChatButton.addEventListener("click", closeChat);
 }
 
-
 /* =========================================================
-   SCROLL
+   SCROLL TO BOTTOM (Ensures visibility)
    ========================================================= */
 
 function scrollToBottom() {
     requestAnimationFrame(() => {
         chatWindow.scrollTop = chatWindow.scrollHeight;
+        // Double-check scroll after a tiny delay (ensures content is rendered)
+        setTimeout(() => {
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }, 50);
     });
 }
-
 
 /* =========================================================
    INITIAL MESSAGE
@@ -389,7 +385,6 @@ function initializeChat() {
     addBotMessage(`Hello ${userName}. I'm the <strong>SGO Assistant</strong>.<br><br>I can help you with budget requests, required documents, request status, revisions and contacting the SGO.<br><br>What would you like help with?`);
     showCategories();
 }
-
 
 /* =========================================================
    START

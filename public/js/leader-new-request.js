@@ -81,7 +81,7 @@ function isFieldValid(fieldId, value) {
             return value && value.trim() !== '';
         case 'amount':
             const num = parseFloat(value);
-            return !isNaN(num) && num > 0;
+            return !isNaN(num) && num >= 100;
         case 'description':
             return value && value.trim() !== '';
         case 'budget-form':
@@ -113,149 +113,252 @@ function isFormValid() {
            isFieldValid('vendor-quotation');
 }
 
-// ============ PROGRESS INDICATOR ============
-function updateProgress() {
-    const fields = [
-        { id: 'request-type', check: () => isFieldValid('request-type', document.getElementById('request-type').value) },
-        { id: 'item-name', check: () => isFieldValid('item-name', document.getElementById('item-name').value) },
-        { id: 'amount', check: () => isFieldValid('amount', document.getElementById('amount').value) },
-        { id: 'description', check: () => isFieldValid('description', document.getElementById('description').value) },
-        { id: 'budget-form', check: () => isFieldValid('budget-form') },
-        { id: 'meeting-minutes', check: () => isFieldValid('meeting-minutes') },
-        { id: 'vendor-quotation', check: () => isFieldValid('vendor-quotation') }
-    ];
+// ============ FIELD FEEDBACK ============
 
-    let completed = 0;
-    fields.forEach(field => {
-        if (field.check()) completed++;
-    });
+const inlineValidationFields = [
+    {
+        inputId: 'request-type',
+        errorId: 'type-error',
+        message: 'Select a request type.'
+    },
+    {
+        inputId: 'item-name',
+        errorId: 'item-error',
+        message: 'Enter the event or item name.'
+    },
+    {
+        inputId: 'amount',
+        errorId: 'amount-error',
+        message: () => {
+            const hint = document.querySelector(
+                '#group-amount .form-hint'
+            );
 
-    const total = fields.length;
-    const percent = Math.round((completed / total) * 100);
-
-    document.getElementById('progressFill').style.width = percent + '%';
-    document.getElementById('progressCount').textContent = `${completed} / ${total} fields complete`;
-
-    // Update button state
-    submitBtn.disabled = completed !== total;
-}
-
-function updateFormState() {
-    // Update asterisks
-    updateAsterisk('type', document.getElementById('request-type').value);
-    updateAsterisk('item', document.getElementById('item-name').value);
-    updateAsterisk('amount', document.getElementById('amount').value);
-    updateAsterisk('description', document.getElementById('description').value);
-    updateAsterisk('budget', document.getElementById('budget-form').files[0] ? document.getElementById('budget-form').files[0].name : '');
-    updateAsterisk('meeting', document.getElementById('meeting-minutes').files[0] ? document.getElementById('meeting-minutes').files[0].name : '');
-    updateAsterisk('quotation', document.getElementById('vendor-quotation').files[0] ? document.getElementById('vendor-quotation').files[0].name : '');
-
-    // Update progress
-    updateProgress();
-
-    // If all valid, hide any previous error summary
-    if (isFormValid()) {
-        errorSummary.classList.remove('show');
-        errorSummary.textContent = '';
+            return 'Enter a valid amount. ' +
+                (hint ? hint.textContent.trim() : '');
+        }
+    },
+    {
+        inputId: 'description',
+        errorId: 'description-error',
+        message: 'Describe what the requested funds will be used for.'
+    },
+    {
+        inputId: 'budget-form',
+        errorId: 'budget-error',
+        message: 'Upload the budget form as an Excel file (.xlsx or .xls).'
+    },
+    {
+        inputId: 'meeting-minutes',
+        errorId: 'meeting-error',
+        message: 'Upload the meeting minutes as a PDF file.'
+    },
+    {
+        inputId: 'vendor-quotation',
+        errorId: 'quotation-error',
+        message: 'Upload the vendor quotation as a PDF file.'
     }
+];
+
+const touchedFields = new Set();
+
+function validateOneField(field) {
+    const input = document.getElementById(field.inputId);
+    const error = document.getElementById(field.errorId);
+
+    if (!input || !error) return false;
+
+    const valid = Boolean(
+        isFieldValid(field.inputId, input.value)
+    );
+
+    const message = typeof field.message === 'function'
+        ? field.message()
+        : field.message;
+
+    input.classList.toggle('error', !valid);
+    input.setAttribute('aria-invalid', String(!valid));
+
+    error.textContent = valid ? '' : `Error: ${message}`;
+    error.classList.toggle('show', !valid);
+
+    return valid;
 }
 
-// ============ CLEAR & SHOW ERRORS (only on submit) ============
 function clearAllErrors() {
-    document.querySelectorAll('.form-group input, .form-group select, .form-group textarea').forEach(el => {
-        el.classList.remove('error');
-    });
-    document.querySelectorAll('.field-error').forEach(el => {
-        el.classList.remove('show');
-    });
-    errorSummary.classList.remove('show');
-    errorSummary.textContent = '';
-}
+    inlineValidationFields.forEach(field => {
+        const input = document.getElementById(field.inputId);
+        const error = document.getElementById(field.errorId);
 
-function showFieldError(inputId, errorId, message) {
-    const input = document.getElementById(inputId);
-    if (input) input.classList.add('error');
-    const errorEl = document.getElementById(errorId);
-    if (errorEl) {
-        errorEl.textContent = message;
-        errorEl.classList.add('show');
-    }
+        if (input) {
+            input.classList.remove('error');
+            input.removeAttribute('aria-invalid');
+        }
+
+        if (error) {
+            error.textContent = '';
+            error.classList.remove('show');
+        }
+    });
+
+    errorSummary.textContent = '';
+    errorSummary.classList.remove('show');
 }
 
 function validateAllFields() {
-    clearAllErrors();
-    let isValid = true;
+    let valid = true;
 
-    const type = document.getElementById('request-type').value;
-    if (!type || type.trim() === '') {
-        showFieldError('request-type', 'type-error', 'Request type is required.');
-        isValid = false;
-    }
+    inlineValidationFields.forEach(field => {
+        touchedFields.add(field.inputId);
 
-    const item = document.getElementById('item-name').value.trim();
-    if (!item) {
-        showFieldError('item-name', 'item-error', 'Event or item name is required.');
-        isValid = false;
-    }
+        if (!validateOneField(field)) {
+            valid = false;
+        }
+    });
 
-    const amountVal = document.getElementById('amount').value.trim();
-    const amount = parseFloat(amountVal);
-    if (!amountVal || isNaN(amount) || amount <= 0) {
-        showFieldError('amount', 'amount-error', 'Amount requested is required and must be greater than zero.');
-        isValid = false;
-    }
-
-    const desc = document.getElementById('description').value.trim();
-    if (!desc) {
-        showFieldError('description', 'description-error', 'Description is required.');
-        isValid = false;
-    }
-
-    const budgetFile = document.getElementById('budget-form').files[0];
-    if (!budgetFile) {
-        showFieldError('budget-form', 'budget-error', 'Budget Form is required.');
-        isValid = false;
-    } else if (!/\.(xlsx|xls)$/i.test(budgetFile.name)) {
-        showFieldError('budget-form', 'budget-error', 'Budget Form must be an Excel file (.xlsx or .xls).');
-        isValid = false;
-    }
-
-    const meetingFile = document.getElementById('meeting-minutes').files[0];
-    if (!meetingFile) {
-        showFieldError('meeting-minutes', 'meeting-error', 'Meeting Minutes are required.');
-        isValid = false;
-    } else if (!/\.pdf$/i.test(meetingFile.name)) {
-        showFieldError('meeting-minutes', 'meeting-error', 'Meeting Minutes must be a PDF file.');
-        isValid = false;
-    }
-
-    const quotationFile = document.getElementById('vendor-quotation').files[0];
-    if (!quotationFile) {
-        showFieldError('vendor-quotation', 'quotation-error', 'Vendor Quotation is required.');
-        isValid = false;
-    } else if (!/\.pdf$/i.test(quotationFile.name)) {
-        showFieldError('vendor-quotation', 'quotation-error', 'Vendor Quotation must be a PDF file.');
-        isValid = false;
-    }
-
-    if (!isValid) {
-        errorSummary.textContent = 'Please fix the highlighted fields before submitting.';
+    if (!valid) {
+        errorSummary.textContent =
+            'Your request has not been submitted. Correct the fields marked with an error.';
         errorSummary.classList.add('show');
+    } else {
+        errorSummary.textContent = '';
+        errorSummary.classList.remove('show');
     }
 
-    return isValid;
+    return valid;
 }
 
+// ============ PROGRESS AND BUTTON STATE ============
+
+function updateProgress() {
+    const completed = inlineValidationFields.filter(field => {
+        const input = document.getElementById(field.inputId);
+
+        return input && isFieldValid(field.inputId, input.value);
+    }).length;
+
+    const total = inlineValidationFields.length;
+    const percent = Math.round((completed / total) * 100);
+    const isSubmitting = submitBtn.textContent === 'Submitting...';
+
+    document.getElementById('progressFill').style.width =
+        `${percent}%`;
+
+    document.getElementById('progressCount').textContent =
+        `${completed} / ${total} fields complete`;
+
+    submitBtn.disabled = isSubmitting || completed !== total;
+
+    const help = document.getElementById('submit-help');
+
+    if (help) {
+        help.textContent = isSubmitting
+            ? 'Submitting your request. Please wait.'
+            : completed === total
+                ? 'All required fields are complete. You can submit your request.'
+                : 'Complete all required fields correctly to enable Submit Request.';
+    }
+}
+
+function updateFormState() {
+    // Asterisks always identify required fields.
+    Object.keys(asterisks).forEach(showAsterisk);
+
+    // Only show errors for fields already visited.
+    inlineValidationFields.forEach(field => {
+        if (touchedFields.has(field.inputId)) {
+            validateOneField(field);
+        }
+    });
+
+    updateProgress();
+}
+
+// ============ CONNECT ERRORS TO INPUTS ============
+
+function initialiseInlineValidation() {
+    inlineValidationFields.forEach(field => {
+        const input = document.getElementById(field.inputId);
+
+        if (!input) return;
+
+        let error = document.getElementById(field.errorId);
+
+        // Create an error container if one is missing.
+        if (!error) {
+            error = document.createElement('div');
+            error.id = field.errorId;
+            error.className = 'field-error';
+            input.insertAdjacentElement('afterend', error);
+        }
+
+        error.textContent = '';
+        error.classList.remove('show');
+        error.setAttribute('aria-live', 'polite');
+        error.setAttribute('aria-atomic', 'true');
+
+        input.setAttribute('aria-required', 'true');
+
+        const descriptionIds = new Set(
+            (input.getAttribute('aria-describedby') || '')
+                .split(/\s+/)
+                .filter(Boolean)
+        );
+
+        descriptionIds.add(field.errorId);
+
+        input.setAttribute(
+            'aria-describedby',
+            [...descriptionIds].join(' ')
+        );
+
+        // Leaving a field triggers its validation.
+        input.addEventListener('blur', () => {
+            touchedFields.add(field.inputId);
+            updateFormState();
+        });
+
+        // Correcting a visited field refreshes its error.
+        input.addEventListener('input', updateFormState);
+
+        // Check selected files and dropdown values immediately.
+        input.addEventListener('change', () => {
+            touchedFields.add(field.inputId);
+            updateFormState();
+        });
+    });
+
+    errorSummary.setAttribute('role', 'alert');
+    errorSummary.setAttribute('tabindex', '-1');
+}
+
+initialiseInlineValidation();
+
 // ============ RESET FORM ============
+
 function resetForm() {
     document.getElementById('request-type').value = '';
     document.getElementById('item-name').value = '';
     document.getElementById('amount').value = '';
     document.getElementById('description').value = '';
-    document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
+
+    document.querySelectorAll(
+        '#form-section input[type="file"]'
+    ).forEach(input => {
+        input.value = '';
+    });
+
+    touchedFields.clear();
     clearAllErrors();
-    document.getElementById('form-section').classList.remove('hidden');
-    document.getElementById('success-section').classList.add('hidden');
+
+    submitBtn.textContent = 'Submit Request';
+
+    document.getElementById('form-section')
+        .classList.remove('hidden');
+
+    document.getElementById('success-section')
+        .classList.add('hidden');
+
     updateFormState();
 }
 
@@ -287,10 +390,10 @@ submitBtn.addEventListener('click', async (e) => {
     e.preventDefault();
 
     // Double-check validation (button should be enabled only if valid, but we validate again for safety)
-    if (!isFormValid()) {
-        validateAllFields();
-        return;
-    }
+    if (!validateAllFields()) {
+    updateFormState();
+    return;
+}
 
     // Clear any old errors
     clearAllErrors();
@@ -355,12 +458,22 @@ submitBtn.addEventListener('click', async (e) => {
         document.getElementById('form-section').classList.add('hidden');
         document.getElementById('success-section').classList.remove('hidden');
 
-    } catch (error) {
+       } catch (error) {
         console.error('Error submitting request:', error);
-        errorSummary.textContent = 'Error: ' + error.message;
+
+        errorSummary.textContent =
+            'We could not confirm submission. Check My Requests before trying again to avoid creating a duplicate. If the request is not listed, check your connection and retry.';
+
         errorSummary.classList.add('show');
-        submitBtn.disabled = false;
+
         submitBtn.textContent = 'Submit Request';
+        updateProgress();
+
+        errorSummary.focus({ preventScroll: true });
+        errorSummary.scrollIntoView({
+            behavior: 'auto',
+            block: 'center'
+        });
     }
 });
 

@@ -1,0 +1,49 @@
+/* Required-field asterisks remain visible. */
+.required,
+.req-asterisk {
+    color: #b42318 !important;
+    font-weight: 700;
+}
+
+.required.hidden {
+    display: inline !important;
+}
+
+/* Inline validation messages. */
+.field-error {
+    display: none;
+}
+
+.field-error.show:not(:empty) {
+    display: block !important;
+    color: #8a1c13 !important;
+    background: #fff1f0;
+    border-left: 4px solid #b42318;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 8px;
+    font-size: 14px !important;
+    font-weight: 600;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.field-error:empty {
+    display: none !important;
+}
+
+/* Highlight the input that needs correction. */
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+    border: 2px solid #b42318 !important;
+    background-color: #fff8f7 !important;
+}
+
+/* Explain why Submit is disabled. */
+.submit-help {
+    margin-bottom: 12px;
+    color: #344054;
+    font-size: 14px;
+    line-height: 1.5;
+}

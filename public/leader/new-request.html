@@ -147,7 +147,7 @@
             margin-left: 2px;
         }
         .form-group label .required.hidden {
-            display: none;
+            display: inline;
         }
         .form-group input,
         .form-group select,
@@ -301,15 +301,55 @@
             cursor: not-allowed;
         }
 
-        .field-error {
-            font-size: 12px;
-            color: var(--error);
-            margin-top: 4px;
-            display: none;
-        }
-        .field-error.show {
-            display: block;
-        }
+        /* Error messages underneath inputs. */
+.field-error {
+    display: none;
+    color: #b42318;
+    background: none;
+    border-left: none;
+    border-radius: 0;
+    padding: 0;
+    margin-top: 6px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.field-error.show:not(:empty) {
+    display: block;
+}
+
+.field-error:empty {
+    display: none;
+}
+
+/* Highlight an input when its value is invalid. */
+.form-group input.error,
+.form-group select.error,
+.form-group textarea.error,
+.form-group input[aria-invalid="true"],
+.form-group select[aria-invalid="true"],
+.form-group textarea[aria-invalid="true"] {
+    border: 2px solid #b42318;
+    background: #fff8f7;
+}
+
+/* Keep keyboard focus visible on an invalid input. */
+.form-group input.error:focus,
+.form-group select.error:focus,
+.form-group textarea.error:focus {
+    outline: 2px solid #175cd3;
+    outline-offset: 2px;
+}
+
+/* Explanation underneath the form, beside the Submit area. */
+.submit-help {
+    margin-bottom: 12px;
+    color: var(--text-600);
+    font-size: 14px;
+    line-height: 1.5;
+}
 
         /* ===== SUCCESS PAGE ===== */
         .success-page {
@@ -424,8 +464,8 @@
 
                 <div class="form-group" id="group-amount">
                     <label for="amount">Amount Requested (R) <span class="required" id="req-amount">*</span></label>
-                    <input id="amount" type="number" placeholder="0.00" />
-                    <div class="form-hint">Enter the total budget amount in rand. Must be greater than zero.</div>
+                    <input id="amount" type="number" placeholder="0.00" min="100" step="0.01" />
+                    <div class="form-hint">Enter the total budget amount in rand. Must be at least R100.</div>
                     <div class="field-error" id="amount-error"></div>
                 </div>
 

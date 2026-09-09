@@ -422,7 +422,7 @@ function changeDeletedPage(page) {
 // VIEW DELETED REQUEST DETAILS (matching active view style)
 // ================================================================
 
-function viewDeletedRequestDetails(deletedId) {
+async function viewDeletedRequestDetails(deletedId) {
     const request = deletedRequests.find(r => r.id === deletedId);
     if (!request) {
         alert('Deleted request not found.');
@@ -430,6 +430,7 @@ function viewDeletedRequestDetails(deletedId) {
     }
 
     const data = request.originalData || {};
+const submitterName = await getSubmitterName(data);
     const itemName = request.requestName || data.itemName || 'Untitled Request';
     const society = request.societyName || 'Unknown Society';
     const status = 'Deleted';
@@ -715,6 +716,7 @@ async function viewRequestDetails(requestId) {
         }
 
         const data = docRef.data();
+        const submitterName = await getSubmitterName(data);
         const itemName = data.itemName || data.name || 'Untitled Request';
         const society = data.societyName || 'Unknown Society';
         const status = data.status || 'N/A';
@@ -769,7 +771,14 @@ async function viewRequestDetails(requestId) {
         const detailRows = `
             <div class="detail-row"><span class="detail-label">Request Type</span><span class="detail-value">${type}</span></div>
             <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${amount}</span></div>
-            <div class="detail-row"><span class="detail-label">Submitted</span><span class="detail-value">${submittedAt}</span></div>
+            <div class="detail-row">
+    <span class="detail-label">Submitted By</span>
+    <span class="detail-value">${escapeSubmitterText(submitterName)}</span>
+    </div>
+<div class="detail-row">
+    <span class="detail-label">Submitted At</span>
+    <span class="detail-value">${submittedAt}</span>
+</div>
             <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">${description}</span></div>
         `;
 
@@ -1445,6 +1454,8 @@ document.getElementById('permanentDeleteModal').addEventListener('click', functi
     }
 });
 
+//
+
 // ================================================================
 // LOAD DATA
 // ================================================================
@@ -1453,3 +1464,41 @@ loadRequests();
 loadDeletedRequests();
 
 window.searchRequests = searchRequests;
+
+//Get submitter name from Firestore
+async function getSubmitterName(requestData) {
+    if (!requestData.submittedBy) {
+        return 'Not recorded';
+    }
+
+    try {
+        const userDoc = await db.collection('users')
+            .doc(requestData.submittedBy)
+            .get();
+
+        if (!userDoc.exists) {
+            return 'Account no longer available';
+        }
+
+        const user = userDoc.data();
+        const fullName = [user.firstName, user.lastName]
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+
+        return fullName || user.email || 'Name not recorded';
+    } catch (error) {
+        console.error('Unable to load submitter:', error);
+        return 'Unable to load submitter';
+    }
+}
+
+function escapeSubmitterText(value) {
+    return String(value).replace(/[&<>"']/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[character]));
+}

@@ -64,12 +64,12 @@ function hideAsterisk(key) {
     if (asterisks[key]) asterisks[key].classList.add('hidden');
 }
 
-function updateAsterisk(key, value) {
-    if (value && value.toString().trim().length > 0) {
-        hideAsterisk(key);
-    } else {
-        showAsterisk(key);
-    }
+// ============ NUMBERS-ONLY CHECK ============
+// Returns true if the value contains NO letters (only numbers/symbols/spaces)
+function isNumbersOnly(value) {
+    if (!value || value.trim() === '') return false;
+    // No letters A-Z or a-z
+    return !/[a-zA-Z]/.test(value);
 }
 
 // ============ VALIDATION ============
@@ -78,12 +78,14 @@ function isFieldValid(fieldId, value) {
         case 'request-type':
             return value && value.trim() !== '';
         case 'item-name':
-            return value && value.trim() !== '';
+            // Valid if non-empty AND not numbers-only
+            return value && value.trim() !== '' && !isNumbersOnly(value);
         case 'amount':
             const num = parseFloat(value);
             return !isNaN(num) && num >= 100;
         case 'description':
-            return value && value.trim() !== '';
+            // Valid if non-empty AND not numbers-only
+            return value && value.trim() !== '' && !isNumbersOnly(value);
         case 'budget-form':
             const fileB = document.getElementById('budget-form').files[0];
             return fileB && /\.(xlsx|xls)$/i.test(fileB.name);
@@ -113,251 +115,162 @@ function isFormValid() {
            isFieldValid('vendor-quotation');
 }
 
-// ============ FIELD FEEDBACK ============
+// ============ ASTERISK UPDATE (individual) ============
+function updateAsteriskForField(fieldId) {
+    const mapping = {
+        'request-type': { input: 'request-type', key: 'type' },
+        'item-name': { input: 'item-name', key: 'item' },
+        'amount': { input: 'amount', key: 'amount' },
+        'description': { input: 'description', key: 'description' },
+        'budget-form': { input: 'budget-form', key: 'budget' },
+        'meeting-minutes': { input: 'meeting-minutes', key: 'meeting' },
+        'vendor-quotation': { input: 'vendor-quotation', key: 'quotation' },
+    };
 
-const inlineValidationFields = [
-    {
-        inputId: 'request-type',
-        errorId: 'type-error',
-        message: 'Select a request type.'
-    },
-    {
-        inputId: 'item-name',
-        errorId: 'item-error',
-        message: 'Enter the event or item name.'
-    },
-    {
-        inputId: 'amount',
-        errorId: 'amount-error',
-        message: () => {
-            const hint = document.querySelector(
-                '#group-amount .form-hint'
-            );
+    const map = mapping[fieldId];
+    if (!map) return;
 
-            return 'Enter a valid amount. ' +
-                (hint ? hint.textContent.trim() : '');
-        }
-    },
-    {
-        inputId: 'description',
-        errorId: 'description-error',
-        message: 'Describe what the requested funds will be used for.'
-    },
-    {
-        inputId: 'budget-form',
-        errorId: 'budget-error',
-        message: 'Upload the budget form as an Excel file (.xlsx or .xls).'
-    },
-    {
-        inputId: 'meeting-minutes',
-        errorId: 'meeting-error',
-        message: 'Upload the meeting minutes as a PDF file.'
-    },
-    {
-        inputId: 'vendor-quotation',
-        errorId: 'quotation-error',
-        message: 'Upload the vendor quotation as a PDF file.'
-    }
-];
+    const valid = isFieldValid(map.input,
+        document.getElementById(map.input).value);
 
-const touchedFields = new Set();
-
-function validateOneField(field) {
-    const input = document.getElementById(field.inputId);
-    const error = document.getElementById(field.errorId);
-
-    if (!input || !error) return false;
-
-    const valid = Boolean(
-        isFieldValid(field.inputId, input.value)
-    );
-
-    const message = typeof field.message === 'function'
-        ? field.message()
-        : field.message;
-
-    input.classList.toggle('error', !valid);
-    input.setAttribute('aria-invalid', String(!valid));
-
-    error.textContent = valid ? '' : `Error: ${message}`;
-    error.classList.toggle('show', !valid);
-
-    return valid;
-}
-
-function clearAllErrors() {
-    inlineValidationFields.forEach(field => {
-        const input = document.getElementById(field.inputId);
-        const error = document.getElementById(field.errorId);
-
-        if (input) {
-            input.classList.remove('error');
-            input.removeAttribute('aria-invalid');
-        }
-
-        if (error) {
-            error.textContent = '';
-            error.classList.remove('show');
-        }
-    });
-
-    errorSummary.textContent = '';
-    errorSummary.classList.remove('show');
-}
-
-function validateAllFields() {
-    let valid = true;
-
-    inlineValidationFields.forEach(field => {
-        touchedFields.add(field.inputId);
-
-        if (!validateOneField(field)) {
-            valid = false;
-        }
-    });
-
-    if (!valid) {
-        errorSummary.textContent =
-            'Your request has not been submitted. Correct the fields marked with an error.';
-        errorSummary.classList.add('show');
+    if (valid) {
+        hideAsterisk(map.key);
     } else {
-        errorSummary.textContent = '';
-        errorSummary.classList.remove('show');
+        showAsterisk(map.key);
     }
+}
 
-    return valid;
+// ============ REAL-TIME WARNING (Event/Item Name & Description) ============
+function updateNumbersOnlyWarning(inputId, warningId) {
+    const input = document.getElementById(inputId);
+    const warning = document.getElementById(warningId);
+    if (!input || !warning) return;
+
+    const value = input.value;
+    if (value.trim() !== '' && isNumbersOnly(value)) {
+        warning.textContent = 'This field cannot contain numbers only.';
+        warning.classList.add('show');
+    } else {
+        warning.textContent = '';
+        warning.classList.remove('show');
+    }
 }
 
 // ============ PROGRESS AND BUTTON STATE ============
-
 function updateProgress() {
-    const completed = inlineValidationFields.filter(field => {
-        const input = document.getElementById(field.inputId);
+    const fields = [
+        { inputId: 'request-type' },
+        { inputId: 'item-name' },
+        { inputId: 'amount' },
+        { inputId: 'description' },
+        { inputId: 'budget-form' },
+        { inputId: 'meeting-minutes' },
+        { inputId: 'vendor-quotation' }
+    ];
 
+    const completed = fields.filter(field => {
+        const input = document.getElementById(field.inputId);
         return input && isFieldValid(field.inputId, input.value);
     }).length;
 
-    const total = inlineValidationFields.length;
+    const total = fields.length;
     const percent = Math.round((completed / total) * 100);
     const isSubmitting = submitBtn.textContent === 'Submitting...';
 
-    document.getElementById('progressFill').style.width =
-        `${percent}%`;
-
+    document.getElementById('progressFill').style.width = `${percent}%`;
     document.getElementById('progressCount').textContent =
         `${completed} / ${total} fields complete`;
 
     submitBtn.disabled = isSubmitting || completed !== total;
-
-    const help = document.getElementById('submit-help');
-
-    if (help) {
-        help.textContent = isSubmitting
-            ? 'Submitting your request. Please wait.'
-            : completed === total
-                ? 'All required fields are complete. You can submit your request.'
-                : 'Complete all required fields correctly to enable Submit Request.';
-    }
 }
 
 function updateFormState() {
-    // Asterisks always identify required fields.
-    Object.keys(asterisks).forEach(showAsterisk);
+    // Update all asterisks
+    updateAsteriskForField('request-type');
+    updateAsteriskForField('item-name');
+    updateAsteriskForField('amount');
+    updateAsteriskForField('description');
+    updateAsteriskForField('budget-form');
+    updateAsteriskForField('meeting-minutes');
+    updateAsteriskForField('vendor-quotation');
 
-    // Only show errors for fields already visited.
-    inlineValidationFields.forEach(field => {
-        if (touchedFields.has(field.inputId)) {
-            validateOneField(field);
-        }
-    });
+    // Update warnings
+    updateNumbersOnlyWarning('item-name', 'item-warning');
+    updateNumbersOnlyWarning('description', 'description-warning');
 
+    // Update progress + button state
     updateProgress();
+
+    // Clear any old error summary if form is valid
+    if (isFormValid()) {
+        errorSummary.textContent = '';
+        errorSummary.classList.remove('show');
+    }
 }
 
-// ============ CONNECT ERRORS TO INPUTS ============
+// ============ AMOUNT ERROR MESSAGE ============
+function updateAmountError() {
+    const amountInput = document.getElementById('amount');
+    const errorEl = document.getElementById('amount-error');
+    const value = amountInput.value.trim();
 
-function initialiseInlineValidation() {
-    inlineValidationFields.forEach(field => {
-        const input = document.getElementById(field.inputId);
+    if (value === '') {
+        errorEl.textContent = '';
+        errorEl.classList.remove('show');
+        amountInput.classList.remove('error');
+        amountInput.removeAttribute('aria-invalid');
+        return;
+    }
 
-        if (!input) return;
+    const num = parseFloat(value);
+    if (isNaN(num) || num < 100) {
+        errorEl.textContent = 'Enter a valid amount. Must be at least R100.';
+        errorEl.classList.add('show');
+        amountInput.classList.add('error');
+        amountInput.setAttribute('aria-invalid', 'true');
+    } else {
+        errorEl.textContent = '';
+        errorEl.classList.remove('show');
+        amountInput.classList.remove('error');
+        amountInput.removeAttribute('aria-invalid');
+    }
+}
 
-        let error = document.getElementById(field.errorId);
-
-        // Create an error container if one is missing.
-        if (!error) {
-            error = document.createElement('div');
-            error.id = field.errorId;
-            error.className = 'field-error';
-            input.insertAdjacentElement('afterend', error);
-        }
-
-        error.textContent = '';
-        error.classList.remove('show');
-        error.setAttribute('aria-live', 'polite');
-        error.setAttribute('aria-atomic', 'true');
-
-        input.setAttribute('aria-required', 'true');
-
-        const descriptionIds = new Set(
-            (input.getAttribute('aria-describedby') || '')
-                .split(/\s+/)
-                .filter(Boolean)
-        );
-
-        descriptionIds.add(field.errorId);
-
-        input.setAttribute(
-            'aria-describedby',
-            [...descriptionIds].join(' ')
-        );
-
-        // Leaving a field triggers its validation.
-        input.addEventListener('blur', () => {
-            touchedFields.add(field.inputId);
-            updateFormState();
-        });
-
-        // Correcting a visited field refreshes its error.
-        input.addEventListener('input', updateFormState);
-
-        // Check selected files and dropdown values immediately.
-        input.addEventListener('change', () => {
-            touchedFields.add(field.inputId);
-            updateFormState();
-        });
+// ============ CLEAR ALL ERRORS ============
+function clearAllErrors() {
+    document.querySelectorAll('.form-group input, .form-group select, .form-group textarea').forEach(el => {
+        el.classList.remove('error');
+        el.removeAttribute('aria-invalid');
     });
-
-    errorSummary.setAttribute('role', 'alert');
-    errorSummary.setAttribute('tabindex', '-1');
+    document.querySelectorAll('.field-error').forEach(el => {
+        el.textContent = '';
+        el.classList.remove('show');
+    });
+    document.querySelectorAll('.field-warning').forEach(el => {
+        el.textContent = '';
+        el.classList.remove('show');
+    });
+    errorSummary.textContent = '';
+    errorSummary.classList.remove('show');
 }
-
-initialiseInlineValidation();
 
 // ============ RESET FORM ============
-
 function resetForm() {
     document.getElementById('request-type').value = '';
     document.getElementById('item-name').value = '';
     document.getElementById('amount').value = '';
     document.getElementById('description').value = '';
 
-    document.querySelectorAll(
-        '#form-section input[type="file"]'
-    ).forEach(input => {
+    document.querySelectorAll('#form-section input[type="file"]').forEach(input => {
         input.value = '';
     });
 
-    touchedFields.clear();
     clearAllErrors();
 
     submitBtn.textContent = 'Submit Request';
 
-    document.getElementById('form-section')
-        .classList.remove('hidden');
-
-    document.getElementById('success-section')
-        .classList.add('hidden');
+    document.getElementById('form-section').classList.remove('hidden');
+    document.getElementById('success-section').classList.add('hidden');
 
     updateFormState();
 }
@@ -365,7 +278,10 @@ function resetForm() {
 // ============ EVENT LISTENERS ============
 document.getElementById('request-type').addEventListener('input', updateFormState);
 document.getElementById('item-name').addEventListener('input', updateFormState);
-document.getElementById('amount').addEventListener('input', updateFormState);
+document.getElementById('amount').addEventListener('input', function() {
+    updateAmountError();
+    updateFormState();
+});
 document.getElementById('description').addEventListener('input', updateFormState);
 document.getElementById('budget-form').addEventListener('change', updateFormState);
 document.getElementById('meeting-minutes').addEventListener('change', updateFormState);
@@ -389,11 +305,11 @@ document.getElementById('submit-another').addEventListener('click', function () 
 submitBtn.addEventListener('click', async (e) => {
     e.preventDefault();
 
-    // Double-check validation (button should be enabled only if valid, but we validate again for safety)
-    if (!validateAllFields()) {
-    updateFormState();
-    return;
-}
+    // Double-check validation
+    if (!isFormValid()) {
+        updateFormState();
+        return;
+    }
 
     // Clear any old errors
     clearAllErrors();
@@ -458,7 +374,7 @@ submitBtn.addEventListener('click', async (e) => {
         document.getElementById('form-section').classList.add('hidden');
         document.getElementById('success-section').classList.remove('hidden');
 
-       } catch (error) {
+    } catch (error) {
         console.error('Error submitting request:', error);
 
         errorSummary.textContent =

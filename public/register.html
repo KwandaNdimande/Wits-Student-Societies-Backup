@@ -697,7 +697,7 @@
                 hideFieldError('signup-email', fieldErrors.email);
             } else if (!isValidEmail(emailVal)) {
                 isValid = false;
-                fieldErrors.email.textContent = 'Error: Email must be in the format name@domain.com';
+                fieldErrors.email.textContent = 'Error: Email must contain an @';
                 showFieldError('signup-email', fieldErrors.email);
             } else {
                 hideFieldError('signup-email', fieldErrors.email);
@@ -931,7 +931,6 @@
 
         fields.email.addEventListener('input', function() {
             updateAsterisk('email', this.value);
-            // Option C: clear error as soon as it becomes valid
             if (fieldErrors.email.classList.contains('show') && isValidEmail(this.value.trim())) {
                 hideFieldError('signup-email', fieldErrors.email);
             }
@@ -939,7 +938,6 @@
 
         fields.password.addEventListener('input', function() {
             updateAsterisk('password', this.value);
-            // Option C: clear error as soon as it becomes valid
             if (fieldErrors.password.classList.contains('show') && isValidPassword(this.value)) {
                 hideFieldError('signup-password', fieldErrors.password);
             }
@@ -948,9 +946,9 @@
         // --- Email: validate on blur (Option C) ---
         fields.email.addEventListener('blur', function() {
             const val = this.value.trim();
-            if (val.length === 0) return; // asterisk handles empty
+            if (val.length === 0) return;
             if (!isValidEmail(val)) {
-                fieldErrors.email.textContent = 'Error: Email must be in the format name@domain.com';
+                fieldErrors.email.textContent = 'Error: Email must contain an @';
                 showFieldError('signup-email', fieldErrors.email);
             } else {
                 hideFieldError('signup-email', fieldErrors.email);
@@ -960,7 +958,7 @@
         // --- Password: validate on blur (Option C) ---
         fields.password.addEventListener('blur', function() {
             const val = this.value;
-            if (val.length === 0) return; // asterisk handles empty
+            if (val.length === 0) return;
             if (!isValidPassword(val)) {
                 fieldErrors.password.textContent = 'Error: Password must be at least 6 characters';
                 showFieldError('signup-password', fieldErrors.password);

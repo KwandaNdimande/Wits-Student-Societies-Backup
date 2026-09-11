@@ -329,6 +329,90 @@ function changePage(page) {
 }
 
 // ================================================================
+// ADD SOCIETY MODAL (form moved from inline to modal)
+// ================================================================
+
+function openAddSocietyModal() {
+    // Reset state
+    otherPortfolios = [];
+
+    const html = `
+        <div class="add-form">
+            <input id="society-name" placeholder="Society Name" />
+            <select id="society-category">
+                <option value="">Category...</option>
+                <option value="Academic">Academic</option>
+                <option value="Cultural">Cultural</option>
+                <option value="Social">Social</option>
+                <option value="Religious">Religious</option>
+                <option value="Political">Political</option>
+                <option value="Business">Business & Entrepreneur</option>
+            </select>
+            <input id="society-email" placeholder="Contact Email" />
+            <textarea id="society-description" placeholder="Short description of the society"></textarea>
+
+            <div class="exec-grid">
+                <div class="exec-col">
+                    <strong>Chairperson <span class="req-asterisk">*</span></strong>
+                    <input id="chairperson-name" placeholder="Chairperson Name" />
+                    <input id="chairperson-email" placeholder="Chairperson Email" />
+                    <div class="field-error" id="chairperson-error"></div>
+                </div>
+                <div class="exec-col">
+                    <strong>Deputy Chairperson <span class="req-asterisk">*</span></strong>
+                    <input id="deputychairperson-name" placeholder="Deputy Chairperson Name" />
+                    <input id="deputychairperson-email" placeholder="Deputy Chairperson Email" />
+                    <div class="field-error" id="deputychairperson-error"></div>
+                </div>
+                <div class="exec-col">
+                    <strong>Treasurer <span class="req-asterisk">*</span></strong>
+                    <input id="treasurer-name" placeholder="Treasurer Name" />
+                    <input id="treasurer-email" placeholder="Treasurer Email" />
+                    <div class="field-error" id="treasurer-error"></div>
+                </div>
+                <div class="exec-col">
+                    <strong>Secretary <span class="req-asterisk">*</span></strong>
+                    <input id="secretary-name" placeholder="Secretary Name" />
+                    <input id="secretary-email" placeholder="Secretary Email" />
+                    <div class="field-error" id="secretary-error"></div>
+                </div>
+                <div class="exec-col">
+                    <strong>Organiser <span class="req-asterisk">*</span></strong>
+                    <input id="organiser-name" placeholder="Organiser Name" />
+                    <input id="organiser-email" placeholder="Organiser Email" />
+                    <div class="field-error" id="organiser-error"></div>
+                </div>
+            </div>
+
+            <div class="other-portfolios-section">
+                <div style="margin-bottom: 12px;">
+                    <strong style="color: var(--text-900); font-size: 14px;">Optional: Add Other Portfolios</strong>
+                </div>
+                <div id="other-portfolios-add" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <input id="other-portfolio-title" placeholder="Portfolio Title" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
+                    <input id="other-portfolio-name" placeholder="Member Name" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
+                    <input id="other-portfolio-email" placeholder="Member Email" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
+                    <button type="button" onclick="addOtherPortfolio()" style="padding: 10px 20px; background: var(--blue-600); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">Add</button>
+                </div>
+                <div id="other-portfolios-list"></div>
+            </div>
+
+            <button class="btn-add" onclick="addSociety()">Add Society</button>
+        </div>
+    `;
+
+    document.getElementById('societyModalTitle').textContent = 'Add New Society';
+    document.getElementById('societyModalBody').innerHTML = html;
+    document.getElementById('societySaveBtn').style.display = 'none';
+    document.getElementById('societyArchiveBtn').style.display = 'none';
+    delete document.getElementById('societyModal').dataset.editingId;
+    delete document.getElementById('societyModal').dataset.viewingId;
+    document.getElementById('societyModal').classList.add('active');
+
+    renderOtherPortfolios();
+}
+
+// ================================================================
 // OTHER PORTFOLIOS MANAGEMENT (ADD FORM)
 // ================================================================
 
@@ -364,6 +448,7 @@ function removeOtherPortfolio(index) {
 
 function renderOtherPortfolios() {
     const container = document.getElementById('other-portfolios-list');
+    if (!container) return;
     if (otherPortfolios.length === 0) {
         container.innerHTML = '';
         return;
@@ -463,8 +548,6 @@ function renderEditOtherPortfolios() {
 }
 
 // ================================================================
-
-// ================================================================
 // ADD SOCIETY
 // ================================================================
 
@@ -550,6 +633,7 @@ async function addSociety() {
         renderOtherPortfolios();
 
         loadSocieties();
+        closeSocietyModal();
         alert('Society created successfully!');
 
     } catch (error) {
@@ -557,8 +641,10 @@ async function addSociety() {
         alert('Error adding society. ' + error.message);
     } finally {
         const btn = document.querySelector('.btn-add');
-        btn.disabled = false;
-        btn.textContent = 'Add Society';
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Add Society';
+        }
     }
 }
 
@@ -864,7 +950,6 @@ async function saveSocietyEdits() {
     }
 }
 
-// ================================================================
 // ================================================================
 // LOAD DATA
 // ================================================================

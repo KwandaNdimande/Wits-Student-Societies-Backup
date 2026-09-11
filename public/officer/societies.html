@@ -44,20 +44,46 @@
             max-width: 1200px;
             margin: 0 auto;
         }
+
+        /* ===== HEADER (with Add button) ===== */
         .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
             margin-bottom: 28px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
-        .header h1 {
+        .header-left h1 {
             font-family: 'Space Grotesk', sans-serif;
             font-size: 28px;
             font-weight: 600;
             color: #fff;
         }
-        .header p {
+        .header-left p {
             font-size: 15px;
             color: #8FA6CC;
             margin-top: 4px;
         }
+        .btn-open-add {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #fff;
+            color: var(--navy-900);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .btn-open-add:hover {
+            background: #e0e0e0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255,255,255,0.15);
+        }
+
         .controls {
             display: flex;
             justify-content: space-between;
@@ -95,7 +121,7 @@
             color: #8FA6CC;
         }
 
-        /* ===== FILTER BUTTONS (styled like Add Society button) ===== */
+        /* ===== FILTER BUTTONS ===== */
         .filter-buttons {
             display: flex;
             gap: 8px;
@@ -123,21 +149,7 @@
             background: var(--navy-800);
         }
 
-        .add-section {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 24px 28px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        }
-        .add-section h2 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--navy-900);
-            margin-bottom: 12px;
-        }
+        /* ===== ADD FORM (now lives inside modal) ===== */
         .add-form {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -280,6 +292,8 @@
             cursor: not-allowed;
             transform: none;
         }
+
+        /* ===== TABLE ===== */
         .table-container {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -382,10 +396,7 @@
             font-weight: 500;
         }
 
-        /* ================================================================
-           ACTION BUTTONS (View, Edit)
-           ================================================================ */
-
+        /* ===== ACTION BUTTONS ===== */
         .btn-action {
             display: inline-block;
             padding: 6px 14px;
@@ -403,8 +414,6 @@
         .btn-action:last-child {
             margin-right: 0;
         }
-
-        /* View button - Blue */
         .btn-view-society {
             background: #2E6FBA;
             color: #fff;
@@ -414,8 +423,6 @@
             transform: translateY(-1px);
             box-shadow: 0 2px 8px rgba(46, 111, 186, 0.3);
         }
-
-        /* Edit button - Navy */
         .btn-edit-society {
             background: #0B1F3A;
             color: #fff;
@@ -430,10 +437,7 @@
         .quota-options label { font-size: 14px; color: var(--text-900); }
         .quota-options input { margin-right: 8px; }
 
-        /* ================================================================
-           MODAL STYLES (with backdrop blur)
-           ================================================================ */
-
+        /* ===== MODAL ===== */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -534,7 +538,6 @@
             color: var(--text-500);
         }
 
-        /* Edit form inside modal */
         .modal-body .edit-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -622,9 +625,7 @@
         .btn-archive { background: var(--danger); color: #fff; }
         .btn-archive:disabled { opacity: 0.45; cursor: not-allowed; }
 
-        /* ================================================================
-           RESPONSIVE
-           ================================================================ */
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
             .add-form {
                 grid-template-columns: 1fr 1fr;
@@ -676,10 +677,16 @@
             td .btn-action {
                 margin-right: 0 !important;
             }
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn-open-add {
+                text-align: center;
+            }
         }
         @media (max-width: 480px) {
             .add-form { grid-template-columns: 1fr; }
-            .add-section { padding: 18px 16px; }
             .table-container { overflow-x: auto; }
             th, td { padding: 10px 12px; font-size: 13px; }
         }
@@ -688,74 +695,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Society Profiles</h1>
-            <p>Manage all registered societies</p>
-        </div>
-
-        <div class="add-section">
-            <h2>Add New Society</h2>
-            <div class="add-form">
-                <input id="society-name" placeholder="Society Name" />
-                <select id="society-category">
-                    <option value="">Category...</option>
-                    <option value="Academic">Academic</option>
-                    <option value="Cultural">Cultural</option>
-                    <option value="Social">Social</option>
-                    <option value="Religious">Religious</option>
-                    <option value="Political">Political</option>
-                    <option value="Business">Business & Entrepreneur</option>
-                </select>
-                <input id="society-email" placeholder="Contact Email" />
-                <textarea id="society-description" placeholder="Short description of the society"></textarea>
-
-                <div class="exec-grid">
-                    <div class="exec-col">
-                        <strong>Chairperson <span class="req-asterisk">*</span></strong>
-                        <input id="chairperson-name" placeholder="Chairperson Name" />
-                        <input id="chairperson-email" placeholder="Chairperson Email" />
-                        <div class="field-error" id="chairperson-error"></div>
-                    </div>
-                    <div class="exec-col">
-                        <strong>Deputy Chairperson <span class="req-asterisk">*</span></strong>
-                        <input id="deputychairperson-name" placeholder="Deputy Chairperson Name" />
-                        <input id="deputychairperson-email" placeholder="Deputy Chairperson Email" />
-                        <div class="field-error" id="deputychairperson-error"></div>
-                    </div>
-                    <div class="exec-col">
-                        <strong>Treasurer <span class="req-asterisk">*</span></strong>
-                        <input id="treasurer-name" placeholder="Treasurer Name" />
-                        <input id="treasurer-email" placeholder="Treasurer Email" />
-                        <div class="field-error" id="treasurer-error"></div>
-                    </div>
-                    <div class="exec-col">
-                        <strong>Secretary <span class="req-asterisk">*</span></strong>
-                        <input id="secretary-name" placeholder="Secretary Name" />
-                        <input id="secretary-email" placeholder="Secretary Email" />
-                        <div class="field-error" id="secretary-error"></div>
-                    </div>
-                    <div class="exec-col">
-                        <strong>Organiser <span class="req-asterisk">*</span></strong>
-                        <input id="organiser-name" placeholder="Organiser Name" />
-                        <input id="organiser-email" placeholder="Organiser Email" />
-                        <div class="field-error" id="organiser-error"></div>
-                    </div>
-                </div>
-
-                <div class="other-portfolios-section">
-                    <div style="margin-bottom: 12px;">
-                        <strong style="color: var(--text-900); font-size: 14px;">Optional: Add Other Portfolios</strong>
-                    </div>
-                    <div id="other-portfolios-add" style="display: flex; gap: 8px; margin-bottom: 12px;">
-                        <input id="other-portfolio-title" placeholder="Portfolio Title" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
-                        <input id="other-portfolio-name" placeholder="Member Name" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
-                        <input id="other-portfolio-email" placeholder="Member Email" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
-                        <button type="button" onclick="addOtherPortfolio()" style="padding: 10px 20px; background: var(--blue-600); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">Add</button>
-                    </div>
-                    <div id="other-portfolios-list"></div>
-                </div>
-
-                <button class="btn-add" onclick="addSociety()">Add Society</button>
+            <div class="header-left">
+                <h1>Society Profiles</h1>
+                <p>Manage all registered societies</p>
             </div>
+            <button class="btn-open-add" onclick="openAddSocietyModal()">➕ Add Society</button>
         </div>
 
         <div class="controls">
@@ -775,7 +719,7 @@
         <div class="wits-badge">University of the Witwatersrand</div>
     </div>
 
-    <!-- Society Modal -->
+    <!-- Society Modal (View / Edit / Add) -->
     <div class="modal-overlay" id="societyModal">
         <div class="modal">
             <div class="modal-header">

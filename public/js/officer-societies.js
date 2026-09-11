@@ -32,8 +32,8 @@ let filteredSocieties = [];
 let currentPage = 1;
 const pageSize = 5;
 let societyFilter = 'active';
-let otherPortfolios = []; // Store other portfolios for the add form
-let editingOtherPortfolios = []; // Store other portfolios for the edit form
+let otherPortfolios = [];
+let editingOtherPortfolios = [];
 
 // ================================================================
 // VALIDATION HELPERS
@@ -62,7 +62,7 @@ async function societyApi(path, options = {}) {
     return data;
 }
 
-// --- Show a field error (red border on input + message in shared error div) ---
+// --- Show a field error (red border on input + message in target error div) ---
 function showFieldError(inputId, errorId, message) {
     const inputEl = document.getElementById(inputId);
     if (inputEl) inputEl.classList.add('input-error');
@@ -132,25 +132,21 @@ function validateKeyPortfolios() {
         const name = nameInput.value.trim();
         const email = emailInput.value.trim();
 
-        // Clear any prior errors on both inputs for this portfolio
         hideFieldError(`${portfolio.id}-name`, errorId);
         hideFieldError(`${portfolio.id}-email`, errorId);
 
-        // Name required
         if (!name) {
             showFieldError(`${portfolio.id}-name`, errorId, `Error: ${portfolio.label} name is required`);
             isValid = false;
             return;
         }
 
-        // Email required
         if (!email) {
             showFieldError(`${portfolio.id}-email`, errorId, `Error: ${portfolio.label} email is required`);
             isValid = false;
             return;
         }
 
-        // Email format
         if (!isValidEmail(email)) {
             showFieldError(`${portfolio.id}-email`, errorId, `Error: Email must contain an @`);
             isValid = false;
@@ -210,7 +206,7 @@ function validateEditKeyPortfolios() {
 }
 
 // ================================================================
-// ADD-FORM VALIDITY (controls button state)
+// ADD-FORM VALIDITY
 // ================================================================
 
 function isAddFormValid() {
@@ -235,12 +231,11 @@ function isAddFormValid() {
 function updateAddButtonState() {
     const btn = document.querySelector('.btn-add');
     if (!btn) return;
-    const valid = isAddFormValid();
-    btn.disabled = !valid;
+    btn.disabled = !isAddFormValid();
 }
 
 // ================================================================
-// EDIT-FORM VALIDITY (controls button state)
+// EDIT-FORM VALIDITY
 // ================================================================
 
 function isEditFormValid() {
@@ -269,7 +264,7 @@ function updateEditButtonState() {
 }
 
 // ================================================================
-// EMAIL BLUR VALIDATION (Option C: validate on blur, clear while typing)
+// EMAIL BLUR VALIDATION (Option C)
 // ================================================================
 
 function attachEmailBlurValidation(inputId, errorId) {
@@ -278,10 +273,9 @@ function attachEmailBlurValidation(inputId, errorId) {
 
     input.addEventListener('blur', function() {
         const val = this.value.trim();
-        if (val.length === 0) return; // asterisk handles empty
+        if (val.length === 0) return;
         const errorEl = document.getElementById(errorId);
         if (!isValidEmail(val)) {
-            // Only write if there isn't already a more specific message
             if (errorEl && !errorEl.textContent.includes('required')) {
                 errorEl.textContent = 'Error: Email must contain an @';
                 errorEl.classList.add('show');
@@ -307,7 +301,7 @@ function attachEmailBlurValidation(inputId, errorId) {
 }
 
 // ================================================================
-// LOAD SOCIETIES (respects current filter on first render)
+// LOAD SOCIETIES
 // ================================================================
 
 async function loadSocieties() {
@@ -327,7 +321,6 @@ async function loadSocieties() {
     }
 }
 
-// Search function
 function searchSocieties() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
     
@@ -364,7 +357,6 @@ function setSocietyFilter(filter) {
     searchSocieties();
 }
 
-// Render table with pagination
 function renderTable() {
     const container = document.getElementById('societies-container');
     const totalItems = filteredSocieties.length;
@@ -458,7 +450,6 @@ function renderTable() {
     container.innerHTML = html;
 }
 
-// Change page
 function changePage(page) {
     const totalPages = Math.ceil(filteredSocieties.length / pageSize) || 1;
     if (page < 1 || page > totalPages) return;
@@ -467,7 +458,7 @@ function changePage(page) {
 }
 
 // ================================================================
-// ADD SOCIETY MODAL (form + asterisks + live button state)
+// ADD SOCIETY MODAL
 // ================================================================
 
 function openAddSocietyModal() {
@@ -494,6 +485,7 @@ function openAddSocietyModal() {
             <div class="field-wrap">
                 <label class="field-label">Contact Email <span class="req-asterisk" id="req-society-email">*</span></label>
                 <input id="society-email" placeholder="Contact Email" />
+                <div class="field-error" id="society-email-error"></div>
             </div>
             <textarea id="society-description" placeholder="Short description of the society"></textarea>
 
@@ -564,11 +556,10 @@ function openAddSocietyModal() {
 }
 
 // ================================================================
-// WIRE ADD-FORM LISTENERS (asterisks, email blur, button state)
+// WIRE ADD-FORM LISTENERS
 // ================================================================
 
 function wireAddFormListeners() {
-    // Asterisk mapping: inputId → asteriskId (or null for exec portfolios which use shared *)
     const simpleAsterisks = [
         { inputId: 'society-name', asteriskId: 'req-society-name' },
         { inputId: 'society-category', asteriskId: 'req-society-category' },
@@ -588,7 +579,6 @@ function wireAddFormListeners() {
         });
     });
 
-    // Exec portfolio inputs
     const portfolios = ['chairperson', 'deputychairperson', 'treasurer', 'secretary', 'organiser'];
     portfolios.forEach(id => {
         const nameInput = document.getElementById(`${id}-name`);
@@ -611,12 +601,11 @@ function wireAddFormListeners() {
         }
     });
 
-    // Society contact email blur
-    attachEmailBlurValidation('society-email', null);
+    attachEmailBlurValidation('society-email', 'society-email-error');
 }
 
 // ================================================================
-// OTHER PORTFOLIOS MANAGEMENT (ADD FORM)
+// OTHER PORTFOLIOS (ADD FORM)
 // ================================================================
 
 function addOtherPortfolio() {
@@ -682,7 +671,7 @@ function renderOtherPortfolios() {
 }
 
 // ================================================================
-// OTHER PORTFOLIOS MANAGEMENT (EDIT FORM)
+// OTHER PORTFOLIOS (EDIT FORM)
 // ================================================================
 
 function addEditOtherPortfolio() {
@@ -866,7 +855,7 @@ function escapeHtml(str) {
 }
 
 // ================================================================
-// VIEW SOCIETY (READ-ONLY MODAL)
+// VIEW SOCIETY
 // ================================================================
 
 async function viewSociety(societyId) {
@@ -986,7 +975,7 @@ async function archiveSociety(societyId) {
 }
 
 // ================================================================
-// EDIT SOCIETY (EDITABLE MODAL)
+// EDIT SOCIETY
 // ================================================================
 
 async function openEditSociety(societyId) {
@@ -1019,6 +1008,7 @@ async function openEditSociety(societyId) {
                 <div class="field-wrap">
                     <label class="field-label">Contact Email <span class="req-asterisk" id="req-edit-soc-email">*</span></label>
                     <input id="edit-soc-email" placeholder="Contact Email" value="${escapeHtml(s.email || '')}" />
+                    <div class="field-error" id="edit-soc-email-error"></div>
                 </div>
                 <textarea id="edit-soc-description" placeholder="Short description">${escapeHtml(s.description || '')}</textarea>
 
@@ -1105,7 +1095,6 @@ function wireEditFormListeners() {
         };
         input.addEventListener('input', refresh);
         input.addEventListener('change', refresh);
-        // Run once to set initial asterisk state based on pre-filled value
         refresh();
     });
 
@@ -1131,11 +1120,10 @@ function wireEditFormListeners() {
             emailInput.addEventListener('input', refresh);
             attachEmailBlurValidation(`${id}-email`, `${id}-error`);
         }
-        // Run once for pre-filled values
         refresh();
     });
 
-    attachEmailBlurValidation('edit-soc-email', null);
+    attachEmailBlurValidation('edit-soc-email', 'edit-soc-email-error');
 }
 
 // ================================================================

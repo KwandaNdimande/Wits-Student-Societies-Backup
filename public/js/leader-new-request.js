@@ -65,10 +65,8 @@ function hideAsterisk(key) {
 }
 
 // ============ NUMBERS-ONLY CHECK ============
-// Returns true if the value contains NO letters (only numbers/symbols/spaces)
 function isNumbersOnly(value) {
     if (!value || value.trim() === '') return false;
-    // No letters A-Z or a-z
     return !/[a-zA-Z]/.test(value);
 }
 
@@ -78,13 +76,11 @@ function isFieldValid(fieldId, value) {
         case 'request-type':
             return value && value.trim() !== '';
         case 'item-name':
-            // Valid if non-empty AND not numbers-only
             return value && value.trim() !== '' && !isNumbersOnly(value);
         case 'amount':
             const num = parseFloat(value);
             return !isNaN(num) && num >= 100;
         case 'description':
-            // Valid if non-empty AND not numbers-only
             return value && value.trim() !== '' && !isNumbersOnly(value);
         case 'budget-form':
             const fileB = document.getElementById('budget-form').files[0];
@@ -115,7 +111,7 @@ function isFormValid() {
            isFieldValid('vendor-quotation');
 }
 
-// ============ ASTERISK UPDATE (individual) ============
+// ============ ASTERISK UPDATE ============
 function updateAsteriskForField(fieldId) {
     const mapping = {
         'request-type': { input: 'request-type', key: 'type' },
@@ -130,8 +126,7 @@ function updateAsteriskForField(fieldId) {
     const map = mapping[fieldId];
     if (!map) return;
 
-    const valid = isFieldValid(map.input,
-        document.getElementById(map.input).value);
+    const valid = isFieldValid(map.input, document.getElementById(map.input).value);
 
     if (valid) {
         hideAsterisk(map.key);
@@ -148,11 +143,15 @@ function updateNumbersOnlyWarning(inputId, warningId) {
 
     const value = input.value;
     if (value.trim() !== '' && isNumbersOnly(value)) {
-        warning.textContent = 'This field cannot contain numbers only.';
+        warning.textContent = 'Error: This field cannot contain numbers only.';
         warning.classList.add('show');
+        input.classList.add('error');
+        input.setAttribute('aria-invalid', 'true');
     } else {
         warning.textContent = '';
         warning.classList.remove('show');
+        input.classList.remove('error');
+        input.removeAttribute('aria-invalid');
     }
 }
 
@@ -198,6 +197,9 @@ function updateFormState() {
     updateNumbersOnlyWarning('item-name', 'item-warning');
     updateNumbersOnlyWarning('description', 'description-warning');
 
+    // Update amount error
+    updateAmountError();
+
     // Update progress + button state
     updateProgress();
 
@@ -224,7 +226,7 @@ function updateAmountError() {
 
     const num = parseFloat(value);
     if (isNaN(num) || num < 100) {
-        errorEl.textContent = 'Enter a valid amount. Must be at least R100.';
+        errorEl.textContent = 'Error: Enter a valid amount. Must be at least R100.';
         errorEl.classList.add('show');
         amountInput.classList.add('error');
         amountInput.setAttribute('aria-invalid', 'true');
@@ -278,10 +280,7 @@ function resetForm() {
 // ============ EVENT LISTENERS ============
 document.getElementById('request-type').addEventListener('input', updateFormState);
 document.getElementById('item-name').addEventListener('input', updateFormState);
-document.getElementById('amount').addEventListener('input', function() {
-    updateAmountError();
-    updateFormState();
-});
+document.getElementById('amount').addEventListener('input', updateFormState);
 document.getElementById('description').addEventListener('input', updateFormState);
 document.getElementById('budget-form').addEventListener('change', updateFormState);
 document.getElementById('meeting-minutes').addEventListener('change', updateFormState);
@@ -305,16 +304,13 @@ document.getElementById('submit-another').addEventListener('click', function () 
 submitBtn.addEventListener('click', async (e) => {
     e.preventDefault();
 
-    // Double-check validation
     if (!isFormValid()) {
         updateFormState();
         return;
     }
 
-    // Clear any old errors
     clearAllErrors();
 
-    // Disable button to prevent double submission
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submitting...';
 
@@ -370,7 +366,6 @@ submitBtn.addEventListener('click', async (e) => {
 
         await db.collection('requests').add(requestData);
 
-        // Success – show success page
         document.getElementById('form-section').classList.add('hidden');
         document.getElementById('success-section').classList.remove('hidden');
 

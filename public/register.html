@@ -89,7 +89,6 @@
             color: var(--text-600);
             margin-bottom: 4px;
         }
-        /* Asterisk for required fields - hidden by default, shown via JS */
         .form-group label .required {
             color: var(--error);
             font-weight: 700;
@@ -121,12 +120,10 @@
         .form-group input::placeholder {
             color: var(--text-500);
         }
-        /* Error state for inputs - only shown on submit error */
         .form-group input.error {
             border-color: var(--error);
             box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
         }
-        /* Field error message - hidden by default, shown on submit */
         .field-error {
             color: var(--error);
             font-size: 12px;
@@ -136,7 +133,6 @@
         .field-error.show {
             display: block;
         }
-        /* ---- Society input with browse button ---- */
         .society-row {
             display: flex;
             gap: 8px;
@@ -232,7 +228,6 @@
             color: var(--text-500);
             margin-top: 4px;
         }
-        /* ---- other inputs ---- */
         .form-group input[type="email"],
         .form-group input[type="password"] {
             width: 100%;
@@ -479,16 +474,15 @@
                     <div class="form-group">
                         <label for="firstName">First name <span class="required" id="req-firstName">*</span></label>
                         <input id="firstName" type="text" placeholder="Jane" />
-                        <div class="field-error" id="firstName-error">First name is required</div>
+                        <div class="field-error" id="firstName-error"></div>
                     </div>
                     <div class="form-group">
                         <label for="lastName">Last name <span class="required" id="req-lastName">*</span></label>
                         <input id="lastName" type="text" placeholder="Doe" />
-                        <div class="field-error" id="lastName-error">Last name is required</div>
+                        <div class="field-error" id="lastName-error"></div>
                     </div>
                 </div>
 
-                <!-- Society input with browse button -->
                 <div class="form-group">
                     <label for="society-input">Your Society <span class="required" id="req-society">*</span></label>
                     <div class="society-row">
@@ -505,7 +499,7 @@
                         </div>
                         <button type="button" class="browse-btn" id="browseAllBtn">Browse All</button>
                     </div>
-                    <div class="field-error" id="society-error">Please select a valid society</div>
+                    <div class="field-error" id="society-error"></div>
                     <div class="dropdown-hint">
                         Type at least one character to filter, or click "Browse All" for a full list.
                     </div>
@@ -514,12 +508,12 @@
                 <div class="form-group">
                     <label for="signup-email">Email <span class="required" id="req-email">*</span></label>
                     <input id="signup-email" type="email" placeholder="studentnumber@students.wits.ac.za" />
-                    <div class="field-error" id="email-error">Email is required</div>
+                    <div class="field-error" id="email-error"></div>
                 </div>
                 <div class="form-group">
                     <label for="signup-password">Password <span class="required" id="req-password">*</span></label>
                     <input id="signup-password" type="password" placeholder="Use a strong password" />
-                    <div class="field-error" id="password-error">Password is required</div>
+                    <div class="field-error" id="password-error"></div>
                 </div>
 
                 <div id="register-error" class="field-error" style="margin-bottom:12px;"></div>
@@ -617,6 +611,15 @@
             society: document.getElementById('society-error'),
         };
 
+        // --- Format validators ---
+        function isValidEmail(value) {
+            return value.includes('@');
+        }
+
+        function isValidPassword(value) {
+            return value.length >= 6;
+        }
+
         // --- Asterisk visibility helpers ---
         function showAsterisk(fieldId) {
             if (asterisks[fieldId]) asterisks[fieldId].classList.remove('hidden');
@@ -634,7 +637,7 @@
             }
         }
 
-        // --- Error helpers (only shown on submit) ---
+        // --- Error helpers (only shown on submit / blur) ---
         function showFieldError(fieldId, errorEl) {
             const input = document.getElementById(fieldId);
             if (input) input.classList.add('error');
@@ -663,8 +666,8 @@
             // First name
             const firstNameVal = fields.firstName.value.trim();
             if (firstNameVal.length === 0) {
-                showFieldError('firstName', fieldErrors.firstName);
                 isValid = false;
+                hideFieldError('firstName', fieldErrors.firstName);
             } else {
                 hideFieldError('firstName', fieldErrors.firstName);
             }
@@ -672,8 +675,8 @@
             // Last name
             const lastNameVal = fields.lastName.value.trim();
             if (lastNameVal.length === 0) {
-                showFieldError('lastName', fieldErrors.lastName);
                 isValid = false;
+                hideFieldError('lastName', fieldErrors.lastName);
             } else {
                 hideFieldError('lastName', fieldErrors.lastName);
             }
@@ -681,8 +684,8 @@
             // Society
             const societyVal = societyInput.value.trim();
             if (societyVal.length === 0 || !allSocieties.includes(societyVal)) {
-                showFieldError('society-input', fieldErrors.society);
                 isValid = false;
+                hideFieldError('society-input', fieldErrors.society);
             } else {
                 hideFieldError('society-input', fieldErrors.society);
             }
@@ -690,8 +693,12 @@
             // Email
             const emailVal = fields.email.value.trim();
             if (emailVal.length === 0) {
-                showFieldError('signup-email', fieldErrors.email);
                 isValid = false;
+                hideFieldError('signup-email', fieldErrors.email);
+            } else if (!isValidEmail(emailVal)) {
+                isValid = false;
+                fieldErrors.email.textContent = 'Error: Email must be in the format name@domain.com';
+                showFieldError('signup-email', fieldErrors.email);
             } else {
                 hideFieldError('signup-email', fieldErrors.email);
             }
@@ -699,14 +706,18 @@
             // Password
             const passwordVal = fields.password.value;
             if (passwordVal.length === 0) {
-                showFieldError('signup-password', fieldErrors.password);
                 isValid = false;
+                hideFieldError('signup-password', fieldErrors.password);
+            } else if (!isValidPassword(passwordVal)) {
+                isValid = false;
+                fieldErrors.password.textContent = 'Error: Password must be at least 6 characters';
+                showFieldError('signup-password', fieldErrors.password);
             } else {
                 hideFieldError('signup-password', fieldErrors.password);
             }
 
             if (!isValid) {
-                errorEl.textContent = 'Please fill in all required fields.';
+                errorEl.textContent = 'Error: Please fill in all required fields.';
                 errorEl.classList.add('show');
             } else {
                 errorEl.classList.remove('show');
@@ -809,9 +820,7 @@
         function selectSociety(value) {
             societyInput.value = value;
             closeDropdown();
-            // Update asterisk
             updateAsterisk('society', value);
-            // Hide error if it was showing
             hideFieldError('society-input', fieldErrors.society);
             errorEl.classList.remove('show');
             errorEl.textContent = '';
@@ -821,7 +830,6 @@
 
         societyInput.addEventListener('input', function(e) {
             const val = this.value.trim();
-            // Update asterisk
             updateAsterisk('society', val);
 
             if (val.length === 0) {
@@ -829,7 +837,6 @@
                 societyList.innerHTML = '<li class="no-results">Start typing to search...</li>';
             } else {
                 filterAndShow(val);
-                // If it matches a society, hide error
                 if (allSocieties.includes(val)) {
                     hideFieldError('society-input', fieldErrors.society);
                 }
@@ -852,7 +859,6 @@
             }, 150);
         });
 
-        // Fix click on dropdown items
         societyList.addEventListener('mousedown', function(e) {
             const li = e.target.closest('li');
             if (!li || li.classList.contains('no-results')) return;
@@ -925,10 +931,42 @@
 
         fields.email.addEventListener('input', function() {
             updateAsterisk('email', this.value);
+            // Option C: clear error as soon as it becomes valid
+            if (fieldErrors.email.classList.contains('show') && isValidEmail(this.value.trim())) {
+                hideFieldError('signup-email', fieldErrors.email);
+            }
         });
 
         fields.password.addEventListener('input', function() {
             updateAsterisk('password', this.value);
+            // Option C: clear error as soon as it becomes valid
+            if (fieldErrors.password.classList.contains('show') && isValidPassword(this.value)) {
+                hideFieldError('signup-password', fieldErrors.password);
+            }
+        });
+
+        // --- Email: validate on blur (Option C) ---
+        fields.email.addEventListener('blur', function() {
+            const val = this.value.trim();
+            if (val.length === 0) return; // asterisk handles empty
+            if (!isValidEmail(val)) {
+                fieldErrors.email.textContent = 'Error: Email must be in the format name@domain.com';
+                showFieldError('signup-email', fieldErrors.email);
+            } else {
+                hideFieldError('signup-email', fieldErrors.email);
+            }
+        });
+
+        // --- Password: validate on blur (Option C) ---
+        fields.password.addEventListener('blur', function() {
+            const val = this.value;
+            if (val.length === 0) return; // asterisk handles empty
+            if (!isValidPassword(val)) {
+                fieldErrors.password.textContent = 'Error: Password must be at least 6 characters';
+                showFieldError('signup-password', fieldErrors.password);
+            } else {
+                hideFieldError('signup-password', fieldErrors.password);
+            }
         });
 
         // --- MODAL: Open, close, load data (10 per page) ---
@@ -1058,12 +1096,9 @@
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Hide any previous errors before validating
             hideAllErrors();
 
-            // Validate all fields
             if (!validateAllFields()) {
-                // Scroll to first error
                 const firstError = document.querySelector('.form-group .error');
                 if (firstError) {
                     firstError.focus();
@@ -1077,10 +1112,10 @@
             const email = fields.email.value.trim();
             const password = fields.password.value;
 
-            // Double-check society is valid
             if (!allSocieties.includes(societyName)) {
+                fieldErrors.society.textContent = 'Error: Please select a valid society from the list.';
                 showFieldError('society-input', fieldErrors.society);
-                errorEl.textContent = 'Please select a valid society from the list.';
+                errorEl.textContent = 'Error: Please select a valid society from the list.';
                 errorEl.classList.add('show');
                 societyInput.focus();
                 return;

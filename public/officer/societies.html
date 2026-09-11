@@ -154,6 +154,8 @@
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             gap: 12px;
+            width: 800px;
+            max-width: 100%;
         }
         .add-form input,
         .add-form select,
@@ -458,12 +460,18 @@
         .modal {
             background: var(--surface);
             border-radius: var(--radius);
-            max-width: 700px;
-            width: 90%;
-            max-height: 80vh;
+            width: fit-content;
+            min-width: 420px;
+            max-width: 95vw;
+            max-height: 85vh;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 28px 32px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .modal-body .edit-grid {
+            width: 800px;
+            max-width: 100%;
         }
         .modal-header {
             display: flex;
@@ -655,6 +663,11 @@
             }
             .modal {
                 padding: 20px;
+                min-width: 0;
+                width: 95vw;
+            }
+            .modal-body .edit-grid {
+                width: 100%;
             }
             .modal-body .exec-grid-view {
                 grid-template-columns: 1fr;

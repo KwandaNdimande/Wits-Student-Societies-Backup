@@ -149,7 +149,7 @@
             background: var(--navy-800);
         }
 
-        /* ===== ADD FORM (now lives inside modal) ===== */
+        /* ===== ADD FORM (inside modal) ===== */
         .add-form {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -197,10 +197,63 @@
             color: var(--text-900);
             font-size: 13px;
         }
+
+        /* ===== REQUIRED FIELD LABELS + ASTERISKS ===== */
+        .field-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .field-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-900);
+        }
         .req-asterisk {
             color: var(--danger);
             font-weight: 700;
         }
+        .req-asterisk.hidden {
+            display: none;
+        }
+
+        /* ===== BUTTON + TOOLTIP WRAPPER ===== */
+        .btn-wrapper {
+            position: relative;
+            grid-column: 1 / -1;
+            justify-self: start;
+            display: inline-flex;
+        }
+        .btn-wrapper .tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0B1F3A;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            z-index: 100;
+            pointer-events: none;
+        }
+        .btn-wrapper .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #0B1F3A;
+        }
+        .btn-wrapper .btn-add:disabled:hover + .tooltip {
+            display: block;
+        }
+
         .field-error {
             color: var(--danger);
             font-size: 12px;
@@ -281,16 +334,14 @@
             color: #fff;
             cursor: pointer;
             transition: all 0.2s ease;
-            grid-column: 1 / -1;
-            justify-self: start;
         }
-        .btn-add:hover {
+        .btn-add:hover:not(:disabled) {
             background: var(--navy-800);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
         }
         .btn-add:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
             transform: none;
         }
@@ -469,10 +520,6 @@
             padding: 28px 32px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
-        .modal-body .edit-grid {
-            width: 800px;
-            max-width: 100%;
-        }
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -550,6 +597,8 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
+            width: 800px;
+            max-width: 100%;
         }
         .modal-body .edit-grid input,
         .modal-body .edit-grid select,
@@ -620,8 +669,12 @@
             background: var(--navy-900);
             color: #fff;
         }
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             background: var(--navy-800);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         .btn-secondary {
             background: var(--border);
@@ -641,10 +694,12 @@
             .add-form .exec-grid {
                 grid-template-columns: 1fr;
             }
-            .btn-add {
+            .btn-wrapper {
                 grid-column: 1 / -1;
                 width: 100%;
-                justify-self: stretch;
+            }
+            .btn-add {
+                width: 100%;
             }
             .controls {
                 flex-direction: column;

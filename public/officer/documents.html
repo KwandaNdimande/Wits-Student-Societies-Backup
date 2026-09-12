@@ -365,6 +365,14 @@
             color: var(--text-600);
             margin-bottom: 4px;
         }
+        .modal-body .form-group label .req-asterisk {
+            color: var(--danger);
+            font-weight: 700;
+            margin-left: 2px;
+        }
+        .modal-body .form-group label .req-asterisk.hidden {
+            display: none;
+        }
         .modal-body .form-group input,
         .modal-body .form-group textarea {
             width: 100%;
@@ -382,6 +390,11 @@
             outline: none;
             border-color: var(--navy-900);
             box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
+        }
+        .modal-body .form-group input.input-error,
+        .modal-body .form-group textarea.input-error {
+            border-color: var(--danger);
+            box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
         }
         .modal-body .form-group textarea {
             resize: vertical;
@@ -402,6 +415,10 @@
             width: 100%;
             color: var(--text-600);
         }
+        .modal-body .form-group .file-input-wrapper input[type="file"].input-error {
+            border-color: var(--danger);
+            box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
+        }
         .modal-body .form-group .file-input-wrapper input[type="file"]::file-selector-button {
             padding: 6px 16px;
             border: none;
@@ -415,6 +432,16 @@
         }
         .modal-body .form-group .file-input-wrapper input[type="file"]::file-selector-button:hover {
             background: var(--navy-800);
+        }
+
+        .field-error {
+            color: var(--danger);
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+        .field-error.show {
+            display: block;
         }
 
         /* Edit warning */
@@ -440,12 +467,47 @@
             background: var(--navy-900);
             color: #fff;
         }
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             background: var(--navy-800);
         }
         .btn-primary:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
+        }
+
+        /* Button wrapper + tooltip */
+        .btn-wrapper {
+            position: relative;
+            display: inline-flex;
+        }
+        .btn-wrapper .tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0B1F3A;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            z-index: 100;
+            pointer-events: none;
+        }
+        .btn-wrapper .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #0B1F3A;
+        }
+        .btn-wrapper .btn-primary:disabled:hover + .tooltip {
+            display: block;
         }
 
         /* Toast */
@@ -473,9 +535,6 @@
         .toast.show {
             transform: translateY(0);
             opacity: 1;
-        }
-        .toast .toast-icon {
-            font-size: 20px;
         }
         .toast .toast-close {
             background: none;
@@ -610,7 +669,7 @@
             </div>
             <div class="modal-body" id="documentModalBody">
                 <div class="form-group">
-                    <label for="doc-name">Document Name</label>
+                    <label for="doc-name">Document Name <span class="req-asterisk" id="req-doc-name">*</span></label>
                     <input id="doc-name" placeholder="e.g., Budget Template, Constitution, etc." />
                 </div>
                 <div class="form-group">
@@ -618,7 +677,7 @@
                     <textarea id="doc-description" placeholder="Brief description of the document..." rows="3"></textarea>
                 </div>
                 <div class="form-group">
-                    <label>File</label>
+                    <label>File <span class="req-asterisk" id="req-doc-file">*</span></label>
                     <div id="current-file-indicator" class="current-file-indicator hidden">
                         <div class="file-info">
                             <span class="file-name" id="current-file-name">file.pdf</span>
@@ -630,6 +689,7 @@
                         <input id="doc-file" type="file" onchange="handleFileChange(this)" />
                     </div>
                     <div class="file-hint">Any file type is accepted. Max file size: 20MB.</div>
+                    <div class="field-error" id="doc-file-error"></div>
                 </div>
 
                 <!-- Edit warning -->
@@ -638,7 +698,10 @@
                 </div>
             </div>
             <div class="modal-footer-edit">
-                <button class="btn btn-primary" id="documentSaveBtn" onclick="submitDocument()" disabled>Save</button>
+                <div class="btn-wrapper">
+                    <button class="btn btn-primary" id="documentSaveBtn" onclick="submitDocument()" disabled>Save</button>
+                    <div class="tooltip">Please complete all required fields</div>
+                </div>
                 <button class="btn btn-secondary" onclick="closeDocumentModal()">Cancel</button>
             </div>
         </div>

@@ -40,7 +40,7 @@ const container = document.getElementById('documents-container');
 const loadMoreBtn = document.getElementById('load-more-btn');
 
 // ================================================================
-// CURRENT FILE STATE (Feature #5)
+// CURRENT FILE STATE (edit mode)
 // ================================================================
 let currentFilePublicUrl = null;
 let currentFileName = null;
@@ -51,16 +51,17 @@ let currentFileSize = null;
 // ================================================================
 let initialName = '';
 let initialDescription = '';
-let initialFilePath = ''; // to track if file is being replaced
+let initialFilePath = '';
+
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
 // ================================================================
-// TOAST NOTIFICATION (FIXED – single icon)
+// TOAST NOTIFICATION
 // ================================================================
 function showToast(message, isError = false) {
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toastMessage');
 
-    const icon = isError ? '❌ ' : '✅ ';
     toastMessage.textContent = message;
     toast.style.borderLeftColor = isError ? '#C0392B' : '#1E8E5A';
 
@@ -75,6 +76,49 @@ function closeToast() {
     const toast = document.getElementById('toast');
     toast.classList.remove('show');
     clearTimeout(toast._hideTimeout);
+}
+
+// ================================================================
+// ASTERISK HELPERS
+// ================================================================
+function setAsterisk(id, visible) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (visible) el.classList.remove('hidden');
+    else el.classList.add('hidden');
+}
+
+// ================================================================
+// FIELD ERROR HELPERS
+// ================================================================
+function showFileError(message) {
+    const err = document.getElementById('doc-file-error');
+    const input = document.getElementById('doc-file');
+    if (err) {
+        err.textContent = message;
+        err.classList.add('show');
+    }
+    if (input) input.classList.add('input-error');
+}
+
+function hideFileError() {
+    const err = document.getElementById('doc-file-error');
+    const input = document.getElementById('doc-file');
+    if (err) {
+        err.classList.remove('show');
+        err.textContent = '';
+    }
+    if (input) input.classList.remove('input-error');
+}
+
+function showNameError() {
+    const input = document.getElementById('doc-name');
+    if (input) input.classList.add('input-error');
+}
+
+function hideNameError() {
+    const input = document.getElementById('doc-name');
+    if (input) input.classList.remove('input-error');
 }
 
 // ================================================================
@@ -100,22 +144,7 @@ async function forceDownload(url, fileName) {
 }
 
 // ================================================================
-// HELPER: Get file icon (optional – we are not using it in table)
-// ================================================================
-function getFileIcon(fileName) {
-    if (!fileName) return '📄';
-    const ext = fileName.split('.').pop().toLowerCase();
-    if (['pdf'].includes(ext)) return '📄';
-    if (['xlsx', 'xls', 'csv'].includes(ext)) return '📊';
-    if (['doc', 'docx'].includes(ext)) return '📝';
-    if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) return '🖼️';
-    if (['zip', 'rar', '7z'].includes(ext)) return '📦';
-    if (['ppt', 'pptx'].includes(ext)) return '📑';
-    return '📁';
-}
-
-// ================================================================
-// RENDER DOCUMENTS (TABLE LAYOUT)
+// RENDER DOCUMENTS (TABLE)
 // ================================================================
 function renderDocuments(docs, append = false) {
     if (!append) {
@@ -318,7 +347,7 @@ function downloadDocument(url, fileName) {
 }
 
 // ================================================================
-// VIEW CURRENT FILE (Feature #5)
+// VIEW CURRENT FILE
 // ================================================================
 function viewCurrentFile() {
     if (currentFilePublicUrl && currentFilePublicUrl !== '#') {
@@ -329,7 +358,94 @@ function viewCurrentFile() {
 }
 
 // ================================================================
-// HANDLE FILE CHANGE (Feature #5)
+// VALIDITY CHECK (controls Save button state)
+// ================================================================
+function isFormValid() {
+    const name = document.getElementById('doc-name')?.value.trim() || '';
+    const fileInput = document.getElementById('doc-file');
+    const hasNewFile = fileInput?.files && fileInput.files.length > 0;
+
+    // Name always required
+    if (!name) return false;
+
+    // In new-upload mode (no currentEditingId), a file is required
+    if (!currentEditingId) {
+        if (!hasNewFile) return false;
+        // Also enforce max size
+        if (fileInput.files[0].size > MAX_FILE_SIZE) return false;
+        return true;
+    }
+
+    // Edit mode: needs at least one change
+    const nameChanged = name !== initialName;
+    const descChanged = (document.getElementById('doc-description')?.value.trim() || '') !== initialDescription;
+    const fileChanged = hasNewFile;
+
+    if (!nameChanged && !descChanged && !fileChanged) return false;
+
+    // If a new file was selected, enforce max size
+    if (hasNewFile && fileInput.files[0].size > MAX_FILE_SIZE) return false;
+
+    return true;
+}
+
+// ================================================================
+// UPDATE UI STATE (asterisks, button, warnings)
+// ================================================================
+function updateFormState() {
+    const nameInput = document.getElementById('doc-name');
+    const fileInput = document.getElementById('doc-file');
+    const saveBtn = document.getElementById('documentSaveBtn');
+    const warning = document.getElementById('edit-warning');
+    const isEditMode = !!currentEditingId;
+
+    // Asterisk: doc name
+    const hasName = nameInput && nameInput.value.trim().length > 0;
+    setAsterisk('req-doc-name', !hasName);
+
+    // Asterisk: file (only in new-upload mode)
+    if (isEditMode) {
+        setAsterisk('req-doc-file', false); // hide in edit mode
+    } else {
+        const hasFile = fileInput?.files && fileInput.files.length > 0;
+        setAsterisk('req-doc-file', !hasFile);
+    }
+
+    // Live name error clear (only clear if user fixes it)
+    if (nameInput && nameInput.classList.contains('input-error') && hasName) {
+        hideNameError();
+    }
+
+    // Live file error clear
+    if (fileInput && fileInput.classList.contains('input-error')) {
+        const f = fileInput.files?.[0];
+        if (f && f.size <= MAX_FILE_SIZE) {
+            hideFileError();
+        }
+    }
+
+    // Edit warning (edit mode + no changes)
+    if (isEditMode) {
+        const nameChanged = (nameInput?.value.trim() || '') !== initialName;
+        const descChanged = (document.getElementById('doc-description')?.value.trim() || '') !== initialDescription;
+        const fileChanged = fileInput?.files && fileInput.files.length > 0;
+        const hasChanges = nameChanged || descChanged || fileChanged;
+        if (warning) {
+            if (hasChanges) warning.classList.remove('show');
+            else warning.classList.add('show');
+        }
+    } else {
+        if (warning) warning.classList.remove('show');
+    }
+
+    // Save button state
+    if (saveBtn) {
+        saveBtn.disabled = !isFormValid();
+    }
+}
+
+// ================================================================
+// HANDLE FILE CHANGE
 // ================================================================
 function handleFileChange(input) {
     const file = input.files && input.files[0];
@@ -343,49 +459,23 @@ function handleFileChange(input) {
         fileSizeEl.textContent = `(${sizeMB} MB)`;
         currentFilePublicUrl = null;
         indicator.classList.remove('hidden');
-        // Trigger change check
-        checkForChanges();
+
+        // Size check immediate
+        if (file.size > MAX_FILE_SIZE) {
+            showFileError('Error: File exceeds the 20MB limit');
+        } else {
+            hideFileError();
+        }
     } else {
         indicator.classList.add('hidden');
-        // Trigger change check
-        checkForChanges();
+        hideFileError();
     }
+
+    updateFormState();
 }
 
 // ================================================================
-// CHECK FOR CHANGES (edit validation)
-// ================================================================
-function checkForChanges() {
-    const name = document.getElementById('doc-name').value.trim();
-    const description = document.getElementById('doc-description').value.trim();
-    const fileInput = document.getElementById('doc-file');
-    const hasNewFile = fileInput.files && fileInput.files.length > 0;
-    const saveBtn = document.getElementById('documentSaveBtn');
-    const warning = document.getElementById('edit-warning');
-
-    // If no editing ID, it's a new upload, so always enable Save
-    if (!currentEditingId) {
-        saveBtn.disabled = false;
-        warning.classList.remove('show');
-        return;
-    }
-
-    // Check if anything changed
-    const nameChanged = name !== initialName;
-    const descChanged = description !== initialDescription;
-    const fileChanged = hasNewFile;
-
-    if (nameChanged || descChanged || fileChanged) {
-        saveBtn.disabled = false;
-        warning.classList.remove('show');
-    } else {
-        saveBtn.disabled = true;
-        warning.classList.add('show');
-    }
-}
-
-// ================================================================
-// OPEN MODAL
+// OPEN MODAL (upload / edit)
 // ================================================================
 function openDocumentModal(editingId) {
     const modal = document.getElementById('documentModal');
@@ -403,13 +493,18 @@ function openDocumentModal(editingId) {
     document.getElementById('doc-description').value = '';
     document.getElementById('doc-file').value = null;
     document.getElementById('current-file-indicator').classList.add('hidden');
-    // Reset warning and enable Save for new upload
+    hideFileError();
+    hideNameError();
+
     const saveBtn = document.getElementById('documentSaveBtn');
     const warning = document.getElementById('edit-warning');
-    saveBtn.disabled = false;
+    saveBtn.disabled = true;
     warning.classList.remove('show');
 
     modal.classList.add('active');
+
+    // Set initial state: asterisks all visible, button disabled
+    updateFormState();
 }
 
 function closeDocumentModal() {
@@ -419,10 +514,12 @@ function closeDocumentModal() {
     currentFileName = null;
     currentFileSize = null;
     document.getElementById('current-file-indicator').classList.add('hidden');
-    // Reset validation state
+    hideFileError();
+    hideNameError();
+
     const saveBtn = document.getElementById('documentSaveBtn');
     const warning = document.getElementById('edit-warning');
-    saveBtn.disabled = false;
+    saveBtn.disabled = true;
     warning.classList.remove('show');
 }
 
@@ -432,8 +529,12 @@ document.getElementById('documentModal').addEventListener('click', function(e) {
     }
 });
 
+// Attach live listeners once (modal HTML is static)
+document.getElementById('doc-name').addEventListener('input', updateFormState);
+document.getElementById('doc-description').addEventListener('input', updateFormState);
+
 // ================================================================
-// OPEN EDIT DOCUMENT (Feature #5 - shows current file)
+// OPEN EDIT DOCUMENT
 // ================================================================
 async function openEditDocument(docId) {
     try {
@@ -448,7 +549,6 @@ async function openEditDocument(docId) {
         document.getElementById('doc-name').value = d.name || '';
         document.getElementById('doc-description').value = d.description || '';
 
-        // Store initial values for change detection
         initialName = d.name || '';
         initialDescription = d.description || '';
 
@@ -462,7 +562,7 @@ async function openEditDocument(docId) {
                 .getPublicUrl(d.storagePath);
             currentFilePublicUrl = data.publicUrl;
             currentFileName = d.storagePath.split('/').pop();
-            initialFilePath = d.storagePath; // store initial path
+            initialFilePath = d.storagePath;
 
             if (d.fileSize) {
                 const sizeMB = (d.fileSize / (1024 * 1024)).toFixed(2);
@@ -479,16 +579,8 @@ async function openEditDocument(docId) {
             initialFilePath = '';
         }
 
-        // Disable Save initially for edit mode
-        const saveBtn = document.getElementById('documentSaveBtn');
-        const warning = document.getElementById('edit-warning');
-        saveBtn.disabled = true;
-        warning.classList.add('show');
-
-        // Attach event listeners to name, description, file input
-        document.getElementById('doc-name').addEventListener('input', checkForChanges);
-        document.getElementById('doc-description').addEventListener('input', checkForChanges);
-        // File input already has onchange handler that calls checkForChanges
+        // Initial state for edit mode: Save disabled (no changes yet)
+        updateFormState();
 
     } catch (error) {
         console.error('Error opening document for edit:', error);
@@ -497,7 +589,7 @@ async function openEditDocument(docId) {
 }
 
 // ================================================================
-// UPLOAD / DELETE
+// UPLOAD / DELETE STORAGE
 // ================================================================
 async function uploadFileToSupabase(file, folder = 'documents') {
     const timestamp = Date.now();
@@ -518,30 +610,43 @@ async function deleteFileFromSupabase(filePath) {
 }
 
 // ================================================================
-// SUBMIT DOCUMENT (with validation)
+// SUBMIT DOCUMENT
 // ================================================================
 async function submitDocument() {
-    const name = document.getElementById('doc-name').value.trim();
-    const description = document.getElementById('doc-description').value.trim();
+    const nameInput = document.getElementById('doc-name');
     const fileInput = document.getElementById('doc-file');
+
+    const name = nameInput.value.trim();
+    const description = document.getElementById('doc-description').value.trim();
     const file = fileInput.files && fileInput.files[0];
 
-    // If editing, check if any change exists
+    // Name empty → red border only (asterisk handles visual)
+    if (!name) {
+        showNameError();
+        return;
+    }
+
+    // New upload mode: file required
+    if (!currentEditingId && !file) {
+        // Asterisk + disabled button handle this — no inline message per Q7=B
+        return;
+    }
+
+    // File size check
+    if (file && file.size > MAX_FILE_SIZE) {
+        showFileError('Error: File exceeds the 20MB limit');
+        return;
+    }
+
+    // Edit mode: require a change
     if (currentEditingId) {
         const nameChanged = name !== initialName;
         const descChanged = description !== initialDescription;
-        const fileChanged = file !== undefined && file !== null && fileInput.files.length > 0;
-
+        const fileChanged = !!file;
         if (!nameChanged && !descChanged && !fileChanged) {
-            // Show warning and disable button (already handled by checkForChanges)
             showToast('⚠️ No changes made to save.', true);
             return;
         }
-    }
-
-    if (!name) {
-        showToast('⚠️ Please enter a document name.', true);
-        return;
     }
 
     const saveBtn = document.getElementById('documentSaveBtn');
@@ -561,19 +666,8 @@ async function submitDocument() {
         }
 
         if (file) {
-            if (file.size > 20 * 1024 * 1024) {
-                showToast('⚠️ File size exceeds 20MB limit.', true);
-                saveBtn.disabled = false;
-                saveBtn.textContent = 'Save';
-                return;
-            }
             fileSize = file.size;
             storagePath = await uploadFileToSupabase(file);
-        } else if (!currentEditingId) {
-            showToast('⚠️ Please select a file to upload.', true);
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'Save';
-            return;
         }
 
         if (currentEditingId) {
@@ -596,12 +690,6 @@ async function submitDocument() {
             await db.collection('documents').doc(currentEditingId).update(updateData);
             showToast('Document updated successfully!');
         } else {
-            if (!storagePath) {
-                showToast('⚠️ Please select a file to upload.', true);
-                saveBtn.disabled = false;
-                saveBtn.textContent = 'Save';
-                return;
-            }
             await db.collection('documents').add({
                 name,
                 description,
@@ -613,10 +701,8 @@ async function submitDocument() {
             showToast('✅ Document uploaded successfully!');
         }
 
-        // Close modal immediately, then reload after a short delay
         closeDocumentModal();
 
-        // Small delay to allow Firestore to sync before reload
         setTimeout(() => {
             loadDocuments(false);
         }, 250);
@@ -631,7 +717,7 @@ async function submitDocument() {
 }
 
 // ================================================================
-// DELETE DOCUMENT (with delay)
+// DELETE DOCUMENT
 // ================================================================
 async function deleteDocument(docId) {
     if (!confirm('Are you sure you want to delete this document? This cannot be undone.')) return;
@@ -667,7 +753,7 @@ async function deleteDocument(docId) {
 }
 
 // ================================================================
-// INFO MODAL (Officer – no Uploaded By)
+// INFO MODAL
 // ================================================================
 let currentInfoDocId = null;
 
@@ -708,7 +794,7 @@ document.getElementById('infoModal').addEventListener('click', function(e) {
 });
 
 // ================================================================
-// HELPER FUNCTIONS
+// HELPER
 // ================================================================
 function escapeHtml(str) {
     if (!str) return '';

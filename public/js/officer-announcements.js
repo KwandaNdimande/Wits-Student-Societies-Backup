@@ -54,24 +54,100 @@ function isValidDate(dateString) {
     return selected >= today;
 }
 
+// ================================================================
+// ASTERISK HELPERS
+// ================================================================
+function setAsterisk(id, visible) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (visible) el.classList.remove('hidden');
+    else el.classList.add('hidden');
+}
+
+// ================================================================
+// FIELD ERROR HELPERS
+// ================================================================
+function showFieldError(inputId, errorId, message) {
+    const inputEl = document.getElementById(inputId);
+    if (inputEl) inputEl.classList.add('input-error');
+    const errorEl = document.getElementById(errorId);
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.classList.add('show');
+    }
+}
+
+function hideFieldError(inputId, errorId) {
+    const inputEl = document.getElementById(inputId);
+    if (inputEl) inputEl.classList.remove('input-error');
+    const errorEl = document.getElementById(errorId);
+    if (errorEl) {
+        errorEl.classList.remove('show');
+        errorEl.textContent = '';
+    }
+}
+
+function hideAllErrors() {
+    hideFieldError('announcement-title', 'title-error');
+    hideFieldError('announcement-category', 'category-error');
+    hideFieldError('announcement-date', 'date-error');
+    hideFieldError('announcement-body', 'body-error');
+}
+
+// ================================================================
+// FORM VALIDITY
+// ================================================================
+function isCreateFormValid() {
+    const title = document.getElementById('announcement-title')?.value.trim() || '';
+    const category = document.getElementById('announcement-category')?.value || '';
+    const date = document.getElementById('announcement-date')?.value || '';
+    const body = document.getElementById('announcement-body')?.value.trim() || '';
+
+    if (!title || !category || !date || !body) return false;
+    if (!isValidDate(date)) return false;
+
+    return true;
+}
+
+function updateCreateButtonState() {
+    const btn = document.getElementById('postButton');
+    if (!btn) return;
+    btn.disabled = !isCreateFormValid();
+}
+
+// ================================================================
+// UPDATE ASTERISK STATE ON INPUT CHANGE
+// ================================================================
+function updateAsterisks() {
+    const title = document.getElementById('announcement-title')?.value.trim() || '';
+    const category = document.getElementById('announcement-category')?.value || '';
+    const date = document.getElementById('announcement-date')?.value || '';
+    const body = document.getElementById('announcement-body')?.value.trim() || '';
+
+    setAsterisk('req-title', !title);
+    setAsterisk('req-category', !category);
+    setAsterisk('req-date', !date);
+    setAsterisk('req-body', !body);
+}
+
+// ================================================================
+// DATE VALIDATION (with inline error)
+// ================================================================
 function validateCreateDate() {
     const dateInput = document.getElementById('announcement-date');
-    const errorEl = document.getElementById('date-error');
-    const postBtn = document.getElementById('postButton');
-    const dateVal = dateInput.value;
+    const dateVal = dateInput?.value || '';
+
     if (dateVal && !isValidDate(dateVal)) {
-        errorEl.classList.add('show');
-        postBtn.disabled = true;
+        showFieldError('announcement-date', 'date-error', 'Error: Please select a date from today onwards.');
         return false;
     } else {
-        errorEl.classList.remove('show');
-        postBtn.disabled = false;
+        hideFieldError('announcement-date', 'date-error');
         return true;
     }
 }
 
 // ================================================================
-// RENDER ANNOUNCEMENTS (TABLE - no Edit button)
+// RENDER ANNOUNCEMENTS (TABLE)
 // ================================================================
 function renderAnnouncements(docs, append = false) {
     if (!append) {
@@ -163,7 +239,7 @@ function renderAnnouncements(docs, append = false) {
 }
 
 // ================================================================
-// LOAD ANNOUNCEMENTS (with +1 detection)
+// LOAD ANNOUNCEMENTS
 // ================================================================
 async function loadAnnouncements(loadMore = false) {
     if (isLoading) return;
@@ -221,7 +297,7 @@ async function loadAnnouncements(loadMore = false) {
     } catch (error) {
         console.error('Error loading announcements:', error);
         if (!loadMore) {
-            container.innerHTML = `<div class="no-announcements" style="color:#dc3545;">Error loading announcements.</div>`;
+            container.innerHTML = `<div class="loading-text" style="color:#dc3545;">Error loading announcements.</div>`;
         } else {
             alert('Failed to load more announcements.');
         }
@@ -276,10 +352,36 @@ async function postAnnouncement() {
     const date = document.getElementById('announcement-date').value;
     const body = document.getElementById('announcement-body').value.trim();
 
+    // Reset any prior field errors
+    hideAllErrors();
+
+    // Per-field red borders (no messages) for empty — asterisks already signal this
+    if (!title) {
+        const el = document.getElementById('announcement-title');
+        if (el) el.classList.add('input-error');
+    }
+    if (!category) {
+        const el = document.getElementById('announcement-category');
+        if (el) el.classList.add('input-error');
+    }
+    if (!body) {
+        const el = document.getElementById('announcement-body');
+        if (el) el.classList.add('input-error');
+    }
+
+    // Date inline error (format issue)
+    if (!date) {
+        const el = document.getElementById('announcement-date');
+        if (el) el.classList.add('input-error');
+    } else if (!isValidDate(date)) {
+        showFieldError('announcement-date', 'date-error', 'Error: Please select a date from today onwards.');
+    }
+
     if (!title || !category || !body) {
         alert('Please fill in all required fields.');
         return;
     }
+
     if (!isValidDate(date)) {
         alert('Please select a valid date (today or future).');
         return;
@@ -307,6 +409,10 @@ async function postAnnouncement() {
         document.getElementById('announcement-date').value = '';
         document.getElementById('announcement-body').value = '';
 
+        // Reset asterisks + hide errors
+        hideAllErrors();
+        updateAsterisks();
+
         loadAnnouncements(false);
     } catch (error) {
         console.error(error);
@@ -314,7 +420,7 @@ async function postAnnouncement() {
     } finally {
         btn.disabled = false;
         btn.textContent = 'Post Announcement';
-        validateCreateDate();
+        updateCreateButtonState();
     }
 }
 
@@ -363,6 +469,32 @@ loadMoreBtn.addEventListener('click', function() {
     }
 });
 
+// Form field listeners — update asterisks + button state, clear errors on fix
+['announcement-title', 'announcement-category', 'announcement-date', 'announcement-body'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const handler = () => {
+        updateAsterisks();
+        updateCreateButtonState();
+
+        // Clear red border for this field once it has a value
+        if (el.value && el.value.trim().length > 0) {
+            el.classList.remove('input-error');
+        }
+
+        // Date-specific inline error handling (instant feedback)
+        if (id === 'announcement-date') {
+            if (el.value && !isValidDate(el.value)) {
+                showFieldError('announcement-date', 'date-error', 'Error: Please select a date from today onwards.');
+            } else {
+                hideFieldError('announcement-date', 'date-error');
+            }
+        }
+    };
+    el.addEventListener('input', handler);
+    el.addEventListener('change', handler);
+});
+
 // ================================================================
 // INIT
 // ================================================================
@@ -370,11 +502,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     const createDate = document.getElementById('announcement-date');
     if (createDate) createDate.setAttribute('min', today);
-    if (createDate) {
-        createDate.addEventListener('change', validateCreateDate);
-        createDate.addEventListener('input', validateCreateDate);
-    }
-    validateCreateDate();
+
+    updateAsterisks();
+    updateCreateButtonState();
 
     loadAnnouncements(false);
 });

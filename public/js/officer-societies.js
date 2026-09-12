@@ -317,7 +317,7 @@ async function loadSocieties() {
 
     } catch (error) {
         console.error('Error loading societies:', error);
-        document.getElementById('societies-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading societies. Please try again.</p>';
+        document.getElementById('societies-container').innerHTML = '<div class="loading-text" style="color:#dc3545;">Error loading societies. Please try again.</div>';
     }
 }
 

@@ -92,6 +92,14 @@
             color: var(--text-600);
             margin-bottom: 4px;
         }
+        .form-grid label .req-asterisk {
+            color: var(--danger);
+            font-weight: 700;
+            margin-left: 2px;
+        }
+        .form-grid label .req-asterisk.hidden {
+            display: none;
+        }
         .form-grid input,
         .form-grid select,
         .form-grid textarea {
@@ -112,19 +120,63 @@
             border-color: var(--navy-900);
             box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
         }
+        .form-grid input.input-error,
+        .form-grid select.input-error,
+        .form-grid textarea.input-error {
+            border-color: var(--danger);
+            box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
+        }
         .form-grid textarea {
             resize: vertical;
             min-height: 80px;
         }
-        .form-grid .date-error {
-            color: #D64545;
+        .field-error {
+            color: var(--danger);
             font-size: 12px;
             margin-top: 4px;
             display: none;
         }
-        .form-grid .date-error.show {
+        .field-error.show {
             display: block;
         }
+
+        /* Button wrapper + tooltip */
+        .btn-wrapper {
+            position: relative;
+            grid-column: 1 / -1;
+            justify-self: start;
+            display: inline-flex;
+        }
+        .btn-wrapper .tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0B1F3A;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            z-index: 100;
+            pointer-events: none;
+        }
+        .btn-wrapper .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #0B1F3A;
+        }
+        .btn-wrapper .btn-post:disabled:hover + .tooltip {
+            display: block;
+        }
+
         .btn-post {
             font-family: 'Inter', sans-serif;
             font-size: 14px;
@@ -136,9 +188,6 @@
             color: #fff;
             cursor: pointer;
             transition: all 0.2s ease;
-            margin-top: 4px;
-            grid-column: 1 / -1;
-            justify-self: start;
         }
         .btn-post:hover:not(:disabled) {
             background: var(--navy-800);
@@ -146,7 +195,7 @@
             box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
         }
         .btn-post:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
             transform: none;
         }
@@ -231,7 +280,8 @@
             cursor: not-allowed;
         }
 
-        .no-announcements {
+        .no-announcements,
+        .loading-text {
             color: #8FA6CC;
             font-size: 14px;
             text-align: center;
@@ -436,11 +486,12 @@
             </div>
             <div class="form-grid">
                 <div>
-                    <label for="announcement-title">Title</label>
+                    <label for="announcement-title">Title <span class="req-asterisk" id="req-title">*</span></label>
                     <input id="announcement-title" placeholder="Enter title..." />
+                    <div class="field-error" id="title-error"></div>
                 </div>
                 <div>
-                    <label for="announcement-category">Category</label>
+                    <label for="announcement-category">Category <span class="req-asterisk" id="req-category">*</span></label>
                     <select id="announcement-category">
                         <option value="">Select category...</option>
                         <option value="Upcoming Event">Upcoming Event</option>
@@ -448,23 +499,28 @@
                         <option value="General Notice">General Notice</option>
                         <option value="Deadline Reminder">Deadline Reminder</option>
                     </select>
+                    <div class="field-error" id="category-error"></div>
                 </div>
                 <div>
-                    <label for="announcement-date">Date</label>
+                    <label for="announcement-date">Date <span class="req-asterisk" id="req-date">*</span></label>
                     <input id="announcement-date" type="date" />
-                    <div id="date-error" class="date-error">Please select a date from today onwards.</div>
+                    <div class="field-error" id="date-error"></div>
                 </div>
                 <div class="full-width">
-                    <label for="announcement-body">Message</label>
+                    <label for="announcement-body">Message <span class="req-asterisk" id="req-body">*</span></label>
                     <textarea id="announcement-body" placeholder="Write your announcement message here..." rows="3"></textarea>
+                    <div class="field-error" id="body-error"></div>
                 </div>
-                <button class="btn-post" id="postButton" onclick="postAnnouncement()">Post Announcement</button>
+                <div class="btn-wrapper">
+                    <button class="btn-post" id="postButton" onclick="postAnnouncement()" disabled>Post Announcement</button>
+                    <div class="tooltip">Please complete all required fields</div>
+                </div>
             </div>
         </div>
 
         <!-- Announcements Table -->
         <div id="announcements-container">
-            <div class="no-announcements">Loading announcements...</div>
+            <div class="loading-text">Loading announcements...</div>
         </div>
 
         <!-- Load More -->

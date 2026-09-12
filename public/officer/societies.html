@@ -392,6 +392,12 @@
             padding: 50px 20px;
             color: var(--text-500);
         }
+        .loading-text {
+            color: #8FA6CC;
+            font-size: 14px;
+            text-align: center;
+            padding: 40px 0;
+        }
         .pagination {
             display: flex;
             justify-content: space-between;
@@ -782,7 +788,9 @@
             <div class="results-count" id="resultsCount">Showing 0 of 0 societies</div>
         </div>
 
-        <div id="societies-container"></div>
+        <div id="societies-container">
+            <div class="loading-text">Loading societies...</div>
+        </div>
 
         <div class="wits-badge">University of the Witwatersrand</div>
     </div>

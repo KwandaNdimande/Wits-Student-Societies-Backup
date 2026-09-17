@@ -2,10 +2,8 @@
 const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
 
-// Create a global supabase client
 window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-// Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyAsWp91SrNnlVHoyJWJyxjvXgGY6debDLE",
     authDomain: "wits-student-societies-backup.firebaseapp.com",
@@ -20,7 +18,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Check authentication
 const userUid = localStorage.getItem('userUid');
 const userRole = localStorage.getItem('userRole');
 if (!userUid || userRole !== 'officer') {
@@ -34,10 +31,6 @@ const pageSize = 5;
 let societyFilter = 'active';
 let otherPortfolios = [];
 let editingOtherPortfolios = [];
-
-// ================================================================
-// VALIDATION HELPERS
-// ================================================================
 
 function isValidEmail(email) {
     return String(email || '').includes('@');
@@ -62,7 +55,6 @@ async function societyApi(path, options = {}) {
     return data;
 }
 
-// --- Show a field error (red border on input + message in target error div) ---
 function showFieldError(inputId, errorId, message) {
     const inputEl = document.getElementById(inputId);
     if (inputEl) inputEl.classList.add('input-error');
@@ -74,7 +66,6 @@ function showFieldError(inputId, errorId, message) {
     }
 }
 
-// --- Clear a field error ---
 function hideFieldError(inputId, errorId) {
     const inputEl = document.getElementById(inputId);
     if (inputEl) inputEl.classList.remove('input-error');
@@ -86,18 +77,11 @@ function hideFieldError(inputId, errorId) {
     }
 }
 
-// ================================================================
-// ASTERISK HELPERS
-// ================================================================
-
 function setAsterisk(id, visible) {
     const el = document.getElementById(id);
     if (!el) return;
-    if (visible) {
-        el.classList.remove('hidden');
-    } else {
-        el.classList.add('hidden');
-    }
+    if (visible) el.classList.remove('hidden');
+    else el.classList.add('hidden');
 }
 
 function updateAsteriskForInput(inputId, asteriskId) {
@@ -106,10 +90,6 @@ function updateAsteriskForInput(inputId, asteriskId) {
     const hasValue = input.value.trim().length > 0;
     setAsterisk(asteriskId, !hasValue);
 }
-
-// ================================================================
-// KEY PORTFOLIO VALIDATION (ADD FORM)
-// ================================================================
 
 function validateKeyPortfolios() {
     const requiredPortfolios = [
@@ -156,10 +136,6 @@ function validateKeyPortfolios() {
     return isValid;
 }
 
-// ================================================================
-// KEY PORTFOLIO VALIDATION (EDIT FORM)
-// ================================================================
-
 function validateEditKeyPortfolios() {
     const requiredPortfolios = [
         { id: 'edit-chairperson', label: 'Chairperson' },
@@ -205,10 +181,6 @@ function validateEditKeyPortfolios() {
     return isValid;
 }
 
-// ================================================================
-// ADD-FORM VALIDITY
-// ================================================================
-
 function isAddFormValid() {
     const name = document.getElementById('society-name')?.value.trim() || '';
     const category = document.getElementById('society-category')?.value || '';
@@ -234,10 +206,6 @@ function updateAddButtonState() {
     btn.disabled = !isAddFormValid();
 }
 
-// ================================================================
-// EDIT-FORM VALIDITY
-// ================================================================
-
 function isEditFormValid() {
     const name = document.getElementById('edit-soc-name')?.value.trim() || '';
     const category = document.getElementById('edit-soc-category')?.value || '';
@@ -262,10 +230,6 @@ function updateEditButtonState() {
     if (!btn) return;
     btn.disabled = !isEditFormValid();
 }
-
-// ================================================================
-// EMAIL BLUR VALIDATION (Option C)
-// ================================================================
 
 function attachEmailBlurValidation(inputId, errorId) {
     const input = document.getElementById(inputId);
@@ -300,10 +264,6 @@ function attachEmailBlurValidation(inputId, errorId) {
     });
 }
 
-// ================================================================
-// LOAD SOCIETIES
-// ================================================================
-
 async function loadSocieties() {
     try {
         allSocieties = await societyApi('/api/societies');
@@ -314,7 +274,6 @@ async function loadSocieties() {
         );
         currentPage = 1;
         renderTable();
-
     } catch (error) {
         console.error('Error loading societies:', error);
         document.getElementById('societies-container').innerHTML = '<div class="loading-text" style="color:#dc3545;">Error loading societies. Please try again.</div>';
@@ -323,7 +282,7 @@ async function loadSocieties() {
 
 function searchSocieties() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-    
+
     if (searchTerm === '') {
         filteredSocieties = allSocieties.filter(s => societyFilter === 'all' ||
             (societyFilter === 'archived' ? s.status === 'archived' : s.status !== 'archived'));
@@ -344,7 +303,7 @@ function searchSocieties() {
             )))
         );
     }
-    
+
     currentPage = 1;
     renderTable();
 }
@@ -361,9 +320,9 @@ function renderTable() {
     const container = document.getElementById('societies-container');
     const totalItems = filteredSocieties.length;
     const totalPages = Math.ceil(totalItems / pageSize) || 1;
-    
+
     if (currentPage > totalPages) currentPage = totalPages;
-    
+
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = Math.min(startIndex + pageSize, totalItems);
     const pageItems = filteredSocieties.slice(startIndex, endIndex);
@@ -456,10 +415,6 @@ function changePage(page) {
     currentPage = page;
     renderTable();
 }
-
-// ================================================================
-// ADD SOCIETY MODAL
-// ================================================================
 
 function openAddSocietyModal() {
     otherPortfolios = [];
@@ -555,10 +510,6 @@ function openAddSocietyModal() {
     updateAddButtonState();
 }
 
-// ================================================================
-// WIRE ADD-FORM LISTENERS
-// ================================================================
-
 function wireAddFormListeners() {
     const simpleAsterisks = [
         { inputId: 'society-name', asteriskId: 'req-society-name' },
@@ -603,10 +554,6 @@ function wireAddFormListeners() {
 
     attachEmailBlurValidation('society-email', 'society-email-error');
 }
-
-// ================================================================
-// OTHER PORTFOLIOS (ADD FORM)
-// ================================================================
 
 function addOtherPortfolio() {
     const title = document.getElementById('other-portfolio-title')?.value.trim();
@@ -670,10 +617,6 @@ function renderOtherPortfolios() {
     container.innerHTML = html;
 }
 
-// ================================================================
-// OTHER PORTFOLIOS (EDIT FORM)
-// ================================================================
-
 function addEditOtherPortfolio() {
     const title = document.getElementById('edit-other-portfolio-title')?.value.trim();
     const name = document.getElementById('edit-other-portfolio-name')?.value.trim();
@@ -706,7 +649,7 @@ function removeEditOtherPortfolio(index) {
 function renderEditOtherPortfolios() {
     const container = document.getElementById('edit-other-portfolios-list');
     if (!container) return;
-    
+
     if (editingOtherPortfolios.length === 0) {
         container.innerHTML = '';
         return;
@@ -737,16 +680,12 @@ function renderEditOtherPortfolios() {
     container.innerHTML = html;
 }
 
-// ================================================================
-// ADD SOCIETY
-// ================================================================
-
 async function addSociety() {
     const name = formatSocietyName(document.getElementById('society-name').value);
     const category = document.getElementById('society-category').value;
     const email = document.getElementById('society-email').value.trim();
     const description = document.getElementById('society-description')?.value.trim() || '';
-    
+
     if (!name || !category || !email) {
         alert('Please fill in all required society fields.');
         return;
@@ -800,6 +739,20 @@ async function addSociety() {
             })
         });
 
+        // Mirror name into societiesIndex so the register page can see it
+        try {
+            const all = await societyApi('/api/societies');
+            const match = Array.isArray(all) ? all.find(s => s.name === name) : null;
+            if (match && match.id) {
+                await db.collection('societiesIndex').doc(match.id).set({
+                    name: name,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+        } catch (mirrorErr) {
+            console.warn('societiesIndex mirror failed:', mirrorErr);
+        }
+
         document.getElementById('society-name').value = '';
         document.getElementById('society-category').value = '';
         document.getElementById('society-email').value = '';
@@ -837,10 +790,6 @@ async function addSociety() {
     }
 }
 
-// ================================================================
-// MODAL HELPERS
-// ================================================================
-
 function closeSocietyModal() {
     document.getElementById('societyModal').classList.remove('active');
     document.getElementById('societyModalBody').innerHTML = '';
@@ -853,10 +802,6 @@ function closeSocietyModal() {
 function escapeHtml(str) {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
-
-// ================================================================
-// VIEW SOCIETY
-// ================================================================
 
 async function viewSociety(societyId) {
     try {
@@ -974,10 +919,6 @@ async function archiveSociety(societyId) {
     }
 }
 
-// ================================================================
-// EDIT SOCIETY
-// ================================================================
-
 async function openEditSociety(societyId) {
     try {
         const s = await societyApi(`/api/societies/${societyId}`);
@@ -1075,10 +1016,6 @@ async function openEditSociety(societyId) {
     }
 }
 
-// ================================================================
-// WIRE EDIT-FORM LISTENERS
-// ================================================================
-
 function wireEditFormListeners() {
     const simpleAsterisks = [
         { inputId: 'edit-soc-name', asteriskId: 'req-edit-soc-name' },
@@ -1125,10 +1062,6 @@ function wireEditFormListeners() {
 
     attachEmailBlurValidation('edit-soc-email', 'edit-soc-email-error');
 }
-
-// ================================================================
-// SAVE SOCIETY EDITS
-// ================================================================
 
 async function saveSocietyEdits() {
     const modal = document.getElementById('societyModal');
@@ -1186,6 +1119,16 @@ async function saveSocietyEdits() {
             })
         });
 
+        // Mirror name into societiesIndex so the register page can see it
+        try {
+            await db.collection('societiesIndex').doc(societyId).set({
+                name: name,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (mirrorErr) {
+            console.warn('societiesIndex mirror failed:', mirrorErr);
+        }
+
         closeSocietyModal();
         loadSocieties();
         alert('Society updated successfully!');
@@ -1194,9 +1137,5 @@ async function saveSocietyEdits() {
         alert('Error saving society. ' + error.message);
     }
 }
-
-// ================================================================
-// LOAD DATA
-// ================================================================
 
 loadSocieties();

@@ -310,7 +310,6 @@
             font-weight: 500;
         }
 
-        /* ---- Modal styles ---- */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -531,7 +530,6 @@
         </div>
     </div>
 
-    <!-- Modal for full society list -->
     <div class="modal-overlay" id="societyModal">
         <div class="modal">
             <div class="modal-header">
@@ -551,7 +549,6 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -571,14 +568,12 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // DOM refs
         const societyInput = document.getElementById('society-input');
         const societyList = document.getElementById('societyList');
         const registerBtn = document.getElementById('register-btn');
         const errorEl = document.getElementById('register-error');
         const browseBtn = document.getElementById('browseAllBtn');
 
-        // Modal refs
         const modal = document.getElementById('societyModal');
         const modalList = document.getElementById('modalSocietyList');
         const modalSearch = document.getElementById('modalSearchInput');
@@ -586,7 +581,6 @@
         const loadMoreBtn = document.getElementById('loadMoreBtn');
         const modalLoadingText = document.getElementById('modalLoadingText');
 
-        // All field refs
         const fields = {
             firstName: document.getElementById('firstName'),
             lastName: document.getElementById('lastName'),
@@ -594,7 +588,6 @@
             password: document.getElementById('signup-password'),
         };
 
-        // All asterisk refs
         const asterisks = {
             firstName: document.getElementById('req-firstName'),
             lastName: document.getElementById('req-lastName'),
@@ -611,7 +604,6 @@
             society: document.getElementById('society-error'),
         };
 
-        // --- Format validators ---
         function isValidEmail(value) {
             return value.includes('@');
         }
@@ -620,7 +612,6 @@
             return value.length >= 6;
         }
 
-        // --- Asterisk visibility helpers ---
         function showAsterisk(fieldId) {
             if (asterisks[fieldId]) asterisks[fieldId].classList.remove('hidden');
         }
@@ -637,7 +628,6 @@
             }
         }
 
-        // --- Error helpers ---
         function showFieldError(fieldId, errorEl) {
             const input = document.getElementById(fieldId);
             if (input) input.classList.add('error');
@@ -659,7 +649,6 @@
             errorEl.textContent = '';
         }
 
-        // --- Validate all fields ---
         function validateAllFields() {
             let isValid = true;
 
@@ -722,7 +711,6 @@
             return isValid;
         }
 
-        // --- State
         let allSocieties = [];
         let activeIndex = -1;
         let isDropdownOpen = false;
@@ -733,10 +721,10 @@
         let modalAllSocieties = [];
         const MODAL_PAGE_SIZE = 10;
 
-        // --- Load societies for autocomplete ---
+        // --------- Reads from societiesIndex ---------
         async function loadSocieties() {
             try {
-                const snapshot = await db.collection('societies')
+                const snapshot = await db.collection('societiesIndex')
                     .orderBy('name', 'asc')
                     .get();
 
@@ -953,7 +941,6 @@
             }
         });
 
-        // --- MODAL ---
         browseBtn.addEventListener('click', function() {
             modal.classList.add('active');
             modalLastDoc = null;
@@ -1014,6 +1001,7 @@
             });
         }
 
+        // --------- Reads from societiesIndex ---------
         async function loadModalSocieties() {
             if (modalLoading) return;
             modalLoading = true;
@@ -1021,7 +1009,7 @@
             modalLoadingText.textContent = 'Loading...';
 
             try {
-                let query = db.collection('societies')
+                let query = db.collection('societiesIndex')
                     .orderBy('name', 'asc')
                     .limit(MODAL_PAGE_SIZE);
 
@@ -1075,9 +1063,6 @@
             }
         }
 
-        // ============================================================
-        // REGISTRATION SUBMIT — with rollback on failure
-        // ============================================================
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -1109,7 +1094,6 @@
             registerBtn.disabled = true;
             registerBtn.textContent = 'Creating account...';
 
-            // Track the created auth user so we can clean up if later steps fail
             let createdAuthUser = null;
 
             try {
@@ -1177,8 +1161,6 @@
             } catch (err) {
                 console.error('Registration error:', err);
 
-                // ROLLBACK: if we created an auth user but a later step failed,
-                // delete the auth user so the email isn't permanently stuck.
                 if (createdAuthUser) {
                     try {
                         await createdAuthUser.delete();

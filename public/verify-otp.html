@@ -83,9 +83,7 @@
             background: var(--navy-800); transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
         }
-        .btn-primary:disabled {
-            opacity: 0.6; cursor: not-allowed; transform: none;
-        }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .resend-link {
             display: inline-block; margin-top: 14px;
             color: var(--blue-600); text-decoration: none;
@@ -113,10 +111,7 @@
             display: block; background: #e9f2ff; color: #1a3f7a;
             border-left: 4px solid #2b5fa8;
         }
-        .divider {
-            border: none; border-top: 1px solid var(--border);
-            margin: 20px 0;
-        }
+        .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
         .wits-badge {
             text-align: center; margin-top: 20px;
             font-size: 11px; color: var(--text-500);
@@ -181,7 +176,6 @@
             messageDiv.textContent = text;
         }
 
-        // If pendingUserId is missing, try to recover from Firebase Auth session
         async function ensurePendingUser() {
             if (userId && userEmail) return true;
 
@@ -197,8 +191,6 @@
                         return;
                     }
 
-                    // Not signed in — try the users collection by looking for a matching doc? We can't without uid.
-                    // Fall back: check emailVerifications by email field.
                     if (userEmail) {
                         try {
                             const snap = await db.collection('emailVerifications')
@@ -221,7 +213,6 @@
             });
         }
 
-        // Init
         (async () => {
             const ok = await ensurePendingUser();
             if (!ok || !userId || !userEmail) {
@@ -234,7 +225,6 @@
             }
         })();
 
-        // Verify
         verifyBtn.addEventListener('click', async () => {
             const code = otpInput.value.trim();
 
@@ -264,7 +254,6 @@
                 const data = verificationDoc.data();
                 const now = new Date();
 
-                // expiresAt may be a Timestamp or a Date
                 let expiresAt;
                 if (data.expiresAt && typeof data.expiresAt.toDate === 'function') {
                     expiresAt = data.expiresAt.toDate();
@@ -299,6 +288,9 @@
                 localStorage.removeItem('pendingUserEmail');
                 localStorage.removeItem('pendingUserName');
 
+                // Sign out after verification so the user logs back in cleanly
+                try { await auth.signOut(); } catch (e) { console.warn('Sign out failed:', e); }
+
                 showMessage('✅ Email verified successfully! Redirecting to login...', 'success');
 
                 setTimeout(() => {
@@ -312,7 +304,6 @@
             }
         });
 
-        // Resend
         resendLink.addEventListener('click', async (e) => {
             e.preventDefault();
 
@@ -329,7 +320,6 @@
                 const newExpiresAt = new Date();
                 newExpiresAt.setMinutes(newExpiresAt.getMinutes() + 15);
 
-                // Use set with merge so it creates the doc if it went missing
                 await db.collection('emailVerifications').doc(userId).set({
                     userId: userId,
                     email: userEmail,
@@ -352,7 +342,6 @@
                     showMessage('New verification code sent! Check your email.', 'success');
                 } catch (emailErr) {
                     console.error('Email error:', emailErr);
-                    // Code was still saved — let the user know.
                     showMessage('New code saved. If the email doesn\'t arrive, please contact support.', 'info');
                 }
 

@@ -39,10 +39,7 @@
             justify-content: center;
             padding: 24px;
         }
-        .container {
-            max-width: 440px;
-            width: 100%;
-        }
+        .container { max-width: 440px; width: 100%; }
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -51,408 +48,165 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.25);
         }
         .logo {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
+            width: 48px; height: 48px; border-radius: 12px;
             background: linear-gradient(135deg, var(--blue-500), var(--blue-600));
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             font-family: 'Space Grotesk', sans-serif;
-            font-weight: 700;
-            font-size: 18px;
-            color: #fff;
+            font-weight: 700; font-size: 18px; color: #fff;
             margin: 0 auto 16px;
             box-shadow: 0 4px 12px rgba(46, 111, 186, 0.3);
         }
         h1 {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--navy-900);
-            text-align: center;
-            margin-bottom: 4px;
+            font-size: 24px; font-weight: 600;
+            color: var(--navy-900); text-align: center; margin-bottom: 4px;
         }
-        .subtitle {
-            font-size: 14px;
-            color: var(--text-500);
-            text-align: center;
-            margin-bottom: 28px;
-        }
-        .form-group {
-            margin-bottom: 18px;
-        }
+        .subtitle { font-size: 14px; color: var(--text-500); text-align: center; margin-bottom: 28px; }
+        .form-group { margin-bottom: 18px; }
         .form-group label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-600);
-            margin-bottom: 4px;
+            display: block; font-size: 13px; font-weight: 600;
+            color: var(--text-600); margin-bottom: 4px;
         }
-        .form-group label .required {
-            color: var(--error);
-            font-weight: 700;
-            margin-left: 2px;
-            display: inline;
-        }
-        .form-group label .required.hidden {
-            display: none;
-        }
+        .form-group label .required { color: var(--error); font-weight: 700; margin-left: 2px; display: inline; }
+        .form-group label .required.hidden { display: none; }
         .form-group input {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: 'Inter', sans-serif;
-            color: var(--text-900);
-            background: var(--surface);
+            width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+            border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif;
+            color: var(--text-900); background: var(--surface);
             transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .name-grid input {
-            border-radius: 8px;
-        }
         .form-group input:focus {
-            outline: none;
-            border-color: var(--navy-900);
+            outline: none; border-color: var(--navy-900);
             box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
         }
-        .form-group input::placeholder {
-            color: var(--text-500);
-        }
+        .form-group input::placeholder { color: var(--text-500); }
         .form-group input.error {
             border-color: var(--error);
             box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
         }
-        .field-error {
-            color: var(--error);
-            font-size: 12px;
-            margin-top: 4px;
-            display: none;
-        }
-        .field-error.show {
-            display: block;
-        }
-        .society-row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        .dropdown-wrapper {
-            position: relative;
-            flex: 1;
-        }
+        .field-error { color: var(--error); font-size: 12px; margin-top: 4px; display: none; }
+        .field-error.show { display: block; }
+        .society-row { display: flex; gap: 8px; align-items: center; }
+        .dropdown-wrapper { position: relative; flex: 1; }
         .dropdown-wrapper input {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: 'Inter', sans-serif;
-            color: var(--text-900);
-            background: var(--surface);
-            transition: border-color 0.2s;
+            width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+            border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif;
+            color: var(--text-900); background: var(--surface); transition: border-color 0.2s;
         }
         .dropdown-wrapper input:focus {
-            outline: none;
-            border-color: var(--navy-900);
+            outline: none; border-color: var(--navy-900);
             box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
         }
-        .dropdown-wrapper input::placeholder {
-            color: var(--text-500);
-        }
+        .dropdown-wrapper input::placeholder { color: var(--text-500); }
         .browse-btn {
-            flex-shrink: 0;
-            padding: 10px 16px;
-            background: var(--blue-600);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            white-space: nowrap;
+            flex-shrink: 0; padding: 10px 16px; background: var(--blue-600);
+            color: #fff; border: none; border-radius: 8px;
+            font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
+            cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
         }
         .browse-btn:hover {
-            background: var(--navy-800);
-            transform: translateY(-1px);
+            background: var(--navy-800); transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
         }
         .dropdown-list {
-            display: none;
-            position: absolute;
-            top: calc(100% + 4px);
-            left: 0;
-            right: 0;
-            max-height: 200px;
-            overflow-y: auto;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            box-shadow: var(--shadow);
-            z-index: 100;
-            padding: 6px 0;
-            list-style: none;
-            margin: 0;
+            display: none; position: absolute; top: calc(100% + 4px);
+            left: 0; right: 0; max-height: 200px; overflow-y: auto;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 8px; box-shadow: var(--shadow); z-index: 100;
+            padding: 6px 0; list-style: none; margin: 0;
         }
-        .dropdown-list.open {
-            display: block;
-        }
+        .dropdown-list.open { display: block; }
         .dropdown-list li {
-            padding: 10px 14px;
-            font-size: 14px;
-            color: var(--text-900);
-            cursor: pointer;
-            transition: background 0.15s;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 10px 14px; font-size: 14px; color: var(--text-900);
+            cursor: pointer; transition: background 0.15s; border-bottom: 1px solid #f0f0f0;
         }
-        .dropdown-list li:last-child {
-            border-bottom: none;
-        }
-        .dropdown-list li:hover,
-        .dropdown-list li.active {
-            background: #F4F7FB;
-        }
-        .dropdown-list li.no-results {
-            color: var(--text-500);
-            font-style: italic;
-            cursor: default;
-        }
-        .dropdown-list li.no-results:hover {
-            background: transparent;
-        }
-        .dropdown-hint {
-            font-size: 12px;
-            color: var(--text-500);
-            margin-top: 4px;
-        }
-        .form-group input[type="email"],
-        .form-group input[type="password"] {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: 'Inter', sans-serif;
-            color: var(--text-900);
-            background: var(--surface);
-            transition: border-color 0.2s;
-        }
-        .form-group input[type="email"]:focus,
-        .form-group input[type="password"]:focus {
-            outline: none;
-            border-color: var(--navy-900);
-            box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
-        }
-        .form-group input[type="email"]::placeholder,
-        .form-group input[type="password"]::placeholder {
-            color: var(--text-500);
-        }
-        .name-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
+        .dropdown-list li:last-child { border-bottom: none; }
+        .dropdown-list li:hover, .dropdown-list li.active { background: #F4F7FB; }
+        .dropdown-list li.no-results { color: var(--text-500); font-style: italic; cursor: default; }
+        .dropdown-list li.no-results:hover { background: transparent; }
+        .dropdown-hint { font-size: 12px; color: var(--text-500); margin-top: 4px; }
+        .name-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .btn {
-            width: 100%;
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
-            font-weight: 600;
-            padding: 12px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            letter-spacing: 0.01em;
+            width: 100%; font-family: 'Inter', sans-serif; font-size: 14px;
+            font-weight: 600; padding: 12px; border-radius: 8px; border: none;
+            cursor: pointer; transition: all 0.2s ease; letter-spacing: 0.01em;
         }
-        .btn-primary {
-            background: var(--navy-900);
-            color: #fff;
-        }
+        .btn-primary { background: var(--navy-900); color: #fff; }
         .btn-primary:hover {
-            background: var(--navy-800);
-            transform: translateY(-1px);
+            background: var(--navy-800); transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
         }
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .footer-link {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 13px;
-            color: var(--text-500);
-        }
-        .footer-link a {
-            color: var(--navy-900);
-            font-weight: 600;
-            text-decoration: none;
-        }
-        .footer-link a:hover {
-            text-decoration: underline;
-        }
-        .divider {
-            border: none;
-            border-top: 1px solid var(--border);
-            margin: 24px 0 20px;
-        }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .footer-link { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-500); }
+        .footer-link a { color: var(--navy-900); font-weight: 600; text-decoration: none; }
+        .footer-link a:hover { text-decoration: underline; }
+        .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0 20px; }
         .wits-badge {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 11px;
-            color: var(--text-500);
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            font-weight: 500;
+            text-align: center; margin-top: 20px; font-size: 11px;
+            color: var(--text-500); letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500;
         }
-
         .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            z-index: 2000; justify-content: center; align-items: center; padding: 20px;
         }
-        .modal-overlay.active {
-            display: flex;
-        }
+        .modal-overlay.active { display: flex; }
         .modal {
-            background: var(--surface);
-            border-radius: var(--radius);
-            max-width: 560px;
-            width: 100%;
-            max-height: 80vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 12px 48px rgba(0,0,0,0.3);
-            overflow: hidden;
+            background: var(--surface); border-radius: var(--radius);
+            max-width: 560px; width: 100%; max-height: 80vh;
+            display: flex; flex-direction: column;
+            box-shadow: 0 12px 48px rgba(0,0,0,0.3); overflow: hidden;
         }
         .modal-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
         }
         .modal-header h2 {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--navy-900);
+            font-size: 20px; font-weight: 600; color: var(--navy-900);
         }
         .modal-close {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--text-500);
-            cursor: pointer;
-            padding: 0 8px;
-            transition: color 0.2s;
+            background: none; border: none; font-size: 24px;
+            color: var(--text-500); cursor: pointer; padding: 0 8px; transition: color 0.2s;
         }
-        .modal-close:hover {
-            color: var(--text-900);
-        }
-        .modal-search {
-            padding: 16px 24px;
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-        }
+        .modal-close:hover { color: var(--text-900); }
+        .modal-search { padding: 16px 24px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
         .modal-search input {
-            width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: 'Inter', sans-serif;
-            color: var(--text-900);
-            background: var(--surface);
-            transition: border-color 0.2s;
+            width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+            border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif;
+            color: var(--text-900); background: var(--surface); transition: border-color 0.2s;
         }
         .modal-search input:focus {
-            outline: none;
-            border-color: var(--navy-900);
+            outline: none; border-color: var(--navy-900);
             box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
         }
-        .modal-search input::placeholder {
-            color: var(--text-500);
-        }
-        .modal-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 8px 0;
-            list-style: none;
-            margin: 0;
-        }
+        .modal-search input::placeholder { color: var(--text-500); }
+        .modal-list { flex: 1; overflow-y: auto; padding: 8px 0; list-style: none; margin: 0; }
         .modal-list li {
-            padding: 12px 24px;
-            cursor: pointer;
-            font-size: 15px;
-            color: var(--text-900);
-            border-bottom: 1px solid #f0f0f0;
-            transition: background 0.15s;
+            padding: 12px 24px; cursor: pointer; font-size: 15px; color: var(--text-900);
+            border-bottom: 1px solid #f0f0f0; transition: background 0.15s;
         }
-        .modal-list li:last-child {
-            border-bottom: none;
-        }
-        .modal-list li:hover {
-            background: #F4F7FB;
-        }
+        .modal-list li:last-child { border-bottom: none; }
+        .modal-list li:hover { background: #F4F7FB; }
         .modal-list li.no-results {
-            color: var(--text-500);
-            font-style: italic;
-            cursor: default;
-            text-align: center;
-            padding: 30px 0;
+            color: var(--text-500); font-style: italic; cursor: default;
+            text-align: center; padding: 30px 0;
         }
-        .modal-list li.no-results:hover {
-            background: transparent;
-        }
+        .modal-list li.no-results:hover { background: transparent; }
         .modal-footer {
-            padding: 16px 24px;
-            border-top: 1px solid var(--border);
-            text-align: center;
-            flex-shrink: 0;
+            padding: 16px 24px; border-top: 1px solid var(--border);
+            text-align: center; flex-shrink: 0;
         }
         .modal-footer .load-more-btn {
-            padding: 8px 24px;
-            background: var(--blue-600);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            cursor: pointer;
-            transition: background 0.2s;
+            padding: 8px 24px; background: var(--blue-600); color: #fff;
+            border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+            font-family: 'Inter', sans-serif; cursor: pointer; transition: background 0.2s;
         }
-        .modal-footer .load-more-btn:hover {
-            background: var(--navy-800);
-        }
-        .modal-footer .load-more-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .modal-footer .load-more-btn.hidden {
-            display: none;
-        }
-        .modal-footer .loading-text {
-            color: var(--text-500);
-            font-size: 13px;
-        }
-
+        .modal-footer .load-more-btn:hover { background: var(--navy-800); }
+        .modal-footer .load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .modal-footer .load-more-btn.hidden { display: none; }
+        .modal-footer .loading-text { color: var(--text-500); font-size: 13px; }
         @media (max-width: 480px) {
             .card { padding: 32px 20px; }
             .name-grid { grid-template-columns: 1fr; }
@@ -486,12 +240,7 @@
                     <label for="society-input">Your Society <span class="required" id="req-society">*</span></label>
                     <div class="society-row">
                         <div class="dropdown-wrapper" id="societyDropdown">
-                            <input
-                                id="society-input"
-                                type="text"
-                                placeholder="Type to search..."
-                                autocomplete="off"
-                            />
+                            <input id="society-input" type="text" placeholder="Type to search..." autocomplete="off" />
                             <ul class="dropdown-list" id="societyList">
                                 <li class="no-results">Start typing to search...</li>
                             </ul>
@@ -604,28 +353,14 @@
             society: document.getElementById('society-error'),
         };
 
-        function isValidEmail(value) {
-            return value.includes('@');
-        }
+        function isValidEmail(value) { return value.includes('@'); }
+        function isValidPassword(value) { return value.length >= 6; }
 
-        function isValidPassword(value) {
-            return value.length >= 6;
-        }
-
-        function showAsterisk(fieldId) {
-            if (asterisks[fieldId]) asterisks[fieldId].classList.remove('hidden');
-        }
-
-        function hideAsterisk(fieldId) {
-            if (asterisks[fieldId]) asterisks[fieldId].classList.add('hidden');
-        }
-
+        function showAsterisk(fieldId) { if (asterisks[fieldId]) asterisks[fieldId].classList.remove('hidden'); }
+        function hideAsterisk(fieldId) { if (asterisks[fieldId]) asterisks[fieldId].classList.add('hidden'); }
         function updateAsterisk(fieldId, value) {
-            if (value && value.trim().length > 0) {
-                hideAsterisk(fieldId);
-            } else {
-                showAsterisk(fieldId);
-            }
+            if (value && value.trim().length > 0) hideAsterisk(fieldId);
+            else showAsterisk(fieldId);
         }
 
         function showFieldError(fieldId, errorEl) {
@@ -633,13 +368,11 @@
             if (input) input.classList.add('error');
             if (errorEl) errorEl.classList.add('show');
         }
-
         function hideFieldError(fieldId, errorEl) {
             const input = document.getElementById(fieldId);
             if (input) input.classList.remove('error');
             if (errorEl) errorEl.classList.remove('show');
         }
-
         function hideAllErrors() {
             Object.keys(fieldErrors).forEach(key => {
                 const inputId = key === 'society' ? 'society-input' : key;
@@ -652,29 +385,15 @@
         function validateAllFields() {
             let isValid = true;
 
-            const firstNameVal = fields.firstName.value.trim();
-            if (firstNameVal.length === 0) {
-                isValid = false;
-                hideFieldError('firstName', fieldErrors.firstName);
-            } else {
-                hideFieldError('firstName', fieldErrors.firstName);
-            }
+            if (fields.firstName.value.trim().length === 0) isValid = false;
+            hideFieldError('firstName', fieldErrors.firstName);
 
-            const lastNameVal = fields.lastName.value.trim();
-            if (lastNameVal.length === 0) {
-                isValid = false;
-                hideFieldError('lastName', fieldErrors.lastName);
-            } else {
-                hideFieldError('lastName', fieldErrors.lastName);
-            }
+            if (fields.lastName.value.trim().length === 0) isValid = false;
+            hideFieldError('lastName', fieldErrors.lastName);
 
             const societyVal = societyInput.value.trim();
-            if (societyVal.length === 0 || !allSocieties.includes(societyVal)) {
-                isValid = false;
-                hideFieldError('society-input', fieldErrors.society);
-            } else {
-                hideFieldError('society-input', fieldErrors.society);
-            }
+            if (societyVal.length === 0 || !allSocieties.includes(societyVal)) isValid = false;
+            hideFieldError('society-input', fieldErrors.society);
 
             const emailVal = fields.email.value.trim();
             if (emailVal.length === 0) {
@@ -684,9 +403,7 @@
                 isValid = false;
                 fieldErrors.email.textContent = 'Error: Email must contain an @';
                 showFieldError('signup-email', fieldErrors.email);
-            } else {
-                hideFieldError('signup-email', fieldErrors.email);
-            }
+            } else hideFieldError('signup-email', fieldErrors.email);
 
             const passwordVal = fields.password.value;
             if (passwordVal.length === 0) {
@@ -696,9 +413,7 @@
                 isValid = false;
                 fieldErrors.password.textContent = 'Error: Password must be at least 6 characters';
                 showFieldError('signup-password', fieldErrors.password);
-            } else {
-                hideFieldError('signup-password', fieldErrors.password);
-            }
+            } else hideFieldError('signup-password', fieldErrors.password);
 
             if (!isValid) {
                 errorEl.textContent = 'Error: Please fill in all required fields.';
@@ -707,7 +422,6 @@
                 errorEl.classList.remove('show');
                 errorEl.textContent = '';
             }
-
             return isValid;
         }
 
@@ -721,7 +435,6 @@
         let modalAllSocieties = [];
         const MODAL_PAGE_SIZE = 10;
 
-        // --------- Reads from societiesIndex ---------
         async function loadSocieties() {
             try {
                 const snapshot = await db.collection('societiesIndex')
@@ -735,14 +448,10 @@
                 }
 
                 allSocieties = [];
-                snapshot.forEach(doc => {
-                    const name = doc.data().name || 'Unnamed';
-                    allSocieties.push(name);
-                });
+                snapshot.forEach(doc => { allSocieties.push(doc.data().name || 'Unnamed'); });
 
                 societyList.innerHTML = '<li class="no-results">Start typing to search...</li>';
                 registerBtn.disabled = false;
-
             } catch (error) {
                 console.error('Error loading societies:', error);
                 societyList.innerHTML = '<li class="no-results">Error loading societies – refresh</li>';
@@ -755,8 +464,8 @@
                 societyList.innerHTML = '<li class="no-results">No matching societies found</li>';
                 return;
             }
-            const html = items.map(name => `<li data-value="${escapeHtml(name)}">${escapeHtml(name)}</li>`).join('');
-            societyList.innerHTML = html;
+            societyList.innerHTML = items.map(name =>
+                `<li data-value="${escapeHtml(name)}">${escapeHtml(name)}</li>`).join('');
         }
 
         function escapeHtml(str) {
@@ -777,18 +486,11 @@
             renderDropdown(filtered);
             activeIndex = -1;
             const items = societyList.querySelectorAll('li:not(.no-results)');
-            if (items.length > 0) {
-                items[0].classList.add('active');
-                activeIndex = 0;
-            }
+            if (items.length > 0) { items[0].classList.add('active'); activeIndex = 0; }
             openDropdown();
         }
 
-        function openDropdown() {
-            societyList.classList.add('open');
-            isDropdownOpen = true;
-        }
-
+        function openDropdown() { societyList.classList.add('open'); isDropdownOpen = true; }
         function closeDropdown() {
             societyList.classList.remove('open');
             isDropdownOpen = false;
@@ -805,46 +507,35 @@
             errorEl.textContent = '';
         }
 
-        societyInput.addEventListener('input', function(e) {
+        societyInput.addEventListener('input', function() {
             const val = this.value.trim();
             updateAsterisk('society', val);
-
             if (val.length === 0) {
                 closeDropdown();
                 societyList.innerHTML = '<li class="no-results">Start typing to search...</li>';
             } else {
                 filterAndShow(val);
-                if (allSocieties.includes(val)) {
-                    hideFieldError('society-input', fieldErrors.society);
-                }
+                if (allSocieties.includes(val)) hideFieldError('society-input', fieldErrors.society);
             }
         });
 
         societyInput.addEventListener('focus', function() {
             const val = this.value.trim();
-            if (val.length > 0) {
-                filterAndShow(val);
-            } else {
+            if (val.length > 0) filterAndShow(val);
+            else {
                 closeDropdown();
                 societyList.innerHTML = '<li class="no-results">Start typing to search...</li>';
             }
         });
 
-        societyInput.addEventListener('blur', function(e) {
-            setTimeout(() => {
-                closeDropdown();
-            }, 150);
-        });
+        societyInput.addEventListener('blur', function() { setTimeout(() => closeDropdown(), 150); });
 
         societyList.addEventListener('mousedown', function(e) {
             const li = e.target.closest('li');
             if (!li || li.classList.contains('no-results')) return;
             e.preventDefault();
             const value = li.dataset.value;
-            if (value) {
-                selectSociety(value);
-                societyInput.focus();
-            }
+            if (value) { selectSociety(value); societyInput.focus(); }
         });
 
         societyInput.addEventListener('keydown', function(e) {
@@ -872,8 +563,7 @@
             } else if (e.key === 'Enter') {
                 e.preventDefault();
                 if (activeIndex >= 0 && activeIndex < items.length) {
-                    const selected = items[activeIndex];
-                    const value = selected.dataset.value;
+                    const value = items[activeIndex].dataset.value;
                     if (value) selectSociety(value);
                 } else if (items.length === 1) {
                     const value = items[0].dataset.value;
@@ -888,22 +578,13 @@
         });
 
         function updateActiveItem(items) {
-            items.forEach((li, idx) => {
-                li.classList.toggle('active', idx === activeIndex);
-            });
+            items.forEach((li, idx) => li.classList.toggle('active', idx === activeIndex));
             const activeLi = items[activeIndex];
-            if (activeLi) {
-                activeLi.scrollIntoView({ block: 'nearest' });
-            }
+            if (activeLi) activeLi.scrollIntoView({ block: 'nearest' });
         }
 
-        fields.firstName.addEventListener('input', function() {
-            updateAsterisk('firstName', this.value);
-        });
-
-        fields.lastName.addEventListener('input', function() {
-            updateAsterisk('lastName', this.value);
-        });
+        fields.firstName.addEventListener('input', function() { updateAsterisk('firstName', this.value); });
+        fields.lastName.addEventListener('input', function() { updateAsterisk('lastName', this.value); });
 
         fields.email.addEventListener('input', function() {
             updateAsterisk('email', this.value);
@@ -911,7 +592,6 @@
                 hideFieldError('signup-email', fieldErrors.email);
             }
         });
-
         fields.password.addEventListener('input', function() {
             updateAsterisk('password', this.value);
             if (fieldErrors.password.classList.contains('show') && isValidPassword(this.value)) {
@@ -925,9 +605,7 @@
             if (!isValidEmail(val)) {
                 fieldErrors.email.textContent = 'Error: Email must contain an @';
                 showFieldError('signup-email', fieldErrors.email);
-            } else {
-                hideFieldError('signup-email', fieldErrors.email);
-            }
+            } else hideFieldError('signup-email', fieldErrors.email);
         });
 
         fields.password.addEventListener('blur', function() {
@@ -936,9 +614,7 @@
             if (!isValidPassword(val)) {
                 fieldErrors.password.textContent = 'Error: Password must be at least 6 characters';
                 showFieldError('signup-password', fieldErrors.password);
-            } else {
-                hideFieldError('signup-password', fieldErrors.password);
-            }
+            } else hideFieldError('signup-password', fieldErrors.password);
         });
 
         browseBtn.addEventListener('click', function() {
@@ -954,33 +630,20 @@
             loadModalSocieties();
         });
 
-        function closeModal() {
-            modal.classList.remove('active');
-        }
+        function closeModal() { modal.classList.remove('active'); }
         modalClose.addEventListener('click', closeModal);
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) closeModal();
-        });
+        modal.addEventListener('click', function(e) { if (e.target === modal) closeModal(); });
 
         loadMoreBtn.addEventListener('click', function() {
-            if (!modalLoading && modalHasMore) {
-                loadModalSocieties();
-            }
+            if (!modalLoading && modalHasMore) loadModalSocieties();
         });
 
         modalSearch.addEventListener('input', function() {
             const query = this.value.trim().toLowerCase();
-            if (query.length === 0) {
-                renderModalList(modalAllSocieties);
-            } else {
-                const filtered = modalAllSocieties.filter(name => name.toLowerCase().includes(query));
-                renderModalList(filtered);
-            }
-            if (query.length > 0) {
-                loadMoreBtn.classList.add('hidden');
-            } else {
-                loadMoreBtn.classList.toggle('hidden', !modalHasMore);
-            }
+            if (query.length === 0) renderModalList(modalAllSocieties);
+            else renderModalList(modalAllSocieties.filter(name => name.toLowerCase().includes(query)));
+            if (query.length > 0) loadMoreBtn.classList.add('hidden');
+            else loadMoreBtn.classList.toggle('hidden', !modalHasMore);
         });
 
         function renderModalList(items) {
@@ -988,20 +651,16 @@
                 modalList.innerHTML = '<li class="no-results">No societies found</li>';
                 return;
             }
-            const html = items.map(name => `<li data-value="${escapeHtml(name)}">${escapeHtml(name)}</li>`).join('');
-            modalList.innerHTML = html;
+            modalList.innerHTML = items.map(name =>
+                `<li data-value="${escapeHtml(name)}">${escapeHtml(name)}</li>`).join('');
             modalList.querySelectorAll('li:not(.no-results)').forEach(li => {
                 li.addEventListener('click', function() {
                     const value = this.dataset.value;
-                    if (value) {
-                        selectSociety(value);
-                        closeModal();
-                    }
+                    if (value) { selectSociety(value); closeModal(); }
                 });
             });
         }
 
-        // --------- Reads from societiesIndex ---------
         async function loadModalSocieties() {
             if (modalLoading) return;
             modalLoading = true;
@@ -1009,13 +668,8 @@
             modalLoadingText.textContent = 'Loading...';
 
             try {
-                let query = db.collection('societiesIndex')
-                    .orderBy('name', 'asc')
-                    .limit(MODAL_PAGE_SIZE);
-
-                if (modalLastDoc) {
-                    query = query.startAfter(modalLastDoc);
-                }
+                let query = db.collection('societiesIndex').orderBy('name', 'asc').limit(MODAL_PAGE_SIZE);
+                if (modalLastDoc) query = query.startAfter(modalLastDoc);
 
                 const snapshot = await query.get();
 
@@ -1027,21 +681,14 @@
                 }
 
                 const newSocieties = [];
-                snapshot.forEach(doc => {
-                    const name = doc.data().name || 'Unnamed';
-                    newSocieties.push(name);
-                });
-
+                snapshot.forEach(doc => newSocieties.push(doc.data().name || 'Unnamed'));
                 modalLastDoc = snapshot.docs[snapshot.docs.length - 1];
                 modalAllSocieties = modalAllSocieties.concat(newSocieties);
 
                 const searchQuery = modalSearch.value.trim().toLowerCase();
                 if (searchQuery.length > 0) {
-                    const filtered = modalAllSocieties.filter(name => name.toLowerCase().includes(searchQuery));
-                    renderModalList(filtered);
-                } else {
-                    renderModalList(modalAllSocieties);
-                }
+                    renderModalList(modalAllSocieties.filter(name => name.toLowerCase().includes(searchQuery)));
+                } else renderModalList(modalAllSocieties);
 
                 if (snapshot.docs.length < MODAL_PAGE_SIZE) {
                     modalHasMore = false;
@@ -1052,27 +699,21 @@
                     loadMoreBtn.disabled = false;
                     modalLoadingText.textContent = '';
                 }
-
             } catch (error) {
                 console.error('Error loading modal societies:', error);
                 modalList.innerHTML = '<li class="no-results">Error loading societies. Please try again.</li>';
                 loadMoreBtn.classList.add('hidden');
                 modalLoadingText.textContent = 'Error';
-            } finally {
-                modalLoading = false;
-            }
+            } finally { modalLoading = false; }
         }
 
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             hideAllErrors();
 
             if (!validateAllFields()) {
                 const firstError = document.querySelector('.form-group .error');
-                if (firstError) {
-                    firstError.focus();
-                }
+                if (firstError) firstError.focus();
                 return;
             }
 
@@ -1148,8 +789,6 @@
                 } catch (emailError) {
                     console.error('Email sending error:', emailError);
                 }
-
-                await auth.signOut();
 
                 registerBtn.textContent = '✅ Check your email!';
                 registerBtn.style.background = '#28a745';

@@ -21,11 +21,7 @@
             --border: #E1E7F0;
             --radius: 12px;
         }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
             background: var(--bg);
@@ -37,10 +33,7 @@
             justify-content: center;
             padding: 24px;
         }
-        .container {
-            max-width: 440px;
-            width: 100%;
-        }
+        .container { max-width: 440px; width: 100%; }
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -50,141 +43,84 @@
             text-align: center;
         }
         .logo {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
+            width: 48px; height: 48px; border-radius: 12px;
             background: linear-gradient(135deg, var(--blue-500), var(--blue-600));
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             font-family: 'Space Grotesk', sans-serif;
-            font-weight: 700;
-            font-size: 18px;
-            color: #fff;
+            font-weight: 700; font-size: 18px; color: #fff;
             margin: 0 auto 16px;
             box-shadow: 0 4px 12px rgba(46, 111, 186, 0.3);
         }
         h1 {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--navy-900);
-            margin-bottom: 4px;
+            font-size: 24px; font-weight: 600;
+            color: var(--navy-900); margin-bottom: 4px;
         }
         .subtitle {
-            font-size: 14px;
-            color: var(--text-500);
-            margin-bottom: 24px;
+            font-size: 14px; color: var(--text-500); margin-bottom: 24px;
         }
-        .subtitle strong {
-            color: var(--text-900);
-        }
+        .subtitle strong { color: var(--text-900); }
         .otp-input {
-            width: 100%;
-            padding: 16px;
-            font-size: 28px;
-            letter-spacing: 12px;
-            text-align: center;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-family: 'Inter', sans-serif;
-            font-weight: 600;
-            color: var(--text-900);
-            background: var(--surface);
-            transition: border-color 0.2s;
-            margin-bottom: 16px;
+            width: 100%; padding: 16px; font-size: 28px;
+            letter-spacing: 12px; text-align: center;
+            border: 1px solid var(--border); border-radius: 8px;
+            font-family: 'Inter', sans-serif; font-weight: 600;
+            color: var(--text-900); background: var(--surface);
+            transition: border-color 0.2s; margin-bottom: 16px;
         }
         .otp-input:focus {
-            outline: none;
-            border-color: var(--navy-900);
+            outline: none; border-color: var(--navy-900);
             box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
         }
         .btn {
-            width: 100%;
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
-            font-weight: 600;
-            padding: 12px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            letter-spacing: 0.01em;
+            width: 100%; font-family: 'Inter', sans-serif;
+            font-size: 14px; font-weight: 600; padding: 12px;
+            border-radius: 8px; border: none; cursor: pointer;
+            transition: all 0.2s ease; letter-spacing: 0.01em;
         }
-        .btn-primary {
-            background: var(--navy-900);
-            color: #fff;
-        }
+        .btn-primary { background: var(--navy-900); color: #fff; }
         .btn-primary:hover {
-            background: var(--navy-800);
-            transform: translateY(-1px);
+            background: var(--navy-800); transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(11, 31, 58, 0.2);
         }
         .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
+            opacity: 0.6; cursor: not-allowed; transform: none;
         }
         .resend-link {
-            display: inline-block;
-            margin-top: 14px;
-            color: var(--blue-600);
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
+            display: inline-block; margin-top: 14px;
+            color: var(--blue-600); text-decoration: none;
+            font-size: 13px; font-weight: 600;
         }
-        .resend-link:hover {
-            text-decoration: underline;
-        }
+        .resend-link:hover { text-decoration: underline; }
         .back-link {
-            display: inline-block;
-            margin-top: 10px;
-            color: var(--text-500);
-            text-decoration: none;
-            font-size: 13px;
+            display: inline-block; margin-top: 10px;
+            color: var(--text-500); text-decoration: none; font-size: 13px;
         }
-        .back-link:hover {
-            color: var(--navy-900);
-            text-decoration: underline;
-        }
+        .back-link:hover { color: var(--navy-900); text-decoration: underline; }
         .message {
-            margin-top: 14px;
-            padding: 10px 14px;
-            border-radius: 6px;
-            font-size: 14px;
-            display: none;
+            margin-top: 14px; padding: 10px 14px;
+            border-radius: 6px; font-size: 14px; display: none;
         }
         .message.success {
-            display: block;
-            background: #d4edda;
-            color: #155724;
+            display: block; background: #d4edda; color: #155724;
             border-left: 4px solid #28a745;
         }
         .message.error {
-            display: block;
-            background: #f8d7da;
-            color: #721c24;
+            display: block; background: #f8d7da; color: #721c24;
             border-left: 4px solid #dc3545;
         }
         .message.info {
-            display: block;
-            background: #e9f2ff;
-            color: #1a3f7a;
+            display: block; background: #e9f2ff; color: #1a3f7a;
             border-left: 4px solid #2b5fa8;
         }
         .divider {
-            border: none;
-            border-top: 1px solid var(--border);
+            border: none; border-top: 1px solid var(--border);
             margin: 20px 0;
         }
         .wits-badge {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 11px;
-            color: var(--text-500);
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            font-weight: 500;
+            text-align: center; margin-top: 20px;
+            font-size: 11px; color: var(--text-500);
+            letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500;
         }
     </style>
 </head>
@@ -211,7 +147,6 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -231,9 +166,9 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        const userId = localStorage.getItem('pendingUserId');
-        const userEmail = localStorage.getItem('pendingUserEmail');
-        const userName = localStorage.getItem('pendingUserName') || '';
+        let userId = localStorage.getItem('pendingUserId');
+        let userEmail = localStorage.getItem('pendingUserEmail');
+        let userName = localStorage.getItem('pendingUserName') || '';
 
         const otpInput = document.getElementById('otpCode');
         const verifyBtn = document.getElementById('verifyBtn');
@@ -241,23 +176,75 @@
         const messageDiv = document.getElementById('message');
         const userEmailSpan = document.getElementById('userEmail');
 
-        if (!userId || !userEmail) {
-            messageDiv.className = 'message error';
-            messageDiv.textContent = 'No pending verification found. Please register again.';
-        } else {
-            userEmailSpan.textContent = userEmail;
-        }
-
         function showMessage(text, type) {
             messageDiv.className = 'message ' + type;
             messageDiv.textContent = text;
         }
 
+        // If pendingUserId is missing, try to recover from Firebase Auth session
+        async function ensurePendingUser() {
+            if (userId && userEmail) return true;
+
+            return new Promise((resolve) => {
+                const unsub = auth.onAuthStateChanged(async (user) => {
+                    unsub();
+                    if (user) {
+                        userId = user.uid;
+                        userEmail = user.email;
+                        localStorage.setItem('pendingUserId', userId);
+                        localStorage.setItem('pendingUserEmail', userEmail);
+                        resolve(true);
+                        return;
+                    }
+
+                    // Not signed in — try the users collection by looking for a matching doc? We can't without uid.
+                    // Fall back: check emailVerifications by email field.
+                    if (userEmail) {
+                        try {
+                            const snap = await db.collection('emailVerifications')
+                                .where('email', '==', userEmail)
+                                .limit(1)
+                                .get();
+                            if (!snap.empty) {
+                                userId = snap.docs[0].id;
+                                localStorage.setItem('pendingUserId', userId);
+                                resolve(true);
+                                return;
+                            }
+                        } catch (e) {
+                            console.warn('Recovery lookup failed:', e);
+                        }
+                    }
+
+                    resolve(false);
+                });
+            });
+        }
+
+        // Init
+        (async () => {
+            const ok = await ensurePendingUser();
+            if (!ok || !userId || !userEmail) {
+                showMessage('No pending verification found. Please register again.', 'error');
+                verifyBtn.disabled = true;
+                resendLink.style.pointerEvents = 'none';
+                resendLink.style.opacity = '0.5';
+            } else {
+                userEmailSpan.textContent = userEmail;
+            }
+        })();
+
+        // Verify
         verifyBtn.addEventListener('click', async () => {
             const code = otpInput.value.trim();
 
             if (!code || code.length !== 6) {
                 showMessage('Please enter the 6-digit verification code.', 'error');
+                return;
+            }
+
+            if (!userId) {
+                showMessage('No pending verification found. Please register again.', 'error');
                 return;
             }
 
@@ -276,7 +263,18 @@
 
                 const data = verificationDoc.data();
                 const now = new Date();
-                const expiresAt = data.expiresAt.toDate();
+
+                // expiresAt may be a Timestamp or a Date
+                let expiresAt;
+                if (data.expiresAt && typeof data.expiresAt.toDate === 'function') {
+                    expiresAt = data.expiresAt.toDate();
+                } else if (data.expiresAt instanceof Date) {
+                    expiresAt = data.expiresAt;
+                } else if (data.expiresAt && data.expiresAt.seconds) {
+                    expiresAt = new Date(data.expiresAt.seconds * 1000);
+                } else {
+                    expiresAt = new Date(0);
+                }
 
                 if (now > expiresAt) {
                     showMessage('Code has expired. Please request a new one.', 'error');
@@ -284,7 +282,7 @@
                     return;
                 }
 
-                if (data.code !== code) {
+                if (String(data.code) !== String(code)) {
                     showMessage('Incorrect code. Please try again.', 'error');
                     verifyBtn.disabled = false;
                     return;
@@ -309,15 +307,17 @@
 
             } catch (error) {
                 console.error('Verification error:', error);
-                showMessage('Verification failed. Please try again.', 'error');
+                showMessage('Verification failed: ' + error.message, 'error');
                 verifyBtn.disabled = false;
             }
         });
 
+        // Resend
         resendLink.addEventListener('click', async (e) => {
             e.preventDefault();
 
-            if (!userId || !userEmail) {
+            const ok = await ensurePendingUser();
+            if (!ok || !userId || !userEmail) {
                 showMessage('No pending verification found. Please register again.', 'error');
                 return;
             }
@@ -329,37 +329,36 @@
                 const newExpiresAt = new Date();
                 newExpiresAt.setMinutes(newExpiresAt.getMinutes() + 15);
 
-                const verificationRef = db.collection('emailVerifications').doc(userId);
-                await verificationRef.update({
+                // Use set with merge so it creates the doc if it went missing
+                await db.collection('emailVerifications').doc(userId).set({
+                    userId: userId,
+                    email: userEmail,
                     code: newCode,
-                    expiresAt: newExpiresAt
-                });
+                    expiresAt: newExpiresAt,
+                    createdAt: new Date(),
+                    verified: false
+                }, { merge: true });
 
-                console.log('=========================================');
-                console.log('NEW VERIFICATION CODE FOR:', userEmail);
-                console.log('NEW CODE:', newCode);
-                console.log('Expires at:', newExpiresAt.toLocaleTimeString());
-                console.log('=========================================');
-
-                const emailResponse = await fetch('/api/send-verification-email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email: userEmail,
-                        code: newCode,
-                        name: userName
-                    }),
-                });
-
-                if (emailResponse.ok) {
+                try {
+                    await fetch('/api/send-verification-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: userEmail,
+                            code: newCode,
+                            name: userName || 'Student'
+                        }),
+                    });
                     showMessage('New verification code sent! Check your email.', 'success');
-                } else {
-                    showMessage('Failed to send new code. Please try again.', 'error');
+                } catch (emailErr) {
+                    console.error('Email error:', emailErr);
+                    // Code was still saved — let the user know.
+                    showMessage('New code saved. If the email doesn\'t arrive, please contact support.', 'info');
                 }
 
             } catch (error) {
                 console.error('Resend error:', error);
-                showMessage('Failed to resend code. Please try again.', 'error');
+                showMessage('Failed to resend code: ' + error.message, 'error');
             }
         });
     </script>

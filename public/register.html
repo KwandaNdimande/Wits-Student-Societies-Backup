@@ -637,7 +637,7 @@
             }
         }
 
-        // --- Error helpers (only shown on submit / blur) ---
+        // --- Error helpers ---
         function showFieldError(fieldId, errorEl) {
             const input = document.getElementById(fieldId);
             if (input) input.classList.add('error');
@@ -659,11 +659,10 @@
             errorEl.textContent = '';
         }
 
-        // --- Validate all fields (only on submit) ---
+        // --- Validate all fields ---
         function validateAllFields() {
             let isValid = true;
 
-            // First name
             const firstNameVal = fields.firstName.value.trim();
             if (firstNameVal.length === 0) {
                 isValid = false;
@@ -672,7 +671,6 @@
                 hideFieldError('firstName', fieldErrors.firstName);
             }
 
-            // Last name
             const lastNameVal = fields.lastName.value.trim();
             if (lastNameVal.length === 0) {
                 isValid = false;
@@ -681,7 +679,6 @@
                 hideFieldError('lastName', fieldErrors.lastName);
             }
 
-            // Society
             const societyVal = societyInput.value.trim();
             if (societyVal.length === 0 || !allSocieties.includes(societyVal)) {
                 isValid = false;
@@ -690,7 +687,6 @@
                 hideFieldError('society-input', fieldErrors.society);
             }
 
-            // Email
             const emailVal = fields.email.value.trim();
             if (emailVal.length === 0) {
                 isValid = false;
@@ -703,7 +699,6 @@
                 hideFieldError('signup-email', fieldErrors.email);
             }
 
-            // Password
             const passwordVal = fields.password.value;
             if (passwordVal.length === 0) {
                 isValid = false;
@@ -732,14 +727,13 @@
         let activeIndex = -1;
         let isDropdownOpen = false;
 
-        // Pagination state for modal (10 per page)
         let modalLastDoc = null;
         let modalHasMore = true;
         let modalLoading = false;
         let modalAllSocieties = [];
         const MODAL_PAGE_SIZE = 10;
 
-        // --- Load societies for autocomplete (initial) ---
+        // --- Load societies for autocomplete ---
         async function loadSocieties() {
             try {
                 const snapshot = await db.collection('societies')
@@ -783,7 +777,6 @@
             return div.innerHTML;
         }
 
-        // --- Filter for autocomplete dropdown ---
         function filterAndShow(query) {
             const trimmed = query.trim();
             if (trimmed.length === 0) {
@@ -803,7 +796,6 @@
             openDropdown();
         }
 
-        // --- Open / close autocomplete dropdown ---
         function openDropdown() {
             societyList.classList.add('open');
             isDropdownOpen = true;
@@ -816,7 +808,6 @@
             document.querySelectorAll('#societyList li').forEach(li => li.classList.remove('active'));
         }
 
-        // --- Select item (from either dropdown or modal) ---
         function selectSociety(value) {
             societyInput.value = value;
             closeDropdown();
@@ -825,8 +816,6 @@
             errorEl.classList.remove('show');
             errorEl.textContent = '';
         }
-
-        // --- Autocomplete event listeners ---
 
         societyInput.addEventListener('input', function(e) {
             const val = this.value.trim();
@@ -920,7 +909,6 @@
             }
         }
 
-        // --- Asterisk updates on standard fields ---
         fields.firstName.addEventListener('input', function() {
             updateAsterisk('firstName', this.value);
         });
@@ -943,7 +931,6 @@
             }
         });
 
-        // --- Email: validate on blur (Option C) ---
         fields.email.addEventListener('blur', function() {
             const val = this.value.trim();
             if (val.length === 0) return;
@@ -955,7 +942,6 @@
             }
         });
 
-        // --- Password: validate on blur (Option C) ---
         fields.password.addEventListener('blur', function() {
             const val = this.value;
             if (val.length === 0) return;
@@ -967,8 +953,7 @@
             }
         });
 
-        // --- MODAL: Open, close, load data (10 per page) ---
-
+        // --- MODAL ---
         browseBtn.addEventListener('click', function() {
             modal.classList.add('active');
             modalLastDoc = null;
@@ -1090,7 +1075,9 @@
             }
         }
 
-        // --- Registration form submit ---
+        // ============================================================
+        // REGISTRATION SUBMIT — with rollback on failure
+        // ============================================================
         document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -1122,9 +1109,13 @@
             registerBtn.disabled = true;
             registerBtn.textContent = 'Creating account...';
 
+            // Track the created auth user so we can clean up if later steps fail
+            let createdAuthUser = null;
+
             try {
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 const user = userCredential.user;
+                createdAuthUser = user;
 
                 const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
                 const expiresAt = new Date();
@@ -1185,11 +1176,24 @@
 
             } catch (err) {
                 console.error('Registration error:', err);
+
+                // ROLLBACK: if we created an auth user but a later step failed,
+                // delete the auth user so the email isn't permanently stuck.
+                if (createdAuthUser) {
+                    try {
+                        await createdAuthUser.delete();
+                        console.log('Rolled back auth user:', createdAuthUser.uid);
+                    } catch (cleanupErr) {
+                        console.warn('Could not roll back auth user:', cleanupErr);
+                    }
+                }
+
                 const friendlyMessage = getFriendlyErrorMessage(err.code);
                 errorEl.textContent = friendlyMessage;
                 errorEl.classList.add('show');
                 registerBtn.disabled = false;
                 registerBtn.textContent = 'Create account';
+                registerBtn.style.background = '';
             }
         });
 
@@ -1199,7 +1203,8 @@
                 'auth/invalid-email': 'The email address is not valid. Please check and try again.',
                 'auth/weak-password': 'Password is too weak. Please use at least 6 characters.',
                 'auth/network-request-failed': 'Network error. Please check your internet connection.',
-                'auth/internal-error': 'Something went wrong. Please try again.'
+                'auth/internal-error': 'Something went wrong. Please try again.',
+                'permission-denied': 'Permission denied. Please contact support.'
             };
             return messages[errorCode] || 'Unable to create account. Please try again.';
         }

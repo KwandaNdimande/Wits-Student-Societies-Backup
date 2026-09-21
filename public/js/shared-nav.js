@@ -98,32 +98,47 @@ function createSharedNavStyles() {
             border-color: #dc3545;
             color: #fff;
         }
-        @media (max-width: 768px) {
-            .nav-links { 
-                justify-content: center;
-                padding: 14px 16px;
-                gap: 8px;
-                min-height: 60px;
-            }
-            .nav-links a { 
-                font-size: 12px; 
-                padding: 6px 12px; 
-            }
-            body {
-                padding-top: 0 !important; /* Let JS control it */
-            }
-        }
-        @media (max-width: 480px) {
-            .nav-links {
-                padding: 12px 12px;
-                gap: 6px;
-                min-height: 55px;
-            }
-            .nav-links a { 
-                font-size: 11px; 
-                padding: 5px 10px; 
-            }
-        }
+    @media (max-width: 768px) {
+    .nav-links {
+        justify-content: center;
+        padding: 12px 12px;
+        gap: 6px;
+        min-height: 60px;
+    }
+
+    .nav-links .nav-user-info {
+        text-align: center;
+        margin-bottom: 6px;
+        width: 100%;
+    }
+
+    .nav-links a {
+        font-size: 12px;
+        padding: 7px 10px;
+        white-space: nowrap;
+    }
+
+    body {
+        padding-top: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-links {
+        padding: 10px 8px;
+        gap: 5px;
+    }
+
+    .nav-links .nav-user-info {
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
+
+    .nav-links a {
+        font-size: 11px;
+        padding: 6px 8px;
+    }
+}
     `;
     document.head.appendChild(style);
 }

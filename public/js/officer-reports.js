@@ -605,11 +605,10 @@ function renderReport3() {
     document.getElementById('p3-total').textContent = totalApproved > 0 ? 'R ' + totalApproved.toLocaleString() : 'R 0';
     document.getElementById('p3-events').textContent = eventTotal > 0 ? 'R ' + eventTotal.toLocaleString() : 'R 0';
     document.getElementById('p3-regalia').textContent = regaliaTotal > 0 ? 'R ' + regaliaTotal.toLocaleString() : 'R 0';
-    document.getElementById('p3-other').textContent = otherTotal > 0 ? 'R ' + otherTotal.toLocaleString() : 'R 0';
+
 
     document.getElementById('p3-events-pct').textContent = totalApproved > 0 ? Math.round((eventTotal/totalApproved)*100) + '% of total' : '0%';
     document.getElementById('p3-regalia-pct').textContent = totalApproved > 0 ? Math.round((regaliaTotal/totalApproved)*100) + '% of total' : '0%';
-    document.getElementById('p3-other-pct').textContent = totalApproved > 0 ? Math.round((otherTotal/totalApproved)*100) + '% of total' : '0%';
 
     const chartData = [];
     if (eventTotal > 0) chartData.push({ label: 'Events', count: eventTotal, color: '#1B3E73' });

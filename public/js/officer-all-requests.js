@@ -51,6 +51,15 @@ const statusColors = {
 
 const statusOptions = ["Submitted", "Under Review", "Revision Required", "Approved", "Rejected"];
 
+const issueTypes = [
+    "Missing minutes do not detail request",
+    "Incorrect form version",
+    "Expired vendor quotation",
+    "Incorrectly filled budget form",
+    "Requested budget exceeds society's available funds",
+    "Quotation comes from an unapproved vendor"
+];
+
 let pendingStatusUpdate = null;
 let pendingReverseRequestId = null;
 let pendingDeleteRequestId = null;
@@ -1284,12 +1293,18 @@ function openStatusModal(request) {
                 <textarea id="statusRejectCustom" placeholder="Explain the reason for rejection..."></textarea>
             </div>
         `;
-    } else if (newStatus === 'Revision Required') {
-        bodyHtml += `
-            <label for="statusReasonDetails">Revision note</label>
-            <textarea id="statusReasonDetails" placeholder="Explain what needs to be revised..."></textarea>
-        `;
-    } else {
+    
+} else if (newStatus === 'Revision Required') {
+    bodyHtml += `
+        <label for="statusIssueType">Issue type</label>
+        <select id="statusIssueType" class="status-select">
+            <option value="">Choose an issue type</option>
+            ${issueTypes.map(t => `<option value="${t}">${t}</option>`).join('')}
+        </select>
+        <label for="statusReasonDetails" style="margin-top:12px;display:block;">Additional note (optional)</label>
+        <textarea id="statusReasonDetails" placeholder="Add any extra detail for the leader..."></textarea>
+    `;
+} else {
         bodyHtml += `
             <label for="statusReasonDetails">Optional note</label>
             <textarea id="statusReasonDetails" placeholder="Add a note for the record..."></textarea>
@@ -1342,9 +1357,15 @@ async function submitStatusModal() {
         }
     }
 
-    if (newStatus === 'Revision Required' && !statusNote) {
-        statusNote = 'Revision required';
+if (newStatus === 'Revision Required') {
+    const selectedIssue = document.getElementById('statusIssueType')?.value || '';
+    if (!selectedIssue) {
+        alert('Please choose an issue type.');
+        return;
     }
+    statusNote = noteText ? `${selectedIssue} — ${noteText}` : selectedIssue;
+    pendingStatusUpdate.issueType = selectedIssue;
+}
 
     const saveBtn = document.querySelector('#statusModal .btn-primary');
     const originalText = saveBtn ? saveBtn.textContent : 'Save Status';
@@ -1370,6 +1391,7 @@ async function submitStatusModal() {
 
         await db.collection('requests').doc(requestId).update({
             status: newStatus,
+            issueType: newStatus === 'Revision Required' ? pendingStatusUpdate.issueType : null,
             officerComment: newStatus === 'Revision Required' || newStatus === 'Rejected' ? statusNote : (newStatus === 'Under Review' ? statusNote : ''),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             statusHistory: firebase.firestore.FieldValue.arrayUnion(historyEntry)

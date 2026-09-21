@@ -48,6 +48,17 @@ const statusBadgeMap = {
     'Revision Required': 'pending'
 };
 
+// colors for issue types
+const issueTypeColors = {
+    "Missing minutes do not detail request": "#B9720B",
+    "Incorrect form version": "#8E44AD",
+    "Expired vendor quotation": "#C0392B",
+    "Incorrectly filled budget form": "#2E6FBA",
+    "Requested budget exceeds society's available funds": "#1E8E5A",
+    "Quotation comes from an unapproved vendor": "#D35400",
+    "Not specified": "#6c757d"
+};
+
 // ============ FILTER FUNCTIONS (Report 1) ============
 
 function toggleFilterInputs() {
@@ -664,22 +675,38 @@ function renderReport4() {
     const total = flagged.length;
 
     document.getElementById('p4-total').textContent = total;
-    document.getElementById('p4-top-issue').textContent = total > 0 ? 'Revision Required' : 'None';
-    document.getElementById('p4-top-count').textContent = total > 0 ? total + ' requests' : 'No flagged requests';
     document.getElementById('p4-awaiting').textContent = total;
     document.getElementById('p4-resolved').textContent = '0';
     document.getElementById('p4-flag-rate').textContent = allRequests.length > 0 ? Math.round((total/allRequests.length)*100) + '% of all requests' : '0%';
     document.getElementById('p4-resolved-rate').textContent = '0% resolved';
     document.getElementById('p4-avg-open').textContent = total > 0 ? 'Awaiting review' : 'No data';
 
-    if (total === 0) {
-        document.getElementById('p4-chart').innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No flagged submissions for this period</p>';
-    } else {
-        const chartData = [
-            { label: 'Needs Revision', count: total, color: '#B9720B' }
-        ];
-        renderChart('p4-chart', chartData);
-    }
+
+if (total === 0) {
+    document.getElementById('p4-chart').innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No flagged submissions for this period</p>';
+    document.getElementById('p4-top-issue').textContent = 'None';
+    document.getElementById('p4-top-count').textContent = 'No flagged requests';
+} else {
+    const counts = {};
+    flagged.forEach(r => {
+        const type = r.issueType || 'Not specified';
+        counts[type] = (counts[type] || 0) + 1;
+    });
+
+    const chartData = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({
+            label,
+            count,
+            color: issueTypeColors[label] || '#6c757d'
+        }));
+
+    renderChart('p4-chart', chartData);
+
+    const topIssue = chartData[0];
+    document.getElementById('p4-top-issue').textContent = topIssue.label;
+    document.getElementById('p4-top-count').textContent = `${topIssue.count} request${topIssue.count === 1 ? '' : 's'}`;
+}
 
     const tbody = document.getElementById('p4-table-body');
     const sorted = [...flagged].sort((a, b) => (b.submittedAt?.seconds || 0) - (a.submittedAt?.seconds || 0));
@@ -700,7 +727,7 @@ function renderReport4() {
             <tr>
                 <td class="strong">REQ-${String(r.id).slice(0, 8)}</td>
                 <td>${r.societyName || 'Unknown'}</td>
-                <td>Requires revision - ${r.status}</td>
+                <td>${r.issueType || 'Not specified'}</td>
                 <td>${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
                 <td>Review and resubmit</td>
                 <td><span class="badge await"><span class="dot"></span>Awaiting Resubmission</span></td>

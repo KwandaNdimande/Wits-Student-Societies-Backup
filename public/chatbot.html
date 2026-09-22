@@ -87,7 +87,7 @@
             color: #d8e1ee;
         }
 
-        /* ===== Chat area (WhatsApp-style) ===== */
+        /* ===== Chat area ===== */
 
         .chat-window {
             flex: 1;
@@ -103,7 +103,8 @@
 
         .message {
             display: flex;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            position: relative;
         }
 
         .message.bot {
@@ -117,46 +118,75 @@
         /* Bubbles */
 
         .message-bubble {
-            max-width: 82%;
+            max-width: 78%;
             padding: 9px 12px 10px;
             font-size: 13.5px;
             line-height: 1.5;
             word-wrap: break-word;
             box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+            position: relative;
         }
 
+        /* Bot bubble — white, tail top-left */
         .message.bot .message-bubble {
             background: #ffffff;
             color: #172033;
-            border-radius: 8px 8px 8px 2px;
+            border-radius: 0 12px 12px 12px;
         }
-
-        .message.user .message-bubble {
-            background: #d9fdd3;
-            color: #172033;
-            border-radius: 8px 8px 2px 8px;
-        }
-
-        /* "SGO Assistant" label above bot bubble text (CSS only) */
 
         .message.bot .message-bubble::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -7px;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 8px 8px 0;
+            border-color: transparent #ffffff transparent transparent;
+        }
+
+        /* "SGO Assistant" label above bot bubble text */
+        .message.bot .message-bubble::after {
             content: "SGO Assistant";
             display: block;
             font-size: 10.5px;
             font-weight: 700;
-            color: #178c54;
+            color: #2E6FBA;
             margin-bottom: 3px;
             letter-spacing: 0.02em;
         }
 
-        /* ===== Options ===== */
+        /* User bubble — system blue, white text, tail top-right */
+        .message.user .message-bubble {
+            background: #2E6FBA;
+            color: #ffffff;
+            border-radius: 12px 0 12px 12px;
+        }
+
+        .message.user .message-bubble::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -7px;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 8px 8px 0 0;
+            border-color: #2E6FBA transparent transparent transparent;
+        }
+
+        /* ===== Options — right-aligned ===== */
 
         .options-container {
-            margin: 4px 0 14px;
             display: flex;
             flex-direction: column;
             gap: 6px;
-            max-width: 82%;
+            max-width: 78%;
+            margin-left: auto;
+            margin-right: 0;
+            margin-bottom: 14px;
+            align-items: stretch;
         }
 
         .option-button {
@@ -176,8 +206,8 @@
         }
 
         .option-button:hover {
-            border-color: #25a866;
-            background: #f4fff2;
+            border-color: #2E6FBA;
+            background: #eef4ff;
         }
 
         .option-button:focus {
@@ -192,7 +222,7 @@
 
         .option-button.secondary:hover {
             background: #eef4ff;
-            border-color: #5479a8;
+            border-color: #2E6FBA;
         }
 
         /* ===== Typing indicator ===== */
@@ -203,9 +233,22 @@
             gap: 5px;
             padding: 11px 14px;
             background: #ffffff;
-            border-radius: 8px 8px 8px 2px;
+            border-radius: 0 12px 12px 12px;
             width: fit-content;
             box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
+
+        .typing::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -7px;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 8px 8px 0;
+            border-color: transparent #ffffff transparent transparent;
         }
 
         .typing span {
@@ -313,11 +356,11 @@
             }
 
             .message-bubble {
-                max-width: 90%;
+                max-width: 85%;
             }
 
             .options-container {
-                max-width: 90%;
+                max-width: 85%;
             }
         }
     </style>

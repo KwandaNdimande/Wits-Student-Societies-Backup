@@ -72,7 +72,10 @@ function computeFilteredRequests() {
     let dateFiltered = [];
     let titleSuffix = '';
 
-    if (filterType === 'month') {
+    if (filterType === 'all') {
+    dateFiltered = allRequests;
+    titleSuffix = ' — All Time';
+} else if (filterType === 'month') {
         const month = document.getElementById('filterMonth').value;
         const year = document.getElementById('filterYear').value;
 
@@ -143,7 +146,7 @@ function applyDefaultFilter() {
 
     document.getElementById('filterMonth').value = month;
     document.getElementById('filterYear').value = year;
-    document.querySelector('input[name="filterType"][value="month"]').checked = true;
+    document.querySelector('input[name="filterType"][value="all"]').checked = true;
     toggleFilterInputs();
 
     document.getElementById('p1-status-filter').value = 'All';
@@ -157,19 +160,14 @@ function applyFilter() {
 }
 
 function clearFilter() {
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    document.getElementById('filterMonth').value = month;
-    document.getElementById('filterYear').value = year;
-    document.querySelector('input[name="filterType"][value="month"]').checked = true;
+    document.querySelector('input[name="filterType"][value="all"]').checked = true;
     toggleFilterInputs();
 
     document.getElementById('p1-status-filter').value = 'All';
     document.getElementById('p1-society-search').value = '';
 
     computeFilteredRequests();
-    showToast('Filter cleared — showing current month with all statuses.');
+    showToast('Filter cleared — showing all time with all statuses.');
 }
 
 // ============ FILTER FUNCTIONS (Report 2) ============
@@ -193,31 +191,22 @@ function toggleFilterInputsP3() {
 }
 
 function applyDefaultFilterP3() {
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-
-    document.getElementById('filterMonthP3').value = month;
-    document.getElementById('filterYearP3').value = year;
-    document.querySelector('input[name="filterTypeP3"][value="month"]').checked = true;
+    document.querySelector('input[name="filterTypeP3"][value="all"]').checked = true;
     toggleFilterInputsP3();
 
-    filteredApprovedRequests = allRequests.filter(item => {
-        if (item.status !== 'Approved') return false;
-        if (!item.submittedAt) return false;
-        const date = new Date(item.submittedAt.seconds * 1000);
-        return date.getMonth() === (parseInt(month) - 1) && date.getFullYear() === parseInt(year);
-    });
+    filteredApprovedRequests = allRequests.filter(item => item.status === 'Approved');
 
-    const monthName = document.getElementById('filterMonthP3').selectedOptions[0].text;
-    document.getElementById('p3-title').textContent = `Financial Allocation Report — ${monthName} ${year}`;
+    document.getElementById('p3-title').textContent = 'Financial Allocation Report — All Time';
     p3CurrentPage = 1;
 }
 
 function applyFilterP3() {
     const filterType = document.querySelector('input[name="filterTypeP3"]:checked').value;
 
-    if (filterType === 'month') {
+    if (filterType === 'all') {
+        filteredApprovedRequests = allRequests.filter(item => item.status === 'Approved');
+        document.getElementById('p3-title').textContent = 'Financial Allocation Report — All Time';
+    } else if (filterType === 'month') {
         const month = document.getElementById('filterMonthP3').value;
         const year = document.getElementById('filterYearP3').value;
 
@@ -259,7 +248,7 @@ function applyFilterP3() {
 function clearFilterP3() {
     applyDefaultFilterP3();
     renderReport3();
-    showToast('Filter cleared — showing current month.');
+    showToast('Filter cleared — showing all time.');
 }
 
 // ============ FILTER FUNCTIONS (Report 4) ============
@@ -271,31 +260,22 @@ function toggleFilterInputsP4() {
 }
 
 function applyDefaultFilterP4() {
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-
-    document.getElementById('filterMonthP4').value = month;
-    document.getElementById('filterYearP4').value = year;
-    document.querySelector('input[name="filterTypeP4"][value="month"]').checked = true;
+    document.querySelector('input[name="filterTypeP4"][value="all"]').checked = true;
     toggleFilterInputsP4();
 
-    filteredFlaggedRequests = allRequests.filter(item => {
-        if (item.status !== 'Revision Required') return false;
-        if (!item.submittedAt) return false;
-        const date = new Date(item.submittedAt.seconds * 1000);
-        return date.getMonth() === (parseInt(month) - 1) && date.getFullYear() === parseInt(year);
-    });
+    filteredFlaggedRequests = allRequests.filter(item => item.status === 'Revision Required');
 
-    const monthName = document.getElementById('filterMonthP4').selectedOptions[0].text;
-    document.getElementById('p4-title').textContent = `Incorrect Submission Report — ${monthName} ${year}`;
+    document.getElementById('p4-title').textContent = 'Incorrect Submission Report — All Time';
     p4CurrentPage = 1;
 }
 
 function applyFilterP4() {
     const filterType = document.querySelector('input[name="filterTypeP4"]:checked').value;
 
-    if (filterType === 'month') {
+    if (filterType === 'all') {
+        filteredFlaggedRequests = allRequests.filter(item => item.status === 'Revision Required');
+        document.getElementById('p4-title').textContent = 'Incorrect Submission Report — All Time';
+    } else if (filterType === 'month') {
         const month = document.getElementById('filterMonthP4').value;
         const year = document.getElementById('filterYearP4').value;
 
@@ -337,7 +317,7 @@ function applyFilterP4() {
 function clearFilterP4() {
     applyDefaultFilterP4();
     renderReport4();
-    showToast('Filter cleared — showing current month.');
+    showToast('Filter cleared — showing all time.');
 }
 
 // ============ LOAD DATA ============

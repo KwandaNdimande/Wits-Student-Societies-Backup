@@ -353,8 +353,9 @@
             society: document.getElementById('society-error'),
         };
 
-        function isValidEmail(value) { return value.includes('@'); }
+                function isValidEmail(value) { return value.includes('@'); }
         function isValidPassword(value) { return value.length >= 6; }
+        function sanitizeNameInput(value) { return String(value || '').replace(/[^A-Za-z\s]/g, ''); }
 
         function showAsterisk(fieldId) { if (asterisks[fieldId]) asterisks[fieldId].classList.remove('hidden'); }
         function hideAsterisk(fieldId) { if (asterisks[fieldId]) asterisks[fieldId].classList.add('hidden'); }
@@ -385,11 +386,25 @@
         function validateAllFields() {
             let isValid = true;
 
-            if (fields.firstName.value.trim().length === 0) isValid = false;
-            hideFieldError('firstName', fieldErrors.firstName);
+                        const firstNameVal = fields.firstName.value.trim();
+            if (firstNameVal.length === 0) {
+                isValid = false;
+                hideFieldError('firstName', fieldErrors.firstName);
+            } else if (firstNameVal.length < 2) {
+                isValid = false;
+                fieldErrors.firstName.textContent = 'Error: First name must be at least 2 characters';
+                showFieldError('firstName', fieldErrors.firstName);
+            } else hideFieldError('firstName', fieldErrors.firstName);
 
-            if (fields.lastName.value.trim().length === 0) isValid = false;
-            hideFieldError('lastName', fieldErrors.lastName);
+            const lastNameVal = fields.lastName.value.trim();
+            if (lastNameVal.length === 0) {
+                isValid = false;
+                hideFieldError('lastName', fieldErrors.lastName);
+            } else if (lastNameVal.length < 2) {
+                isValid = false;
+                fieldErrors.lastName.textContent = 'Error: Last name must be at least 2 characters';
+                showFieldError('lastName', fieldErrors.lastName);
+            } else hideFieldError('lastName', fieldErrors.lastName);
 
             const societyVal = societyInput.value.trim();
             if (societyVal.length === 0 || !allSocieties.includes(societyVal)) isValid = false;
@@ -583,8 +598,16 @@
             if (activeLi) activeLi.scrollIntoView({ block: 'nearest' });
         }
 
-        fields.firstName.addEventListener('input', function() { updateAsterisk('firstName', this.value); });
-        fields.lastName.addEventListener('input', function() { updateAsterisk('lastName', this.value); });
+                fields.firstName.addEventListener('input', function() {
+            const cleaned = sanitizeNameInput(this.value);
+            if (cleaned !== this.value) this.value = cleaned;
+            updateAsterisk('firstName', this.value);
+        });
+        fields.lastName.addEventListener('input', function() {
+            const cleaned = sanitizeNameInput(this.value);
+            if (cleaned !== this.value) this.value = cleaned;
+            updateAsterisk('lastName', this.value);
+        });
 
         fields.email.addEventListener('input', function() {
             updateAsterisk('email', this.value);

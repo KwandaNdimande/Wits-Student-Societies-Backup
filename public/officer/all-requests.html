@@ -510,7 +510,26 @@
         .modal-body textarea {
             resize: vertical;
             min-height: 80px;
+        }.modal-body textarea.input-error {
+            border-color: var(--danger);
+            box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
         }
+        .modal-body .field-error {
+            color: var(--danger);
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+        .modal-body .field-error.show {
+            display: block;
+        }
+        .modal-body .req-asterisk {
+            color: var(--danger);
+            font-weight: 700;
+            margin-left: 2px;
+        }
+
+
         .modal-body .request-info {
             background: #FAFBFD;
             border-radius: 8px;
@@ -816,7 +835,7 @@
     <div class="modal-overlay" id="docModal">
         <div class="modal">
             <div class="modal-header">
-                <button class="modal-back" onclick="closeModal()">← Back to Requests</button>
+                <button class="modal-back" onclick="closeModal()">← Back</button>
                 <h2 id="modalTitle">Request Documents</h2>
             </div>
             <div id="modalBody">
@@ -829,7 +848,7 @@
     <div class="modal-overlay" id="statusModal">
         <div class="modal">
             <div class="modal-header">
-                <button class="modal-back" onclick="closeStatusModal(true)">← Back to Requests</button>
+                <button class="modal-back" onclick="closeStatusModal(true)">← Back</button>
                 <h2 id="statusModalTitle">Update Request Status</h2>
             </div>
             <div class="modal-body" id="statusModalBody">
@@ -847,7 +866,7 @@
     <div class="modal-overlay" id="reverseModal">
         <div class="modal">
             <div class="modal-header">
-                <button class="modal-back" onclick="closeReverseModal()">← Back to Requests</button>
+                <button class="modal-back" onclick="closeReverseModal()">← Back</button>
                 <h2>Reverse Decision</h2>
             </div>
             <div class="modal-body" id="reverseModalBody">
@@ -857,11 +876,12 @@
                 <div class="request-info" id="reverseRequestInfo">
                     <!-- Filled by JavaScript -->
                 </div>
-                <label for="reverseReason">Reason for reversal <span style="color:#C0392B;">*</span></label>
-                <textarea id="reverseReason" placeholder="Explain why this decision is being reversed (required for audit)"></textarea>
+                <label for="reverseReason">Reason for reversal <span class="req-asterisk" id="req-reverse">*</span></label>
+                <textarea id="reverseReason" placeholder="Explain why this decision is being reversed (required for audit)" oninput="handleReasonInput('reverseReason', 'reverse-error', 'req-reverse', 'confirmReverseBtn', 'Reason')"></textarea>
+                 <div class="field-error" id="reverse-error"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-warning" id="confirmReverseBtn" onclick="confirmReverse()">Confirm Reversal</button>
+                <button class="btn btn-warning" id="confirmReverseBtn" onclick="confirmReverse()" disabled>Confirm Reversal</button>
                 <button class="btn btn-secondary" onclick="closeReverseModal()">Cancel</button>
             </div>
         </div>
@@ -871,7 +891,7 @@
     <div class="modal-overlay" id="deleteModal">
         <div class="modal">
             <div class="modal-header">
-                <button class="modal-back" onclick="closeDeleteModal()">← Back to Requests</button>
+                <button class="modal-back" onclick="closeDeleteModal()">← Back</button>
                 <h2>Delete Request</h2>
             </div>
             <div class="modal-body" id="deleteModalBody">
@@ -881,11 +901,12 @@
                 <div class="request-info" id="deleteRequestInfo">
                     <!-- Filled by JavaScript -->
                 </div>
-                <label for="deleteReason">Reason for deletion <span style="color:#C0392B;">*</span></label>
-                <textarea id="deleteReason" placeholder="Explain why this request is being deleted (required for audit)"></textarea>
+                <label for="deleteReason">Reason for deletion <span class="req-asterisk" id="req-delete">*</span></label>
+                <textarea id="deleteReason" placeholder="Explain why this request is being deleted (required for audit)" oninput="handleReasonInput('deleteReason', 'delete-error', 'req-delete', 'confirmDeleteBtn', 'Reason')"></textarea>
+                <div class="field-error" id="delete-error"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()">Confirm Delete</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn" onclick="confirmDelete()" disabled>Confirm Delete</button>
                 <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
             </div>
         </div>
@@ -895,7 +916,7 @@
     <div class="modal-overlay" id="permanentDeleteModal">
         <div class="modal">
             <div class="modal-header">
-                <button class="modal-back" onclick="closePermanentDeleteModal()">← Back to Requests</button>
+                <button class="modal-back" onclick="closePermanentDeleteModal()">← Back</button>
                 <h2>Permanently Delete Request</h2>
             </div>
             <div class="modal-body" id="permanentDeleteModalBody">

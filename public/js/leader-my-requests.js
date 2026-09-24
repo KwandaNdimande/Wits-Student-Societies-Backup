@@ -659,7 +659,7 @@ async function openUpdateModal(requestId) {
         modalBody += `
             <div class="comment-area" style="margin-top:16px;">
                 <label style="display:block;font-weight:600;font-size:13px;color:var(--text-600);margin-bottom:4px;">Add Comment (Optional)</label>
-                <textarea id="updateComment" placeholder="Describe the changes you've made..." style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;resize:vertical;min-height:60px;"></textarea>
+                <textarea id="updateComment" oninput="handleCommentInput()" placeholder="Describe the changes you've made." style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;resize:vertical;min-height:60px;"></textarea>
                 <div class="form-error" id="updateComment-error" style="font-size:12px;color:#D64545;margin-top:4px;min-height:18px;"></div>
             </div>
             <div class="modal-footer" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:12px;">
@@ -693,6 +693,40 @@ async function openUpdateModal(requestId) {
         alert('Error loading documents. ' + error.message);
     }
 }
+
+// ============ COMMENT VALIDATION ============
+
+function getCommentError(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    if (/^[0-9]+$/.test(text)) return 'Error: Comment cannot be numbers only.';
+    if (text.length < 10) return 'Error: Comment must be at least 10 characters.';
+    return '';
+}
+
+function validateUpdateComment() {
+    const input = document.getElementById('updateComment');
+    const errorEl = document.getElementById('updateComment-error');
+    if (!input) return true;
+
+    const message = getCommentError(input.value);
+    if (message) {
+        input.classList.add('input-error');
+        if (errorEl) errorEl.textContent = message;
+        return false;
+    }
+
+    input.classList.remove('input-error');
+    if (errorEl) errorEl.textContent = '';
+    return true;
+}
+
+function handleCommentInput() {
+    validateUpdateComment();
+    checkUpdateFormValidity();
+}
+
+
 
 // ============ UPDATE FORM VALIDATION ============
 
@@ -737,7 +771,8 @@ function checkUpdateFormValidity() {
             }
         }
     });
-    btn.disabled = !hasFile || hasError;
+    const commentOk = !getCommentError(document.getElementById('updateComment')?.value || '');
+    btn.disabled = !hasFile || hasError || !commentOk;
     btn.style.opacity = btn.disabled ? '0.6' : '1';
     btn.style.cursor = btn.disabled ? 'not-allowed' : 'pointer';
 }
@@ -746,6 +781,7 @@ function checkUpdateFormValidity() {
 
 async function submitUpdate() {
     if (!currentRequestId) return;
+     if (!validateUpdateComment()) return;
 
     const btn = document.getElementById('updateResubmitBtn');
     btn.disabled = true;
@@ -832,7 +868,7 @@ async function submitUpdate() {
         }
 
         // 3. Update Firestore
-        const comment = document.getElementById('updateComment')?.value || '';
+        const comment = document.getElementById('updateComment')?.value.trim() || '';
         await db.collection('requests').doc(currentRequestId).update({
             documents: updatedDocs,
             status: 'Resubmitted',

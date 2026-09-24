@@ -220,6 +220,16 @@ async function viewAnnouncement(id) {
         const data = doc.data();
         document.getElementById('view-title').textContent = data.title || '-';
         document.getElementById('view-category').textContent = data.category || 'General Notice';
+
+        const eventDateRow = document.getElementById('view-event-date-row');
+        if (data.date) {
+            const eventDateStr = new Date(data.date + 'T00:00:00').toLocaleDateString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric' });
+            document.getElementById('view-event-date').textContent = eventDateStr;
+            if (eventDateRow) eventDateRow.classList.remove('hidden');
+        } else {
+            if (eventDateRow) eventDateRow.classList.add('hidden');
+        }
+
         const dateStr = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown';
         document.getElementById('view-date').textContent = dateStr;
         document.getElementById('view-message').textContent = data.body || 'No message.';

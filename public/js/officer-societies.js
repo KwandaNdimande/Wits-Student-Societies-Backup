@@ -36,6 +36,48 @@ function isValidEmail(email) {
     return String(email || '').includes('@');
 }
 
+function sanitizeNameInput(value) {
+    return String(value || '').replace(/[^A-Za-z\s]/g, '');
+}
+
+function restrictToNameCharacters(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    input.addEventListener('input', () => {
+        const cleaned = sanitizeNameInput(input.value);
+        if (cleaned !== input.value) input.value = cleaned;
+    });
+}
+
+function isDescriptionOnlyNumbers(value) {
+    const trimmed = String(value || '').trim();
+    return trimmed.length > 0 && /^[0-9]+$/.test(trimmed);
+}
+
+function isDescriptionTooShort(value) {
+    const trimmed = String(value || '').trim();
+    return trimmed.length > 0 && trimmed.length < 4;
+}
+
+function isNameTooShort(value) {
+    const trimmed = String(value || '').trim();
+    return trimmed.length > 0 && trimmed.length < 2;
+}
+
+function attachDescriptionCheck(textareaId, errorId) {
+    const textarea = document.getElementById(textareaId);
+    if (!textarea) return;
+    textarea.addEventListener('input', () => {
+        if (isDescriptionOnlyNumbers(textarea.value)) {
+            showFieldError(textareaId, errorId, 'Description cannot be numbers only.');
+        } else if (isDescriptionTooShort(textarea.value)) {
+            showFieldError(textareaId, errorId, 'Description must be at least 4 characters.');
+        } else {
+            hideFieldError(textareaId, errorId);
+        }
+    });
+}
+
 function formatSocietyName(name) {
     return String(name || '').trim().replace(/\s+/g, ' ').split(' ').map(word =>
         word.split(/([-'])/).map(part => /^[a-z]/i.test(part)
@@ -185,16 +227,25 @@ function isAddFormValid() {
     const name = document.getElementById('society-name')?.value.trim() || '';
     const category = document.getElementById('society-category')?.value || '';
     const email = document.getElementById('society-email')?.value.trim() || '';
+    const description = document.getElementById('society-description')?.value || '';
 
     if (!name || !category || !email) return false;
+    if (name.length < 2) return false;
     if (!isValidEmail(email)) return false;
+    if (isDescriptionOnlyNumbers(description)) return false;
+    if (isDescriptionTooShort(description)) return false;
 
     const portfolios = ['chairperson', 'deputychairperson', 'treasurer', 'secretary', 'organiser'];
     for (const id of portfolios) {
         const n = document.getElementById(`${id}-name`)?.value.trim() || '';
         const e = document.getElementById(`${id}-email`)?.value.trim() || '';
         if (!n || !e) return false;
+        if (n.length < 2) return false;
         if (!isValidEmail(e)) return false;
+    }
+
+    for (const portfolio of otherPortfolios) {
+        if (portfolio.title.length < 2 || portfolio.name.length < 2) return false;
     }
 
     return true;
@@ -210,16 +261,25 @@ function isEditFormValid() {
     const name = document.getElementById('edit-soc-name')?.value.trim() || '';
     const category = document.getElementById('edit-soc-category')?.value || '';
     const email = document.getElementById('edit-soc-email')?.value.trim() || '';
+    const description = document.getElementById('edit-soc-description')?.value || '';
 
     if (!name || !category || !email) return false;
+    if (name.length < 2) return false;
     if (!isValidEmail(email)) return false;
+    if (isDescriptionOnlyNumbers(description)) return false;
+    if (isDescriptionTooShort(description)) return false;
 
     const portfolios = ['edit-chairperson', 'edit-deputychairperson', 'edit-treasurer', 'edit-secretary', 'edit-organiser'];
     for (const id of portfolios) {
         const n = document.getElementById(`${id}-name`)?.value.trim() || '';
         const e = document.getElementById(`${id}-email`)?.value.trim() || '';
         if (!n || !e) return false;
+        if (n.length < 2) return false;
         if (!isValidEmail(e)) return false;
+    }
+
+    for (const portfolio of editingOtherPortfolios) {
+        if (portfolio.title.length < 2 || portfolio.name.length < 2) return false;
     }
 
     return true;
@@ -442,7 +502,8 @@ function openAddSocietyModal() {
                 <input id="society-email" placeholder="Contact Email" />
                 <div class="field-error" id="society-email-error"></div>
             </div>
-            <textarea id="society-description" placeholder="Short description of the society"></textarea>
+                        <textarea id="society-description" placeholder="Short description of the society"></textarea>
+            <div class="field-error" id="society-description-error"></div>
 
             <div class="exec-grid">
                 <div class="exec-col">
@@ -487,6 +548,7 @@ function openAddSocietyModal() {
                     <input id="other-portfolio-email" placeholder="Member Email" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
                     <button type="button" onclick="addOtherPortfolio()" style="padding: 10px 20px; background: var(--blue-600); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">Add</button>
                 </div>
+                <div class="field-error" id="other-portfolio-email-error"></div>
                 <div id="other-portfolios-list"></div>
             </div>
 
@@ -552,7 +614,15 @@ function wireAddFormListeners() {
         }
     });
 
-    attachEmailBlurValidation('society-email', 'society-email-error');
+        attachEmailBlurValidation('society-email', 'society-email-error');
+        attachEmailBlurValidation('other-portfolio-email', 'other-portfolio-email-error');
+
+
+    const addNameFields = ['society-name', 'chairperson-name', 'deputychairperson-name', 'treasurer-name', 'secretary-name', 'organiser-name', 'other-portfolio-title', 'other-portfolio-name'];
+    addNameFields.forEach(restrictToNameCharacters);
+
+    attachDescriptionCheck('society-description', 'society-description-error');
+    document.getElementById('society-description')?.addEventListener('input', updateAddButtonState);
 }
 
 function addOtherPortfolio() {
@@ -562,6 +632,11 @@ function addOtherPortfolio() {
 
     if (!title || !name || !email) {
         alert('Please fill in all portfolio fields.');
+        return;
+    }
+
+    if (title.length < 2 || name.length < 2) {
+        alert('Portfolio title and member name must be at least 2 characters.');
         return;
     }
 
@@ -627,12 +702,18 @@ function addEditOtherPortfolio() {
         return;
     }
 
+    if (title.length < 2 || name.length < 2) {
+        alert('Portfolio title and member name must be at least 2 characters.');
+        return;
+    }
+
     if (!isValidEmail(email)) {
         alert('Please enter a valid email for the portfolio.');
         return;
     }
 
     editingOtherPortfolios.push({ title, name, email });
+    
 
     document.getElementById('edit-other-portfolio-title').value = '';
     document.getElementById('edit-other-portfolio-name').value = '';
@@ -951,7 +1032,8 @@ async function openEditSociety(societyId) {
                     <input id="edit-soc-email" placeholder="Contact Email" value="${escapeHtml(s.email || '')}" />
                     <div class="field-error" id="edit-soc-email-error"></div>
                 </div>
-                <textarea id="edit-soc-description" placeholder="Short description">${escapeHtml(s.description || '')}</textarea>
+                                <textarea id="edit-soc-description" placeholder="Short description">${escapeHtml(s.description || '')}</textarea>
+                <div class="field-error" id="edit-soc-description-error"></div>
 
                 <div class="exec-subgrid">
                     <div class="exec-col">
@@ -996,6 +1078,7 @@ async function openEditSociety(societyId) {
                         <input id="edit-other-portfolio-email" placeholder="Member Email" style="flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;" />
                         <button type="button" onclick="addEditOtherPortfolio()" style="padding: 10px 20px; background: var(--blue-600); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">Add</button>
                     </div>
+                    <div class="field-error" id="edit-other-portfolio-email-error"></div>
                     <div id="edit-other-portfolios-list"></div>
                 </div>
             </div>
@@ -1060,7 +1143,14 @@ function wireEditFormListeners() {
         refresh();
     });
 
-    attachEmailBlurValidation('edit-soc-email', 'edit-soc-email-error');
+        attachEmailBlurValidation('edit-soc-email', 'edit-soc-email-error');
+        attachEmailBlurValidation('edit-other-portfolio-email', 'edit-other-portfolio-email-error');
+
+    const editNameFields = ['edit-soc-name', 'edit-chairperson-name', 'edit-deputychairperson-name', 'edit-treasurer-name', 'edit-secretary-name', 'edit-organiser-name', 'edit-other-portfolio-title', 'edit-other-portfolio-name'];
+    editNameFields.forEach(restrictToNameCharacters);
+
+    attachDescriptionCheck('edit-soc-description', 'edit-soc-description-error');
+    document.getElementById('edit-soc-description')?.addEventListener('input', updateEditButtonState);
 }
 
 async function saveSocietyEdits() {

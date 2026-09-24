@@ -111,14 +111,104 @@ function hideFileError() {
     if (input) input.classList.remove('input-error');
 }
 
-function showNameError() {
+function showNameError(message) {
     const input = document.getElementById('doc-name');
+     const error = document.getElementById('doc-name-error');
     if (input) input.classList.add('input-error');
+    if (error) {
+        error.textContent = message;
+        error.classList.add('show');
+    } 
 }
 
 function hideNameError() {
     const input = document.getElementById('doc-name');
+       const error = document.getElementById('doc-name-error');
     if (input) input.classList.remove('input-error');
+    if (error) {
+        error.classList.remove('show');
+        error.textContent = '';
+    }
+}
+
+function isValidDocumentName(value) {
+    const trimmed = String(value || '').trim();
+
+    if (trimmed.length === 0) return false;
+
+    const hasLetter = /[A-Za-z]/.test(trimmed);
+
+    return hasLetter;
+}
+
+
+function validateDocumentName() {
+    const input = document.getElementById('doc-name');
+
+    if (!input) return true;
+
+    const value = input.value.trim();
+
+    if (!value) {
+        showNameError('Document name is required.');
+        return false;
+    }
+
+    if (!isValidDocumentName(value)) {
+        showNameError('Document name cannot contain numbers only.');
+        return false;
+    }
+
+    hideNameError();
+    return true;
+}
+
+function isDescriptionOnlyNumbers(value) {
+    const trimmed = String(value || '').trim();
+    return trimmed.length > 0 && /^[0-9]+$/.test(trimmed);
+}
+
+function isDescriptionTooShort(value) {
+    const trimmed = String(value || '').trim();
+    return trimmed.length > 0 && trimmed.length < 4;
+}
+
+function validateDescriptionInput() {
+    const textarea = document.getElementById('doc-description');
+
+    if (!textarea) return;
+
+    if (isDescriptionOnlyNumbers(textarea.value)) {
+        showDescriptionError('Description cannot be numbers only.');
+    } else if (isDescriptionTooShort(textarea.value)) {
+        showDescriptionError('Description must be at least 4 characters.');
+    } else {
+        hideDescriptionError();
+    }
+}
+
+function showDescriptionError(message) {
+    const input = document.getElementById('doc-description');
+    const error = document.getElementById('doc-description-error');
+
+    if (input) input.classList.add('input-error');
+
+    if (error) {
+        error.textContent = message;
+        error.classList.add('show');
+    }
+}
+
+function hideDescriptionError() {
+    const input = document.getElementById('doc-description');
+    const error = document.getElementById('doc-description-error');
+
+    if (input) input.classList.remove('input-error');
+
+    if (error) {
+        error.classList.remove('show');
+        error.textContent = '';
+    }
 }
 
 // ================================================================
@@ -363,10 +453,16 @@ function viewCurrentFile() {
 function isFormValid() {
     const name = document.getElementById('doc-name')?.value.trim() || '';
     const fileInput = document.getElementById('doc-file');
+    const description = document.getElementById('doc-description')?.value || '';
     const hasNewFile = fileInput?.files && fileInput.files.length > 0;
 
     // Name always required
     if (!name) return false;
+    if (!isValidDocumentName(name)) return false;
+
+    // Description is optional, but if something was typed, it must be valid
+    if (isDescriptionOnlyNumbers(description)) return false;
+    if (isDescriptionTooShort(description)) return false;
 
     // In new-upload mode (no currentEditingId), a file is required
     if (!currentEditingId) {
@@ -397,6 +493,7 @@ function updateFormState() {
     const fileInput = document.getElementById('doc-file');
     const saveBtn = document.getElementById('documentSaveBtn');
     const warning = document.getElementById('edit-warning');
+     const tooltip = document.getElementById('documentSaveTooltip');
     const isEditMode = !!currentEditingId;
 
     // Asterisk: doc name
@@ -412,7 +509,7 @@ function updateFormState() {
     }
 
     // Live name error clear (only clear if user fixes it)
-    if (nameInput && nameInput.classList.contains('input-error') && hasName) {
+    if (nameInput && nameInput.classList.contains('input-error') && isValidDocumentName(nameInput.value)) {
         hideNameError();
     }
 
@@ -425,6 +522,7 @@ function updateFormState() {
     }
 
     // Edit warning (edit mode + no changes)
+    let hasChanges = true;
     if (isEditMode) {
         const nameChanged = (nameInput?.value.trim() || '') !== initialName;
         const descChanged = (document.getElementById('doc-description')?.value.trim() || '') !== initialDescription;
@@ -440,7 +538,17 @@ function updateFormState() {
 
     // Save button state
     if (saveBtn) {
+        const formValid = isFormValid();
         saveBtn.disabled = !isFormValid();
+      if (tooltip) {
+        if (isEditMode) {
+            tooltip.textContent = 'Please change a field before saving';
+            tooltip.classList.toggle('no-changes-tooltip', !hasChanges);
+        } else {
+            tooltip.textContent = 'Please complete all required fields';
+            tooltip.classList.remove('no-changes-tooltip');
+        }
+    }  
     }
 }
 
@@ -495,6 +603,7 @@ function openDocumentModal(editingId) {
     document.getElementById('current-file-indicator').classList.add('hidden');
     hideFileError();
     hideNameError();
+    hideDescriptionError();
 
     const saveBtn = document.getElementById('documentSaveBtn');
     const warning = document.getElementById('edit-warning');
@@ -516,6 +625,7 @@ function closeDocumentModal() {
     document.getElementById('current-file-indicator').classList.add('hidden');
     hideFileError();
     hideNameError();
+    hideDescriptionError();
 
     const saveBtn = document.getElementById('documentSaveBtn');
     const warning = document.getElementById('edit-warning');
@@ -530,8 +640,15 @@ document.getElementById('documentModal').addEventListener('click', function(e) {
 });
 
 // Attach live listeners once (modal HTML is static)
-document.getElementById('doc-name').addEventListener('input', updateFormState);
-document.getElementById('doc-description').addEventListener('input', updateFormState);
+document.getElementById('doc-name').addEventListener('input', function(){
+    validateDocumentName();
+    updateFormState();
+});
+
+document.getElementById('doc-description').addEventListener('input', function(){
+    validateDescriptionInput();
+    updateFormState();
+});
 
 // ================================================================
 // OPEN EDIT DOCUMENT
@@ -621,10 +738,17 @@ async function submitDocument() {
     const file = fileInput.files && fileInput.files[0];
 
     // Name empty → red border only (asterisk handles visual)
-    if (!name) {
-        showNameError();
+    if (!validateDocumentName()) {
+        
         return;
     }
+
+    // Description, if filled in, must be valid
+const descriptionValue = document.getElementById('doc-description')?.value || '';
+if (isDescriptionOnlyNumbers(descriptionValue) || isDescriptionTooShort(descriptionValue)) {
+    validateDescriptionInput();
+    return;
+}
 
     // New upload mode: file required
     if (!currentEditingId && !file) {

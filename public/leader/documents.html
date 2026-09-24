@@ -206,7 +206,6 @@
         }
         .modal-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             margin-bottom: 16px;
             padding-bottom: 12px;
@@ -217,6 +216,7 @@
             font-size: 20px;
             font-weight: 600;
             color: var(--navy-900);
+            flex: 1;
         }
         .modal-back {
             background: none;
@@ -336,8 +336,9 @@
     <div class="modal-overlay" id="infoModal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="infoModalTitle">Document Details</h2>
+                
                 <button class="modal-back" onclick="closeInfoModal()">← Back</button>
+                <h2 id="infoModalTitle">Document Details</h2>
             </div>
             <div class="modal-body" id="infoModalBody">
                 <div class="detail-row"><span class="label">Name</span><span class="value" id="info-name">-</span></div>

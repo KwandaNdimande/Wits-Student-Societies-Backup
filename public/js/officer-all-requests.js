@@ -89,6 +89,95 @@ function formatTimestamp(timestamp) {
 }
 
 // ================================================================
+// INPUT VALIDATION HELPERS
+// ================================================================
+function getReasonError(value, label, required) {
+    const text = String(value || '').trim();
+    if (!text) return required ? `Error: ${label} is required.` : '';
+    if (/^[0-9]+$/.test(text)) return `Error: ${label} cannot be numbers only.`;
+    if (text.length < 10) return `Error: ${label} must be at least 10 characters.`;
+    return '';
+}
+
+function showFieldError(inputId, errorId, message) {
+    const inputEl = document.getElementById(inputId);
+    if (inputEl) inputEl.classList.add('input-error');
+    const errorEl = document.getElementById(errorId);
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.classList.add('show');
+    }
+}
+
+function hideFieldError(inputId, errorId) {
+    const inputEl = document.getElementById(inputId);
+    if (inputEl) inputEl.classList.remove('input-error');
+    const errorEl = document.getElementById(errorId);
+    if (errorEl) {
+        errorEl.classList.remove('show');
+        errorEl.textContent = '';
+    }
+}
+
+function validateReasonField(inputId, errorId, label, required = true) {
+    const input = document.getElementById(inputId);
+    if (!input) return true;
+    const message = getReasonError(input.value, label, required);
+    if (message) {
+        showFieldError(inputId, errorId, message);
+        return false;
+    }
+    hideFieldError(inputId, errorId);
+    return true;
+}
+
+function handleReasonInput(inputId, errorId, asteriskId, buttonId, label) {
+    const input = document.getElementById(inputId);
+    const asterisk = document.getElementById(asteriskId);
+    if (asterisk) asterisk.classList.toggle('hidden', input.value.trim() !== '');
+    const valid = validateReasonField(inputId, errorId, label, true);
+    const btn = document.getElementById(buttonId);
+    if (btn) btn.disabled = !valid;
+}
+
+function resetReasonField(inputId, errorId, asteriskId, buttonId) {
+    document.getElementById(inputId).value = '';
+    hideFieldError(inputId, errorId);
+    const asterisk = document.getElementById(asteriskId);
+    if (asterisk) asterisk.classList.remove('hidden');
+    const btn = document.getElementById(buttonId);
+    if (btn) btn.disabled = true;
+}
+
+function updateStatusSaveState() {
+    const saveBtn = document.querySelector('#statusModal .btn-primary');
+    if (!saveBtn || !pendingStatusUpdate) return;
+
+    const newStatus = pendingStatusUpdate.newStatus;
+    let valid = true;
+
+    if (newStatus === 'Rejected') {
+        const selected = document.getElementById('statusRejectReason')?.value || '';
+        if (!selected) {
+            valid = false;
+        } else if (selected === 'Other') {
+            const custom = document.getElementById('statusRejectCustom')?.value || '';
+            if (getReasonError(custom, 'Reason', true)) valid = false;
+        }
+    } else {
+        if (newStatus === 'Revision Required' && !document.getElementById('statusIssueType')?.value) {
+            valid = false;
+        }
+        const note = document.getElementById('statusReasonDetails')?.value || '';
+        if (getReasonError(note, 'Note', false)) valid = false;
+    }
+
+    saveBtn.disabled = !valid;
+}
+
+
+
+// ================================================================
 // TAB SWITCHING
 // ================================================================
 function switchTab(tab) {
@@ -917,7 +1006,7 @@ function openReverseModal(requestId) {
     `;
 
     document.getElementById('reverseRequestInfo').innerHTML = infoHtml;
-    document.getElementById('reverseReason').value = '';
+    resetReasonField('reverseReason', 'reverse-error', 'req-reverse', 'confirmReverseBtn');
     document.getElementById('reverseModal').classList.add('active');
     document.getElementById('reverseReason').focus();
 }
@@ -931,8 +1020,8 @@ function confirmReverse() {
     if (!pendingReverseRequestId) return;
 
     const reason = document.getElementById('reverseReason').value.trim();
-    if (!reason) {
-        alert('Please provide a reason for the reversal.');
+    if (!validateReasonField('reverseReason', 'reverse-error', 'Reason', true)) {
+        
         document.getElementById('reverseReason').focus();
         return;
     }
@@ -1054,7 +1143,7 @@ function openDeleteModal(requestId) {
     `;
 
     document.getElementById('deleteRequestInfo').innerHTML = infoHtml;
-    document.getElementById('deleteReason').value = '';
+    resetReasonField('deleteReason', 'delete-error', 'req-delete', 'confirmDeleteBtn');
     document.getElementById('deleteModal').classList.add('active');
     document.getElementById('deleteReason').focus();
 }
@@ -1068,8 +1157,8 @@ function confirmDelete() {
     if (!pendingDeleteRequestId) return;
 
     const reason = document.getElementById('deleteReason').value.trim();
-    if (!reason) {
-        alert('Please provide a reason for the deletion.');
+    if (!validateReasonField('deleteReason', 'delete-error', 'Reason', true)) {
+    
         document.getElementById('deleteReason').focus();
         return;
     }
@@ -1288,9 +1377,10 @@ function openStatusModal(request) {
                 <option value="Does not meet criteria">Does not meet criteria</option>
                 <option value="Other">Other</option>
             </select>
-            <div id="rejectCustomReasonWrapper" style="display:none;margin-top:12px;">
-                <label for="statusRejectCustom">Custom rejection reason</label>
+                        <div id="rejectCustomReasonWrapper" style="display:none;margin-top:12px;">
+                <label for="statusRejectCustom">Custom rejection reason <span class="req-asterisk" id="req-reject-custom">*</span></label>
                 <textarea id="statusRejectCustom" placeholder="Explain the reason for rejection..."></textarea>
+                <div class="field-error" id="reject-custom-error"></div>
             </div>
         `;
     
@@ -1302,25 +1392,51 @@ function openStatusModal(request) {
             ${issueTypes.map(t => `<option value="${t}">${t}</option>`).join('')}
         </select>
         <label for="statusReasonDetails" style="margin-top:12px;display:block;">Additional note (optional)</label>
-        <textarea id="statusReasonDetails" placeholder="Add any extra detail for the leader..."></textarea>
-    `;
+        <textarea id="statusReasonDetails" placeholder="Add any extra detail for the leader."></textarea>
+    <div class="field-error" id="status-note-error"></div>
+`;
 } else {
         bodyHtml += `
             <label for="statusReasonDetails">Optional note</label>
-            <textarea id="statusReasonDetails" placeholder="Add a note for the record..."></textarea>
+            <textarea id="statusReasonDetails" placeholder="Add a note for the record."></textarea>
+            <div class="field-error" id="status-note-error"></div>
         `;
     }
 
     body.innerHTML = bodyHtml;
     modal.classList.add('active');
 
-    const rejectReasonSelect = document.getElementById('statusRejectReason');
+       const rejectReasonSelect = document.getElementById('statusRejectReason');
     if (rejectReasonSelect) {
         rejectReasonSelect.addEventListener('change', function() {
             const customWrapper = document.getElementById('rejectCustomReasonWrapper');
             customWrapper.style.display = this.value === 'Other' ? 'block' : 'none';
+            updateStatusSaveState();
         });
     }
+
+    const issueSelect = document.getElementById('statusIssueType');
+    if (issueSelect) issueSelect.addEventListener('change', updateStatusSaveState);
+
+    const customReasonInput = document.getElementById('statusRejectCustom');
+    if (customReasonInput) {
+        customReasonInput.addEventListener('input', function() {
+            document.getElementById('req-reject-custom').classList.toggle('hidden', this.value.trim() !== '');
+            validateReasonField('statusRejectCustom', 'reject-custom-error', 'Reason', true);
+            updateStatusSaveState();
+        });
+    }
+
+    const noteInput = document.getElementById('statusReasonDetails');
+    if (noteInput) {
+        noteInput.addEventListener('input', function() {
+            validateReasonField('statusReasonDetails', 'status-note-error', 'Note', false);
+            updateStatusSaveState();
+        });
+    }
+
+    updateStatusSaveState();
+
 }
 
 function closeStatusModal(resetSelect = false) {
@@ -1338,6 +1454,9 @@ async function submitStatusModal() {
     const noteTextarea = document.getElementById('statusReasonDetails');
     const noteText = noteTextarea ? noteTextarea.value.trim() : '';
     let statusNote = noteText;
+     if (noteTextarea && !validateReasonField('statusReasonDetails', 'status-note-error', 'Note', false)) {
+        return;
+    }
 
     if (newStatus === 'Rejected') {
         const selectedReason = document.getElementById('statusRejectReason')?.value || '';
@@ -1347,8 +1466,7 @@ async function submitStatusModal() {
             return;
         }
         if (selectedReason === 'Other') {
-            if (!customReason) {
-                alert('Please enter a custom reason.');
+            if (!validateReasonField('statusRejectCustom', 'reject-custom-error', 'Reason', true)) {
                 return;
             }
             statusNote = customReason;

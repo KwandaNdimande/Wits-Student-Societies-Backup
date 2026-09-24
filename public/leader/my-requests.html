@@ -432,7 +432,6 @@
         }
         .modal-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 12px;
@@ -443,6 +442,7 @@
             font-size: 20px;
             font-weight: 600;
             color: var(--navy-900);
+            flex: 1;
         }
         .modal-close {
             background: none;
@@ -503,6 +503,10 @@
         .modal-body .comment-area textarea:focus {
             outline: none;
             border-color: var(--navy-900);
+        }
+        .modal-body .comment-area textarea.input-error {
+            border-color: var(--danger) !important;
+            box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
         }
         .modal-footer {
             margin-top: 20px;
@@ -739,8 +743,9 @@
     <div class="modal-overlay" id="updateModal">
         <div class="modal">
             <div class="modal-header">
+                
+                <button class="modal-back" onclick="closeUpdateModal()">← Back</button>
                 <h2 id="modalTitle">Update Documents</h2>
-                <button class="modal-back" onclick="closeUpdateModal()" style="background:none;border:none;cursor:pointer;font-size:14px;margin-right:12px;">← Back to Requests</button>
             </div>
             <div class="modal-body" id="modalBody">
                 <div class="no-docs">Loading...</div>

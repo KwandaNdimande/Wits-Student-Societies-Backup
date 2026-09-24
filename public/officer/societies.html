@@ -545,7 +545,6 @@
         }
         .modal-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
             padding-bottom: 12px;
@@ -829,8 +828,8 @@
     <div class="modal-overlay" id="societyModal">
         <div class="modal">
             <div class="modal-header">
+                <button class="modal-back" onclick="closeSocietyModal()">← Back</button>
                 <h2 id="societyModalTitle">Society</h2>
-                <button class="modal-back" onclick="closeSocietyModal()">← Back to Societies</button>
             </div>
             <div class="modal-body" id="societyModalBody">
                 Loading...

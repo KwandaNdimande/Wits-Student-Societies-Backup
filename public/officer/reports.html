@@ -479,6 +479,82 @@
             border-color: var(--navy-800);
         }
 
+        /* Searchable society dropdown */
+        .society-dropdown {
+            position: relative;
+            min-width: 220px;
+        }
+        .society-dropdown-toggle {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: #fff;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-900);
+            cursor: pointer;
+            text-align: left;
+        }
+        .society-dropdown-panel {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            width: 100%;
+            min-width: 260px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            z-index: 50;
+            padding: 8px;
+        }
+        .society-dropdown-panel.open {
+            display: block;
+        }
+        .filter-bar .society-dropdown-panel input[type="text"] {
+            width: 100%;
+            margin-bottom: 6px;
+        }
+        .society-dropdown-panel ul {
+            list-style: none;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .society-dropdown-panel li {
+            padding: 8px 10px;
+            font-size: 13px;
+            color: var(--text-600);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .society-dropdown-panel li:hover {
+            background: #F1F5FB;
+            color: var(--text-900);
+        }
+        .society-dropdown-panel li.selected {
+            background: var(--info-bg);
+            color: var(--info);
+            font-weight: 600;
+        }
+        .society-dropdown-panel li.society-empty {
+            cursor: default;
+            color: var(--text-500);
+        }
+        .society-dropdown-panel li.society-empty:hover {
+            background: transparent;
+        }
+        @media (max-width: 768px) {
+            .society-dropdown {
+                width: 100%;
+            }
+        }
+
         @media (max-width: 768px) {
             .stats {
                 grid-template-columns: repeat(2, 1fr);
@@ -609,9 +685,19 @@
                         <option value="Revision Required">Revision Required</option>
                     </select>
                 </div>
-                <div class="filter-group">
-                    <label for="p1-society-search">Society:</label>
-                    <input type="text" id="p1-society-search" placeholder="Search society name" />
+                                <div class="filter-group">
+                    <label>Society:</label>
+                    <div class="society-dropdown" id="p1-society-dropdown">
+                        <button type="button" class="society-dropdown-toggle" id="p1-society-toggle">
+                            <span id="p1-society-label">All Societies</span>
+                            <span>▾</span>
+                        </button>
+                        <div class="society-dropdown-panel" id="p1-society-panel">
+                            <input type="text" id="p1-society-search" placeholder="Search society..." autocomplete="off" />
+                            <ul id="p1-society-list"></ul>
+                        </div>
+                        <input type="hidden" id="p1-society-value" value="" />
+                    </div>
                 </div>
 
                 <div class="filter-group">

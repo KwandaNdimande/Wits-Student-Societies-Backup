@@ -66,8 +66,24 @@ function hideAsterisk(key) {
 
 // ============ NUMBERS-ONLY CHECK ============
 function isNumbersOnly(value) {
-    if (!value || value.trim() === '') return false;
-    return !/[a-zA-Z]/.test(value);
+    const trimmed = String(value || '').trim();
+    return trimmed.length > 0 && /^[0-9]+$/.test(trimmed);
+}
+
+function getItemNameError(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    if (isNumbersOnly(text)) return 'Error: Event / Item name cannot be numbers only.';
+    if (text.length < 3) return 'Error: Event / Item name must be at least 3 characters.';
+    return '';
+}
+
+function getDescriptionError(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    if (isNumbersOnly(text)) return 'Error: Description cannot be numbers only.';
+    if (text.length < 10) return 'Error: Description must be at least 10 characters.';
+    return '';
 }
 
 // ============ VALIDATION ============
@@ -76,12 +92,12 @@ function isFieldValid(fieldId, value) {
         case 'request-type':
             return value && value.trim() !== '';
         case 'item-name':
-            return value && value.trim() !== '' && !isNumbersOnly(value);
+            return value && value.trim() !== '' && !getItemNameError(value);
         case 'amount':
-            const num = parseFloat(value);
-            return !isNaN(num) && num >= 100;
+            const num = Number(value);
+            return value.trim() !== '' && Number.isFinite(num) && num >= 100;
         case 'description':
-            return value && value.trim() !== '' && !isNumbersOnly(value);
+            return value && value.trim() !== '' && !getDescriptionError(value);
         case 'budget-form':
             const fileB = document.getElementById('budget-form').files[0];
             return fileB && /\.(xlsx|xls)$/i.test(fileB.name);
@@ -136,14 +152,21 @@ function updateAsteriskForField(fieldId) {
 }
 
 // ============ REAL-TIME WARNING (Event/Item Name & Description) ============
-function updateNumbersOnlyWarning(inputId, warningId) {
+const touchedFields = {};
+
+function updateTextFieldWarning(inputId, warningId, label, getError) {
     const input = document.getElementById(inputId);
     const warning = document.getElementById(warningId);
     if (!input || !warning) return;
 
     const value = input.value;
-    if (value.trim() !== '' && isNumbersOnly(value)) {
-        warning.textContent = 'Error: This field cannot contain numbers only.';
+    let message = getError(value);
+    if (!message && touchedFields[inputId] && value.trim() === '') {
+        message = `Error: ${label} is required.`;
+    }
+
+    if (message) {
+        warning.textContent = message;
         warning.classList.add('show');
         input.classList.add('error');
         input.setAttribute('aria-invalid', 'true');
@@ -194,8 +217,9 @@ function updateFormState() {
     updateAsteriskForField('vendor-quotation');
 
     // Update warnings
-    updateNumbersOnlyWarning('item-name', 'item-warning');
-    updateNumbersOnlyWarning('description', 'description-warning');
+       // Update warnings
+    updateTextFieldWarning('item-name', 'item-warning', 'Event / Item name', getItemNameError);
+    updateTextFieldWarning('description', 'description-warning', 'Description', getDescriptionError);
 
     // Update amount error
     updateAmountError();
@@ -224,9 +248,9 @@ function updateAmountError() {
         return;
     }
 
-    const num = parseFloat(value);
-    if (isNaN(num) || num < 100) {
-        errorEl.textContent = 'Error: Enter a valid amount. Must be at least R100.';
+    const num = Number(value);
+if (!/^[0-9]+(\.[0-9]+)?$/.test(value) || !Number.isFinite(num) || num < 100) {
+    errorEl.textContent = 'Error: Enter a valid amount. Must be at least R100.';
         errorEl.classList.add('show');
         amountInput.classList.add('error');
         amountInput.setAttribute('aria-invalid', 'true');
@@ -267,6 +291,9 @@ function resetForm() {
         input.value = '';
     });
 
+    touchedFields['item-name'] = false;
+    touchedFields['description'] = false;
+
     clearAllErrors();
 
     submitBtn.textContent = 'Submit Request';
@@ -279,9 +306,15 @@ function resetForm() {
 
 // ============ EVENT LISTENERS ============
 document.getElementById('request-type').addEventListener('input', updateFormState);
-document.getElementById('item-name').addEventListener('input', updateFormState);
+document.getElementById('item-name').addEventListener('input', function(){
+    touchedFields['item-name'] = true;
+    updateFormState();
+});
 document.getElementById('amount').addEventListener('input', updateFormState);
-document.getElementById('description').addEventListener('input', updateFormState);
+document.getElementById('description').addEventListener('input', function(){
+    touchedFields['description'] = true;
+    updateFormState();
+});
 document.getElementById('budget-form').addEventListener('change', updateFormState);
 document.getElementById('meeting-minutes').addEventListener('change', updateFormState);
 document.getElementById('vendor-quotation').addEventListener('change', updateFormState);

@@ -239,7 +239,6 @@
         }
         .modal-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             margin-bottom: 16px;
             padding-bottom: 12px;
@@ -248,6 +247,7 @@
         .modal-header h2 {
             font-family: 'Space Grotesk', sans-serif;
             font-size: 20px;
+            flex: 1;
             font-weight: 600;
             color: var(--navy-900);
         }
@@ -506,7 +506,7 @@
             border: 6px solid transparent;
             border-top-color: #0B1F3A;
         }
-        .btn-wrapper .btn-primary:disabled:hover + .tooltip {
+        .btn-wrapper .btn-primary:disabled:hover + .tooltip.no-changes-tooltip {
             display: block;
         }
 
@@ -640,8 +640,9 @@
     <div class="modal-overlay" id="infoModal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="infoModalTitle">Document Details</h2>
+                
                 <button class="modal-back" onclick="closeInfoModal()">← Back</button>
+                <h2 id="infoModalTitle">Document Details</h2>
             </div>
             <div class="modal-body" id="infoModalBody">
                 <div class="detail-row"><span class="label">Name</span><span class="value" id="info-name">-</span></div>
@@ -664,17 +665,20 @@
     <div class="modal-overlay" id="documentModal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="documentModalTitle">Upload Document</h2>
+                
                 <button class="modal-back" onclick="closeDocumentModal()">← Back</button>
+                <h2 id="documentModalTitle">Upload Document</h2>
             </div>
             <div class="modal-body" id="documentModalBody">
                 <div class="form-group">
                     <label for="doc-name">Document Name <span class="req-asterisk" id="req-doc-name">*</span></label>
                     <input id="doc-name" placeholder="e.g., Budget Template, Constitution, etc." />
+                     <div class="field-error" id="doc-name-error"></div>
                 </div>
                 <div class="form-group">
                     <label for="doc-description">Description</label>
                     <textarea id="doc-description" placeholder="Brief description of the document..." rows="3"></textarea>
+                    <div class="field-error" id="doc-description-error"></div>
                 </div>
                 <div class="form-group">
                     <label>File <span class="req-asterisk" id="req-doc-file">*</span></label>
@@ -700,7 +704,7 @@
             <div class="modal-footer-edit">
                 <div class="btn-wrapper">
                     <button class="btn btn-primary" id="documentSaveBtn" onclick="submitDocument()" disabled>Save</button>
-                    <div class="tooltip">Please complete all required fields</div>
+                    <div class="tooltip" id="documentSaveTooltip">Please complete all required fields</div>
                 </div>
                 <button class="btn btn-secondary" onclick="closeDocumentModal()">Cancel</button>
             </div>

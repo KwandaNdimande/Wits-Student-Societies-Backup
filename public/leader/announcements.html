@@ -194,7 +194,6 @@
         }
         .modal-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             margin-bottom: 16px;
             padding-bottom: 12px;
@@ -205,6 +204,7 @@
             font-size: 20px;
             font-weight: 600;
             color: var(--navy-900);
+            flex: 1;
         }
         .modal-back {
             background: none;
@@ -244,6 +244,9 @@
             gap: 12px;
             justify-content: flex-end;
         }
+        #view-event-date-row.hidden {
+    display: none;
+}
         .btn {
             font-family: 'Inter', sans-serif;
             font-size: 14px;
@@ -332,12 +335,14 @@
     <div class="modal-overlay" id="viewModal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="viewModalTitle">Announcement</h2>
+                
                 <button class="modal-back" onclick="closeViewModal()">← Back</button>
+                <h2 id="viewModalTitle">Announcement</h2>
             </div>
             <div class="modal-body" id="viewModalBody">
                 <div class="detail-row"><span class="label">Title</span><span class="value" id="view-title">-</span></div>
                 <div class="detail-row"><span class="label">Category</span><span class="value" id="view-category">-</span></div>
+                <div class="detail-row" id="view-event-date-row"><span class="label">Event Date</span><span class="value" id="view-event-date">-</span></div>
                 <div class="detail-row"><span class="label">Posted</span><span class="value" id="view-date">-</span></div>
                 <div class="detail-row"><span class="label">Message</span><span class="value" id="view-message">-</span></div>
             </div>

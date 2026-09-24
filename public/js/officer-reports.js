@@ -110,14 +110,14 @@ function computeFilteredRequests() {
     }
 
     const status = document.getElementById('p1-status-filter').value;
-    const societyQuery = document.getElementById('p1-society-search').value.trim().toLowerCase();
+    const societyQuery = document.getElementById('p1-society-value').value.trim().toLowerCase();
 
     let filtered = dateFiltered;
     if (status !== 'All') {
         filtered = filtered.filter(r => r.status === status);
     }
     if (societyQuery !== '') {
-        filtered = filtered.filter(r => (r.societyName || '').toLowerCase().includes(societyQuery));
+        filtered = filtered.filter(r => (r.societyName || '').trim().toLowerCase() === societyQuery);
     }
 
     filteredRequests = filtered;
@@ -130,7 +130,7 @@ function computeFilteredRequests() {
         title += ` (Status: ${status})`;
     }
     if (societyQuery !== '') {
-        const originalQuery = document.getElementById('p1-society-search').value.trim();
+        const originalQuery = document.getElementById('p1-society-value').value.trim();
         title += ` (Society: ${originalQuery})`;
     }
     document.getElementById('p1-title').textContent = title;
@@ -150,8 +150,7 @@ function applyDefaultFilter() {
     toggleFilterInputs();
 
     document.getElementById('p1-status-filter').value = 'All';
-    document.getElementById('p1-society-search').value = '';
-
+    computeFilteredRequests();
     computeFilteredRequests();
 }
 
@@ -164,8 +163,7 @@ function clearFilter() {
     toggleFilterInputs();
 
     document.getElementById('p1-status-filter').value = 'All';
-    document.getElementById('p1-society-search').value = '';
-
+    resetSocietyDropdown();
     computeFilteredRequests();
     showToast('Filter cleared — showing all time with all statuses.');
 }
@@ -320,6 +318,93 @@ function clearFilterP4() {
     showToast('Filter cleared — showing all time.');
 }
 
+// ============ SOCIETY DROPDOWN (Report 1) ============
+let societyOptions = [];
+
+function populateSocietyDropdown() {
+    societyOptions = allSocieties
+        .map(s => (s.name || '').trim())
+        .filter(n => n !== '')
+        .sort((a, b) => a.localeCompare(b));
+    renderSocietyList('');
+}
+
+function renderSocietyList(query) {
+    const list = document.getElementById('p1-society-list');
+    const selected = document.getElementById('p1-society-value').value;
+    const q = query.trim().toLowerCase();
+    list.innerHTML = '';
+
+    if (q === '') {
+        list.appendChild(buildSocietyItem('', 'All Societies', selected === ''));
+    }
+
+    const matches = societyOptions.filter(n => n.toLowerCase().includes(q));
+    matches.forEach(n => list.appendChild(buildSocietyItem(n, n, n === selected)));
+
+    if (matches.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'society-empty';
+        li.textContent = 'No societies found';
+        list.appendChild(li);
+    }
+}
+
+function buildSocietyItem(value, text, isSelected) {
+    const li = document.createElement('li');
+    li.textContent = text;
+    if (isSelected) li.classList.add('selected');
+    li.addEventListener('click', () => selectSociety(value));
+    return li;
+}
+
+function selectSociety(value) {
+    document.getElementById('p1-society-value').value = value;
+    document.getElementById('p1-society-label').textContent = value || 'All Societies';
+    closeSocietyDropdown();
+}
+
+function openSocietyDropdown() {
+    const search = document.getElementById('p1-society-search');
+    search.value = '';
+    renderSocietyList('');
+    document.getElementById('p1-society-panel').classList.add('open');
+    search.focus();
+}
+
+function closeSocietyDropdown() {
+    document.getElementById('p1-society-panel').classList.remove('open');
+}
+
+function resetSocietyDropdown() {
+    selectSociety('');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const toggle = document.getElementById('p1-society-toggle');
+    const panel = document.getElementById('p1-society-panel');
+    const search = document.getElementById('p1-society-search');
+    const wrapper = document.getElementById('p1-society-dropdown');
+    if (!toggle || !panel || !search || !wrapper) return;
+
+    toggle.addEventListener('click', function() {
+        if (panel.classList.contains('open')) closeSocietyDropdown();
+        else openSocietyDropdown();
+    });
+
+    search.addEventListener('input', function() {
+        renderSocietyList(search.value);
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!wrapper.contains(e.target)) closeSocietyDropdown();
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeSocietyDropdown();
+    });
+});
+
 // ============ LOAD DATA ============
 async function loadAllData() {
     try {
@@ -341,6 +426,7 @@ async function loadAllData() {
             allUsers.push({ id: doc.id, ...doc.data() });
         });
 
+        populateSocietyDropdown();
         document.getElementById('last-updated').textContent = 'Data as of ' + new Date().toLocaleString();
 
         // --- Report 1: Default current month ---

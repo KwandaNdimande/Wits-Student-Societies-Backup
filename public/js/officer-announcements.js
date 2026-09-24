@@ -57,6 +57,70 @@ function isValidDate(dateString) {
 // ================================================================
 // ASTERISK HELPERS
 // ================================================================
+function isTitleOnlyNumbers(value) {
+    const trimmed = String(value || '').trim();
+    return trimmed.length > 0 && /^[0-9]+$/.test(trimmed);
+}
+
+function isTitleTooShort(value) {
+    const trimmed = String(value || '').trim();
+    return trimmed.length > 0 && trimmed.length < 3;
+}
+
+function isBodyOnlyNumbers(value) {
+    const trimmed = String(value || '').trim();
+    return trimmed.length > 0 && /^[0-9]+$/.test(trimmed);
+}
+
+function isBodyTooShort(value) {
+    const trimmed = String(value || '').trim();
+    return trimmed.length > 0 && trimmed.length < 10;
+}
+
+function validateTitle() {
+    const input = document.getElementById('announcement-title');
+    if (!input) return true;
+    const value = input.value.trim();
+
+    if (!value) {
+        showFieldError('announcement-title', 'title-error', 'Error: Title is required.');
+        return false;
+    }
+    if (isTitleOnlyNumbers(value)) {
+        showFieldError('announcement-title', 'title-error', 'Error: Title cannot be numbers only.');
+        return false;
+    }
+    if (isTitleTooShort(value)) {
+        showFieldError('announcement-title', 'title-error', 'Error: Title must be at least 3 characters.');
+        return false;
+    }
+
+    hideFieldError('announcement-title', 'title-error');
+    return true;
+}
+
+function validateBody() {
+    const textarea = document.getElementById('announcement-body');
+    if (!textarea) return true;
+    const value = textarea.value.trim();
+
+    if (!value) {
+        showFieldError('announcement-body', 'body-error', 'Error: Message is required.');
+        return false;
+    }
+    if (isBodyOnlyNumbers(value)) {
+        showFieldError('announcement-body', 'body-error', 'Error: Message cannot be numbers only.');
+        return false;
+    }
+    if (isBodyTooShort(value)) {
+        showFieldError('announcement-body', 'body-error', 'Error: Message must be at least 10 characters.');
+        return false;
+    }
+
+    hideFieldError('announcement-body', 'body-error');
+    return true;
+}
+
 function setAsterisk(id, visible) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -77,6 +141,25 @@ function showFieldError(inputId, errorId, message) {
     }
 }
 
+function categoryNeedsDate(category) {
+    return category === 'Upcoming Event' || category === 'Training Induction';
+}
+
+function updateDateFieldVisibility() {
+    const category = document.getElementById('announcement-category')?.value || '';
+    const group = document.getElementById('date-field-group');
+    const dateInput = document.getElementById('announcement-date');
+    if (!group) return;
+
+    if (categoryNeedsDate(category)) {
+        group.classList.remove('hidden');
+    } else {
+        group.classList.add('hidden');
+        if (dateInput) dateInput.value = '';
+        hideFieldError('announcement-date', 'date-error');
+    }
+}
+
 function hideFieldError(inputId, errorId) {
     const inputEl = document.getElementById(inputId);
     if (inputEl) inputEl.classList.remove('input-error');
@@ -94,6 +177,28 @@ function hideAllErrors() {
     hideFieldError('announcement-body', 'body-error');
 }
 
+function showToast(message, isError = false) {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
+    if (!toast || !toastMessage) return;
+
+    toastMessage.textContent = message;
+    toast.style.borderLeftColor = isError ? '#C0392B' : '#1E8E5A';
+
+    toast.classList.add('show');
+    clearTimeout(toast._hideTimeout);
+    toast._hideTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 4000);
+}
+
+function closeToast() {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.classList.remove('show');
+    clearTimeout(toast._hideTimeout);
+}
+
 // ================================================================
 // FORM VALIDITY
 // ================================================================
@@ -103,8 +208,14 @@ function isCreateFormValid() {
     const date = document.getElementById('announcement-date')?.value || '';
     const body = document.getElementById('announcement-body')?.value.trim() || '';
 
-    if (!title || !category || !date || !body) return false;
-    if (!isValidDate(date)) return false;
+    if (!title || !category || !body) return false;
+    if (isTitleOnlyNumbers(title) || isTitleTooShort(title)) return false;
+    if (isBodyOnlyNumbers(body) || isBodyTooShort(body)) return false;
+
+    if (categoryNeedsDate(category)) {
+        if (!date) return false;
+        if (!isValidDate(date)) return false;
+    }
 
     return true;
 }
@@ -126,7 +237,7 @@ function updateAsterisks() {
 
     setAsterisk('req-title', !title);
     setAsterisk('req-category', !category);
-    setAsterisk('req-date', !date);
+    setAsterisk('req-date', categoryNeedsDate(category) && !date);
     setAsterisk('req-body', !body);
 }
 
@@ -134,16 +245,28 @@ function updateAsterisks() {
 // DATE VALIDATION (with inline error)
 // ================================================================
 function validateCreateDate() {
+    const category = document.getElementById('announcement-category')?.value || '';
     const dateInput = document.getElementById('announcement-date');
     const dateVal = dateInput?.value || '';
 
-    if (dateVal && !isValidDate(dateVal)) {
-        showFieldError('announcement-date', 'date-error', 'Error: Please select a date from today onwards.');
-        return false;
-    } else {
+    if (!categoryNeedsDate(category)) {
         hideFieldError('announcement-date', 'date-error');
         return true;
     }
+
+    if (!dateVal) {
+        // No message — the asterisk already signals it's required
+        hideFieldError('announcement-date', 'date-error');
+        return false;
+    }
+
+    if (!isValidDate(dateVal)) {
+        showFieldError('announcement-date', 'date-error', 'Error: Please select a date from today onwards.');
+        return false;
+    }
+
+    hideFieldError('announcement-date', 'date-error');
+    return true;
 }
 
 // ================================================================
@@ -325,6 +448,16 @@ async function viewAnnouncement(id) {
         const data = doc.data();
         document.getElementById('view-title').textContent = data.title || '-';
         document.getElementById('view-category').textContent = data.category || 'General Notice';
+
+        const eventDateRow = document.getElementById('view-event-date-row');
+        if (data.date) {
+            const eventDateStr = new Date(data.date + 'T00:00:00').toLocaleDateString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric' });
+            document.getElementById('view-event-date').textContent = eventDateStr;
+            if (eventDateRow) eventDateRow.classList.remove('hidden');
+        } else {
+            if (eventDateRow) eventDateRow.classList.add('hidden');
+        }
+
         const dateStr = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleString('en-ZA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Unknown';
         document.getElementById('view-date').textContent = dateStr;
         document.getElementById('view-message').textContent = data.body || 'No message.';
@@ -352,43 +485,25 @@ async function postAnnouncement() {
     const date = document.getElementById('announcement-date').value;
     const body = document.getElementById('announcement-body').value.trim();
 
-    // Reset any prior field errors
-    hideAllErrors();
+    const titleValid = validateTitle();
+    const bodyValid = validateBody();
+    const dateValid = validateCreateDate();
 
-    // Per-field red borders (no messages) for empty — asterisks already signal this
-    if (!title) {
-        const el = document.getElementById('announcement-title');
-        if (el) el.classList.add('input-error');
-    }
+    // Category: red border only — asterisk already signals it's required
+    const categoryEl = document.getElementById('announcement-category');
     if (!category) {
-        const el = document.getElementById('announcement-category');
-        if (el) el.classList.add('input-error');
-    }
-    if (!body) {
-        const el = document.getElementById('announcement-body');
-        if (el) el.classList.add('input-error');
+        if (categoryEl) categoryEl.classList.add('input-error');
+    } else {
+        if (categoryEl) categoryEl.classList.remove('input-error');
     }
 
-    // Date inline error (format issue)
-    if (!date) {
-        const el = document.getElementById('announcement-date');
-        if (el) el.classList.add('input-error');
-    } else if (!isValidDate(date)) {
-        showFieldError('announcement-date', 'date-error', 'Error: Please select a date from today onwards.');
-    }
-
-    if (!title || !category || !body) {
-        alert('Please fill in all required fields.');
-        return;
-    }
-
-    if (!isValidDate(date)) {
-        alert('Please select a valid date (today or future).');
+    if (!titleValid || !bodyValid || !dateValid || !category) {
         return;
     }
 
     const btn = document.getElementById('postButton');
     btn.disabled = true;
+    btn.classList.add('no-tooltip');
     btn.textContent = 'Posting...';
 
     try {
@@ -397,7 +512,7 @@ async function postAnnouncement() {
         await db.collection('announcements').add({
             title,
             category,
-            date,
+            date: categoryNeedsDate(category) ? date : null,
             body,
             createdBy: userUid,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -412,11 +527,13 @@ async function postAnnouncement() {
         // Reset asterisks + hide errors
         hideAllErrors();
         updateAsterisks();
+        updateDateFieldVisibility();
 
+        showToast('Announcement posted successfully!');
         loadAnnouncements(false);
     } catch (error) {
         console.error(error);
-        alert('Error posting announcement.');
+        showToast('Error posting announcement.', true);
     } finally {
         btn.disabled = false;
         btn.textContent = 'Post Announcement';
@@ -469,26 +586,34 @@ loadMoreBtn.addEventListener('click', function() {
     }
 });
 
+// Re-enable the tooltip once the cursor leaves the button area
+const btnWrapper = document.querySelector('.btn-wrapper');
+if (btnWrapper) {
+    btnWrapper.addEventListener('mouseleave', function() {
+        const postBtn = document.getElementById('postButton');
+        if (postBtn) postBtn.classList.remove('no-tooltip');
+    });
+}
+
 // Form field listeners — update asterisks + button state, clear errors on fix
 ['announcement-title', 'announcement-category', 'announcement-date', 'announcement-body'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     const handler = () => {
+         if (id === 'announcement-category') {
+            updateDateFieldVisibility();
+        }
         updateAsterisks();
         updateCreateButtonState();
 
-        // Clear red border for this field once it has a value
-        if (el.value && el.value.trim().length > 0) {
-            el.classList.remove('input-error');
-        }
-
-        // Date-specific inline error handling (instant feedback)
-        if (id === 'announcement-date') {
-            if (el.value && !isValidDate(el.value)) {
-                showFieldError('announcement-date', 'date-error', 'Error: Please select a date from today onwards.');
-            } else {
-                hideFieldError('announcement-date', 'date-error');
-            }
+        if (id === 'announcement-title') {
+            validateTitle();
+        } else if (id === 'announcement-body') {
+            validateBody();
+        } else if (id === 'announcement-date') {
+            validateCreateDate();
+        } else if (id === 'announcement-category') {
+            if (el.value) el.classList.remove('input-error');
         }
     };
     el.addEventListener('input', handler);
@@ -503,6 +628,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const createDate = document.getElementById('announcement-date');
     if (createDate) createDate.setAttribute('min', today);
 
+    updateDateFieldVisibility();
     updateAsterisks();
     updateCreateButtonState();
 

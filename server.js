@@ -8,6 +8,8 @@ const admin = require('firebase-admin');
 const fs = require('fs');
 const path = require('path');
 const nodemailer = require('nodemailer');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 // Initialize Firebase Admin SDK
 let serviceAccount;
@@ -62,10 +64,68 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Azure sits behind a proxy; this lets the rate limiter see the real visitor IP
+app.set('trust proxy', 1);
+
+// ============ SECURITY MIDDLEWARE ============
+
+// Security headers (CSP is switched on later, after the inline-script clean-up in Phase E)
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// CORS: same origin only unless ALLOWED_ORIGIN is set in .env
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGIN ? process.env.ALLOWED_ORIGIN.split(',') : false
+}));
+
+app.use(express.json({ limit: '100kb' }));
 app.use(express.static('public'));
+
+// General limit for the whole API
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 300,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again later.' }
+});
+
+// Strict limit for routes that send email
+const emailLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 10,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many email requests. Please try again later.' }
+});
+
+// Checks that the request carries a valid Firebase login token
+async function verifyToken(req, res, next) {
+  const match = (req.headers.authorization || '').match(/^Bearer (.+)$/);
+  if (!match) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    req.user = await admin.auth().verifyIdToken(match[1]);
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+}
+
+// Checks the role stored in Firestore (the browser cannot fake this)
+async function requireOfficer(req, res, next) {
+  try {
+    const userDoc = await db.collection('users').doc(req.user.uid).get();
+    if (!userDoc.exists || userDoc.data().role !== 'officer') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    next();
+  } catch (error) {
+    console.error('Role check error:', error);
+    return res.status(500).json({ error: 'Could not verify permissions' });
+  }
+}
+
+// Protect the whole API by default. Only the health check is public.
+app.use('/api', apiLimiter);
+app.use('/api', (req, res, next) => {
+  if (req.path === '/health') return next();
+  return verifyToken(req, res, next);
+});
 
 
 // ============ EMAIL TRANSPORTER ============
@@ -79,6 +139,12 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // ============ OTP VERIFICATION EMAIL ============
 
 // Email sender function with SGO branding
@@ -90,12 +156,12 @@ async function sendVerificationEmail(toEmail, code, name = "") {
       <p style="color:#8FA6CC;margin:4px 0 0;font-size:14px">Student Governance Office • University of the Witwatersrand</p>
     </div>
     <div style="padding:32px">
-      <h2 style="color:#0B1F3A;margin-top:0">Welcome${name ? ' ' + name : ''}!</h2>
+      <h2 style="color:#0B1F3A;margin-top:0">Welcome${name ? ' ' + escapeHtml(name) : ''}!</h2>
       <p style="color:#374151;font-size:15px;line-height:1.6">Thank you for registering for the Wits Student Societies platform. Please use the verification code below to complete your registration:</p>
       
       <div style="text-align:center;padding:20px;margin:20px 0">
         <div style="font-size:36px;letter-spacing:10px;font-weight:bold;background:#f0f4f8;padding:15px;border-radius:8px;font-family:monospace;display:inline-block;color:#0B1F3A">
-          ${code}
+          ${escapeHtml(code)}
         </div>
       </div>
       
@@ -143,17 +209,17 @@ async function sendStatusEmail(toEmail, requestName, status, officerComment = ""
     </div>
     <div style="padding:32px">
       <h2 style="color:#0B1F3A;margin-top:0">Request Status Update</h2>
-      <p style="color:#374151;font-size:15px;line-height:1.6">Your request <strong>"${requestName}"</strong> has been updated:</p>
+      <p style="color:#374151;font-size:15px;line-height:1.6">Your request <strong>"${escapeHtml(requestName)}"</strong> has been updated:</p>
       
       <div style="text-align:center;padding:20px;margin:20px 0;background:#f8f9fa;border-radius:8px">
         <div style="font-size:42px;margin-bottom:8px">${statusEmoji}</div>
-        <div style="font-size:24px;font-weight:bold;color:${color}">${status}</div>
+        <div style="font-size:24px;font-weight:bold;color:${color}">${escapeHtml(status)}</div>
       </div>
       
       ${officerComment ? `
       <div style="background:#f0f4f8;padding:16px;border-radius:8px;margin:16px 0">
         <p style="color:#374151;font-size:14px;margin:0"><strong>Officer Comment:</strong></p>
-        <p style="color:#5A6B87;font-size:14px;margin:4px 0 0">${officerComment}</p>
+        <p style="color:#5A6B87;font-size:14px;margin:4px 0 0">${escapeHtml(officerComment)}</p>
       </div>
       ` : ''}
       
@@ -195,7 +261,7 @@ async function sendStatusEmail(toEmail, requestName, status, officerComment = ""
   await transporter.sendMail({
     from: `"SGO Digital Operations" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
     to: toEmail,
-    subject: `Request ${status} - ${requestName}`,
+    subject: `Request ${escapeHtml(status)} - ${escapeHtml(requestName)}`,
     html,
   });
 }
@@ -309,13 +375,18 @@ app.get('/api/health', (req, res) => {
 // ============ OTP VERIFICATION ENDPOINT ============
 
 // Send verification email
-app.post('/api/send-verification-email', async (req, res) => {
+app.post('/api/send-verification-email', emailLimiter, async (req, res) => {
   const { email, code, name } = req.body;
   
   if (!email || !code) {
     return res.status(400).json({ error: 'Email and code are required' });
   }
-  
+
+  // A user may only request a code for their own email address
+  if (!req.user.email || String(email).toLowerCase() !== req.user.email.toLowerCase()) {
+    return res.status(403).json({ error: 'Email does not match your account' });
+  }
+
   try {
     await sendVerificationEmail(email, code, name);
     res.json({ success: true, message: 'Verification email sent' });
@@ -329,11 +400,19 @@ app.post('/api/send-verification-email', async (req, res) => {
 // ============ STATUS EMAIL ENDPOINT ============
 
 // Send status update email
-app.post('/api/send-status-email', async (req, res) => {
+const ALLOWED_STATUSES = ['Approved', 'Rejected', 'Revision Required', 'Resubmitted', 'Submitted', 'Under Review'];
+
+app.post('/api/send-status-email', emailLimiter, requireOfficer, async (req, res) => {
   const { email, requestName, status, officerComment } = req.body;
   
   if (!email || !requestName || !status) {
     return res.status(400).json({ error: 'Missing required fields' });
+  }
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: 'Invalid email address' });
+  }
+  if (!ALLOWED_STATUSES.includes(status)) {
+    return res.status(400).json({ error: 'Invalid status' });
   }
   
   try {
@@ -347,7 +426,7 @@ app.post('/api/send-status-email', async (req, res) => {
 
 
 // Get all societies
-app.get('/api/societies', async (req, res) => {
+app.get('/api/societies', requireOfficer, async (req, res) => {
 
   try {
 
@@ -381,7 +460,7 @@ app.get('/api/societies', async (req, res) => {
 
 
 // Get a single society by ID
-app.get('/api/societies/:id', async (req, res) => {
+app.get('/api/societies/:id', requireOfficer, async (req, res) => {
 
   try {
 
@@ -419,7 +498,7 @@ app.get('/api/societies/:id', async (req, res) => {
 
 
 // Create a new society
-app.post('/api/societies', async (req, res) => {
+app.post('/api/societies', requireOfficer, async (req, res) => {
 
   try {
 
@@ -431,8 +510,8 @@ app.post('/api/societies', async (req, res) => {
       website,
       email,
       execCommittee,
-      createdBy
     } = req.body;
+  
 
 
     if (!name || !category || !email) {
@@ -465,7 +544,7 @@ app.post('/api/societies', async (req, res) => {
       email,
       website: website || '',
       execCommittee: execCommittee || {},
-      createdBy: createdBy || '',
+       createdBy: req.user.uid, // from the verified token
 
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -514,7 +593,7 @@ app.post('/api/societies', async (req, res) => {
 
 
 // Update a society
-app.put('/api/societies/:id', async (req, res) => {
+app.put('/api/societies/:id', requireOfficer, async (req, res) => {
 
   try {
 
@@ -613,16 +692,16 @@ app.put('/api/societies/:id', async (req, res) => {
 
 
 // Deletion is intentionally unsupported; societies are retained by archiving.
-app.delete('/api/societies/:id', async (req, res) => {
+app.delete('/api/societies/:id', requireOfficer, async (req, res) => {
   res.status(405).json({ error: 'Society deletion is not supported' });
+});
 
 
 // Archive a society after quota has not been met.
-app.post('/api/societies/:id/archive', async (req, res) => {
+app.post('/api/societies/:id/archive', requireOfficer, async (req, res) => {
   try {
     const societyRef = db.collection('societies').doc(req.params.id);
-    const archivedBy = String(req.body.archivedBy || '').trim();
-    if (!archivedBy) return res.status(400).json({ error: 'archivedBy is required' });
+    const archivedBy = String(req.body.archivedBy || '').trim() || req.user.uid;
     if (req.body.subscriptionQuota !== 'not-met') {
       return res.status(400).json({ error: 'Society can only be archived when subscription quota is not met' });
     }
@@ -640,11 +719,10 @@ app.post('/api/societies/:id/archive', async (req, res) => {
     res.status(500).json({ error: 'Failed to archive society' });
   }
 });
-});
 
 
 // Get all students
-app.get('/api/students', async (req, res) => {
+app.get('/api/students', requireOfficer, async (req, res) => {
 
   try {
 

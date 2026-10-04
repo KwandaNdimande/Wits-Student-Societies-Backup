@@ -800,9 +800,10 @@
                 console.log('=========================================');
 
                 try {
+                    const token = await user.getIdToken();
                     await fetch('/api/send-verification-email', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                         body: JSON.stringify({
                             email: email,
                             code: otpCode,

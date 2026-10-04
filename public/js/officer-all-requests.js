@@ -19,6 +19,17 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
+// Gets the signed-in user's Firebase token so the server can verify who is calling
+function getIdToken() {
+    return new Promise((resolve, reject) => {
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            unsubscribe();
+            if (!user) return reject(new Error('You are not signed in'));
+            try { resolve(await user.getIdToken()); } catch (e) { reject(e); }
+        });
+    });
+}
+
 // Check authentication
 const userUid = localStorage.getItem('userUid');
 const userRole = localStorage.getItem('userRole');
@@ -1079,16 +1090,19 @@ function confirmReverse() {
                     if (userDoc.exists) {
                         const userData = userDoc.data();
                         if (userData.email) {
-                            fetch('/api/send-status-email', {
+                           getIdToken().then(token => 
+                     fetch('/api/send-status-email', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: { 'Content-Type': 'application/json',
+                                    'Authorization': 'Bearer ' + token
+                                 },
                                 body: JSON.stringify({
                                     email: userData.email,
                                     requestName: request.itemName || request.name || 'Your Request',
                                     status: newStatus,
                                     officerComment: `Your request has been reversed from "${originalStatus}" to "Under Review". Reason: ${reason}`
                                 })
-                            })
+                            }))
                             .then(res => {
                                 if (!res.ok) console.warn('Email notification failed.');
                             })
@@ -1524,9 +1538,12 @@ if (newStatus === 'Revision Required') {
                 const userData = userDoc.data();
                 
                 if (userData?.email) {
+                    const token=await getIdToken();
                     await fetch('/api/send-status-email', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                         },
                         body: JSON.stringify({
                             email: userData.email,
                             requestName: requestData.itemName || 'Your Request',

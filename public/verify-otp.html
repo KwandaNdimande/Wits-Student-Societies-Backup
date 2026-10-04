@@ -330,15 +330,18 @@
                 }, { merge: true });
 
                 try {
-                    await fetch('/api/send-verification-email', {
+                    if (!auth.currentUser) throw new Error('Please sign in to resend verification code.');
+                    const token = await auth.currentUser.getIdToken();
+                    const emailRes = await fetch('/api/send-verification-email', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                         body: JSON.stringify({
                             email: userEmail,
                             code: newCode,
                             name: userName || 'Student'
                         }),
                     });
+                    if (!emailRes.ok) throw new Error('Email request failed');
                     showMessage('New verification code sent! Check your email.', 'success');
                 } catch (emailErr) {
                     console.error('Email error:', emailErr);

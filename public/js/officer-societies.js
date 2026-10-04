@@ -87,6 +87,17 @@ function formatSocietyName(name) {
     ).join(' ');
 }
 
+// Gets the signed-in user's Firebase token so the server can verify who is calling
+function getIdToken() {
+    return new Promise((resolve, reject) => {
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            unsubscribe();
+            if (!user) return reject(new Error('You are not signed in'));
+            try { resolve(await user.getIdToken()); } catch (e) { reject(e); }
+        });
+    });
+}
+
 async function societyApi(path, options = {}) {
     const response = await fetch(path, {
         ...options,

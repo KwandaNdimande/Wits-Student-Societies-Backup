@@ -91,16 +91,15 @@ function renderDocuments(docs, append = false) {
     docs.forEach((doc, index) => {
         const rowNum = allLoadedCount + index + 1;
         const d = doc.data();
-        let publicUrl = '#';
+        let filePath = '';
         let fileName = 'file';
         if (d.storagePath) {
-            const { data } = window.supabaseClient.storage
-                .from('documents')
-                .getPublicUrl(d.storagePath);
-            publicUrl = data.publicUrl;
+            filePath = d.storagePath;
             fileName = d.storagePath.split('/').pop();
         }
-        const hasFile = publicUrl !== '#';
+            
+    
+        const hasFile = filePath !== '';
         const fileIcon = getFileIcon(fileName);
 
         html += `
@@ -111,10 +110,10 @@ function renderDocuments(docs, append = false) {
                 </td>
                 <td>
                     <div class="doc-actions">
-                        <button class="btn-action btn-view" onclick="viewDocument('${publicUrl}')" ${!hasFile ? 'disabled' : ''}>
+                        <button class="btn-action btn-view" data-path="${escapeHtml(filePath)}" onclick="viewDocument(this.dataset.path)" ${!hasFile ? 'disabled' : ''}>
                             View
                         </button>
-                        <button class="btn-action btn-download" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
+                        <button class="btn-action btn-download" data-path="${escapeHtml(filePath)}" data-name="${escapeHtml(fileName)}" onclick="downloadDocument(this.dataset.path, this.dataset.name)" ${!hasFile ? 'disabled' : ''}>
                             ⬇ Download
                         </button>
                         <button class="btn-action btn-info" onclick="openInfoModal('${doc.id}')">
@@ -140,16 +139,13 @@ function renderDocuments(docs, append = false) {
             const rowsHtml = docs.map((doc, index) => {
                 const rowNum = allLoadedCount + index + 1;
                 const d = doc.data();
-                let publicUrl = '#';
+                let filePath = '';
                 let fileName = 'file';
                 if (d.storagePath) {
-                    const { data } = window.supabaseClient.storage
-                        .from('documents')
-                        .getPublicUrl(d.storagePath);
-                    publicUrl = data.publicUrl;
+                    filePath = d.storagePath;
                     fileName = d.storagePath.split('/').pop();
                 }
-                const hasFile = publicUrl !== '#';
+                const hasFile = filePath !== '';
                 const fileIcon = getFileIcon(fileName);
                 return `
                     <tr>
@@ -159,10 +155,10 @@ function renderDocuments(docs, append = false) {
                         </td>
                         <td>
                             <div class="doc-actions">
-                                <button class="btn-action btn-view" onclick="viewDocument('${publicUrl}')" ${!hasFile ? 'disabled' : ''}>
+                                <button class="btn-action btn-view" data-path="${escapeHtml(filePath)}" onclick="viewDocument(this.dataset.path)" ${!hasFile ? 'disabled' : ''}>
                                     View
                                 </button>
-                                <button class="btn-action btn-download" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
+                                <button class="btn-action btn-download" data-path="${escapeHtml(filePath)}" data-name="${escapeHtml(fileName)}" onclick="downloadDocument(this.dataset.path, this.dataset.name)" ${!hasFile ? 'disabled' : ''}>
                                     ⬇ Download
                                 </button>
                                 <button class="btn-action btn-info" onclick="openInfoModal('${doc.id}')">
@@ -272,23 +268,15 @@ async function loadDocuments(loadMore = false) {
 // ================================================================
 // VIEW: Open in new tab
 // ================================================================
-function viewDocument(url) {
-    if (url && url !== '#') {
-        window.open(url, '_blank');
-    } else {
-        alert('No file available to view.');
-    }
+function viewDocument(path) {
+    openFileInNewTab(path);
 }
 
 // ================================================================
 // DOWNLOAD: Force download
 // ================================================================
-function downloadDocument(url, fileName) {
-    if (url && url !== '#') {
-        forceDownload(url, fileName);
-    } else {
-        alert('No file available to download.');
-    }
+function downloadDocument(path, fileName) {
+    downloadFileFromServer(path, fileName);
 }
 
 // ================================================================

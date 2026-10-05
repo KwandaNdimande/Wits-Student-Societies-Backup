@@ -42,7 +42,7 @@ const loadMoreBtn = document.getElementById('load-more-btn');
 // ================================================================
 // CURRENT FILE STATE (edit mode)
 // ================================================================
-let currentFilePublicUrl = null;
+let currentFilePath = null;
 let currentFileName = null;
 let currentFileSize = null;
 
@@ -267,16 +267,13 @@ function renderDocuments(docs, append = false) {
     docs.forEach((doc, index) => {
         const rowNum = allLoadedCount + index + 1;
         const d = doc.data();
-        let publicUrl = '#';
+        let filePath = '';
         let fileName = 'file';
         if (d.storagePath) {
-            const { data } = window.supabaseClient.storage
-                .from('documents')
-                .getPublicUrl(d.storagePath);
-            publicUrl = data.publicUrl;
+            filePath = d.storagePath;
             fileName = d.storagePath.split('/').pop();
         }
-        const hasFile = publicUrl !== '#';
+        const hasFile = filePath !== '';
 
         html += `
             <tr>
@@ -286,7 +283,7 @@ function renderDocuments(docs, append = false) {
                 </td>
                 <td>
                     <div class="doc-actions">
-                        <button class="btn-action btn-download-doc" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
+                        <button class="btn-action btn-download-doc" data-path="${escapeHtml(filePath)}" data-name="${escapeHtml(fileName)}" onclick="downloadDocument(this.dataset.path, this.dataset.name)" ${!hasFile ? 'disabled' : ''}>
                             ⬇ Download
                         </button>
                         <button class="btn-action btn-edit-doc" onclick="openEditDocument('${doc.id}')">Edit</button>
@@ -313,16 +310,13 @@ function renderDocuments(docs, append = false) {
             const rowsHtml = docs.map((doc, index) => {
                 const rowNum = allLoadedCount + index + 1;
                 const d = doc.data();
-                let publicUrl = '#';
+                let filePath = '';
                 let fileName = 'file';
                 if (d.storagePath) {
-                    const { data } = window.supabaseClient.storage
-                        .from('documents')
-                        .getPublicUrl(d.storagePath);
-                    publicUrl = data.publicUrl;
+                    filePath = d.storagePath;
                     fileName = d.storagePath.split('/').pop();
                 }
-                const hasFile = publicUrl !== '#';
+                const hasFile = filePath !== '';
                 return `
                     <tr>
                         <td style="color:#6c757d;font-weight:500;">${rowNum}</td>
@@ -331,7 +325,7 @@ function renderDocuments(docs, append = false) {
                         </td>
                         <td>
                             <div class="doc-actions">
-                                <button class="btn-action btn-download-doc" onclick="downloadDocument('${publicUrl}', '${escapeHtml(fileName)}')" ${!hasFile ? 'disabled' : ''}>
+                                <button class="btn-action btn-download-doc" data-path="${escapeHtml(filePath)}" data-name="${escapeHtml(fileName)}" onclick="downloadDocument(this.dataset.path, this.dataset.name)" ${!hasFile ? 'disabled' : ''}>
                                     ⬇ Download
                                 </button>
                                 <button class="btn-action btn-edit-doc" onclick="openEditDocument('${doc.id}')">Edit</button>
@@ -428,23 +422,15 @@ async function loadDocuments(loadMore = false) {
 // ================================================================
 // DOWNLOAD
 // ================================================================
-function downloadDocument(url, fileName) {
-    if (url && url !== '#') {
-        forceDownload(url, fileName);
-    } else {
-        alert('No file available to download.');
-    }
+function downloadDocument(path, fileName) {
+    downloadFileFromServer(path, fileName);
 }
 
 // ================================================================
 // VIEW CURRENT FILE
 // ================================================================
 function viewCurrentFile() {
-    if (currentFilePublicUrl && currentFilePublicUrl !== '#') {
-        window.open(currentFilePublicUrl, '_blank');
-    } else {
-        alert('No file available to view.');
-    }
+    openFileInNewTab(currentFilePath);
 }
 
 // ================================================================
@@ -565,7 +551,7 @@ function handleFileChange(input) {
         const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
         fileNameEl.textContent = file.name;
         fileSizeEl.textContent = `(${sizeMB} MB)`;
-        currentFilePublicUrl = null;
+        currentFilePath = null;
         indicator.classList.remove('hidden');
 
         // Size check immediate
@@ -619,7 +605,7 @@ function openDocumentModal(editingId) {
 function closeDocumentModal() {
     document.getElementById('documentModal').classList.remove('active');
     currentEditingId = null;
-    currentFilePublicUrl = null;
+    currentFilePath = null;
     currentFileName = null;
     currentFileSize = null;
     document.getElementById('current-file-indicator').classList.add('hidden');
@@ -674,10 +660,7 @@ async function openEditDocument(docId) {
         const fileSizeEl = document.getElementById('current-file-size');
 
         if (d.storagePath) {
-            const { data } = window.supabaseClient.storage
-                .from('documents')
-                .getPublicUrl(d.storagePath);
-            currentFilePublicUrl = data.publicUrl;
+            currentFilePath = d.storagePath;
             currentFileName = d.storagePath.split('/').pop();
             initialFilePath = d.storagePath;
 
@@ -708,22 +691,12 @@ async function openEditDocument(docId) {
 // ================================================================
 // UPLOAD / DELETE STORAGE
 // ================================================================
-async function uploadFileToSupabase(file, folder = 'documents') {
-    const timestamp = Date.now();
-    const fileName = `${timestamp}_${file.name}`;
-    const filePath = `${folder}/${fileName}`;
-    const { data, error } = await window.supabaseClient.storage
-        .from('documents')
-        .upload(filePath, file);
-    if (error) throw new Error('Upload failed: ' + error.message);
-    return filePath;
+async function uploadFileToSupabase(file) {
+    return await uploadFileToServer(file, 'library');
 }
 
 async function deleteFileFromSupabase(filePath) {
-    const { error } = await window.supabaseClient.storage
-        .from('documents')
-        .remove([filePath]);
-    if (error) throw new Error('Delete failed: ' + error.message);
+    await deleteFilesOnServer([filePath]);
 }
 
 // ================================================================

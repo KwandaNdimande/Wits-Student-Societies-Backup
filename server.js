@@ -11,6 +11,7 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const { createClient } = require('@supabase/supabase-js');
 
 // Initialize Firebase Admin SDK
 let serviceAccount;
@@ -527,6 +528,152 @@ app.post('/api/verify-otp', verifyLimiter, async (req, res) => {
   }
 });
 
+// ============ PRIVATE FILE STORAGE (SUPABASE) ============
+const FILE_BUCKET = 'documents';
+const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
+const ALLOWED_FILE_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'txt', 'png', 'jpg', 'jpeg'];
+
+let supabaseAdmin = null;
+function getSupabase() {
+  if (supabaseAdmin) return supabaseAdmin;
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
+  supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+  return supabaseAdmin;
+}
+
+const filesLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 120,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many file requests. Please try again later.' }
+});
+
+function cleanFileName(name) {
+  const base = String(name || 'file').split(/[\\/]/).pop();
+  const cleaned = base.replace(/[^A-Za-z0-9._-]/g, '_').replace(/^\.+/, '').slice(-100);
+  return cleaned || 'file';
+}
+
+function fileExtension(name) {
+  const i = name.lastIndexOf('.');
+  return i > -1 ? name.slice(i + 1).toLowerCase() : '';
+}
+
+async function userIsOfficer(uid) {
+  const userDoc = await db.collection('users').doc(uid).get();
+  return userDoc.exists && userDoc.data().role === 'officer';
+}
+
+function badStoragePath(p) {
+  if (typeof p !== 'string' || !p || p.length > 300) return 'Invalid file path';
+  if (p.startsWith('/') || p.includes('..') || p.includes('\\')) return 'Invalid file path';
+  if (!p.startsWith('requests/') && !p.startsWith('documents/')) return 'Invalid file path';
+  return null;
+}
+
+// Step 1 of an upload: the server approves it and returns a one-time token
+app.post('/api/files/upload-url', filesLimiter, async (req, res) => {
+  const supabase = getSupabase();
+  if (!supabase) return res.status(503).json({ error: 'File storage is not configured' });
+
+  try {
+    const { kind, fileName, size } = req.body;
+
+    if (kind !== 'request' && kind !== 'library') {
+      return res.status(400).json({ error: 'Invalid upload type' });
+    }
+
+    const clean = cleanFileName(fileName);
+    if (!ALLOWED_FILE_EXTENSIONS.includes(fileExtension(clean))) {
+      return res.status(400).json({ error: 'This file type is not allowed' });
+    }
+
+    if (typeof size !== 'number' || !(size > 0) || size > MAX_FILE_BYTES) {
+      return res.status(400).json({ error: 'File is too large (maximum 20 MB)' });
+    }
+
+    if (kind === 'library' && !(await userIsOfficer(req.user.uid))) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // The folder comes from the verified login, never from the browser
+    const folder = kind === 'library' ? 'documents' : `requests/${req.user.uid}`;
+    const path = `${folder}/${Date.now()}_${clean}`;
+
+    const { data, error } = await supabase.storage.from(FILE_BUCKET).createSignedUploadUrl(path);
+    if (error) throw error;
+
+    res.json({ path: data.path || path, token: data.token });
+  } catch (error) {
+    console.error('upload-url error:', error);
+    res.status(500).json({ error: 'Could not start the upload' });
+  }
+});
+
+// Get a short-lived link to view or download one file
+app.post('/api/files/sign', filesLimiter, async (req, res) => {
+  const supabase = getSupabase();
+  if (!supabase) return res.status(503).json({ error: 'File storage is not configured' });
+
+  try {
+    const { path, download, fileName } = req.body;
+
+    const problem = badStoragePath(path);
+    if (problem) return res.status(400).json({ error: problem });
+
+    const uid = req.user.uid;
+    const allowed =
+      path.startsWith('documents/') ||
+      path.startsWith(`requests/${uid}/`) ||
+      (await userIsOfficer(uid));
+
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
+    const options = download
+      ? { download: cleanFileName(fileName || path.split('/').pop()) }
+      : undefined;
+
+    const { data, error } = await supabase.storage.from(FILE_BUCKET).createSignedUrl(path, 300, options);
+    if (error || !data) return res.status(404).json({ error: 'File not found' });
+
+    res.json({ url: data.signedUrl });
+  } catch (error) {
+    console.error('sign error:', error);
+    res.status(500).json({ error: 'Could not create the file link' });
+  }
+});
+
+// Delete files (your own request files, or anything if you are an officer)
+app.post('/api/files/delete', filesLimiter, async (req, res) => {
+  const supabase = getSupabase();
+  if (!supabase) return res.status(503).json({ error: 'File storage is not configured' });
+
+  try {
+    const { paths } = req.body;
+
+    if (!Array.isArray(paths) || paths.length === 0 || paths.length > 10) {
+      return res.status(400).json({ error: 'Provide between 1 and 10 file paths' });
+    }
+    for (const p of paths) {
+      const problem = badStoragePath(p);
+      if (problem) return res.status(400).json({ error: problem });
+    }
+
+    const uid = req.user.uid;
+    const officer = await userIsOfficer(uid);
+    const allOwned = paths.every(p => p.startsWith(`requests/${uid}/`));
+    if (!officer && !allOwned) return res.status(403).json({ error: 'Forbidden' });
+
+    const { error } = await supabase.storage.from(FILE_BUCKET).remove(paths);
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('delete files error:', error);
+    res.status(500).json({ error: 'Could not delete the file' });
+  }
+});
 
 // ============ STATUS EMAIL ENDPOINT ============
 

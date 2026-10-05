@@ -77,20 +77,7 @@ function formatTimestamp(timestamp) {
 // ================================================================
 
 async function viewFileFromSupabase(filePath, fileName) {
-    try {
-        const { data } = window.supabaseClient.storage
-            .from('documents')
-            .getPublicUrl(filePath);
-
-        if (data && data.publicUrl) {
-            window.open(data.publicUrl, '_blank');
-        } else {
-            alert('Failed to generate view link.');
-        }
-    } catch (error) {
-        console.error('View error:', error);
-        alert('An unexpected error occurred: ' + error.message);
-    }
+    await openFileInNewTab(filePath);
 }
 
 // ================================================================
@@ -98,25 +85,7 @@ async function viewFileFromSupabase(filePath, fileName) {
 // ================================================================
 
 async function downloadFileFromSupabase(filePath, fileName) {
-    try {
-        const { data } = window.supabaseClient.storage
-            .from('documents')
-            .getPublicUrl(filePath);
-
-        if (data && data.publicUrl) {
-            const a = document.createElement('a');
-            a.href = data.publicUrl;
-            a.download = fileName || filePath.split('/').pop();
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } else {
-            alert('Failed to generate download link.');
-        }
-    } catch (error) {
-        console.error('Download error:', error);
-        alert('An unexpected error occurred while downloading: ' + error.message);
-    }
+    await downloadFileFromServer(filePath, fileName);
 }
 
 // Helper: Extract filename and filepath from document object/string
@@ -801,25 +770,15 @@ async function submitUpdate() {
 
         const user = auth.currentUser;
         if (!user) throw new Error('User not logged in.');
-        const firebaseToken = await user.getIdToken();
+       const uploadFile = async (file, key) => {
+    if (!file) return null;
+    try {
+        return await uploadFileToServer(file, 'request');
+    } catch (error) {
+        throw new Error(`Failed to upload ${key}: ${error.message}`);
+    }
+};
 
-        // 1. Upload new files
-        const uploadFile = async (file, key) => {
-            if (!file) return null;
-            const timestamp = Date.now();
-            const path = `requests/${userUid}/${timestamp}_${file.name}`;
-            const { data, error } = await window.supabaseClient.storage
-                .from('documents')
-                .upload(path, file, {
-                    cacheControl: '3600',
-                    upsert: false,
-                    headers: {
-                        Authorization: `Bearer ${firebaseToken}`
-                    }
-                });
-            if (error) throw new Error(`Failed to upload ${key}: ${error.message}`);
-            return data.path;
-        };
 
         const newPaths = {};
         let hasUpdate = false;
@@ -859,12 +818,11 @@ async function submitUpdate() {
         }
 
         if (oldPathsToDelete.length > 0) {
-            const { error: deleteError } = await window.supabaseClient.storage
-                .from('documents')
-                .remove(oldPathsToDelete);
-            if (deleteError) {
-                console.error('Error deleting old files:', deleteError);
-            }
+           try {
+    await deleteFilesOnServer(oldPathsToDelete);
+} catch (deleteError) {
+    console.error('Error deleting old files:', deleteError);
+}
         }
 
         // 3. Update Firestore

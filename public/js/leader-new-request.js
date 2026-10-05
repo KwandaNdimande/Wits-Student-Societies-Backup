@@ -358,24 +358,14 @@ submitBtn.addEventListener('click', async (e) => {
     try {
         const user = auth.currentUser;
         if (!user) throw new Error('User not logged in.');
-        const firebaseToken = await user.getIdToken();
-
         const uploadFile = async (file, fileType) => {
-            if (!file) return null;
-            const timestamp = Date.now();
-            const path = `requests/${userUid}/${timestamp}_${file.name}`;
-            const { data, error } = await window.supabaseClient.storage
-                .from('documents')
-                .upload(path, file, {
-                    cacheControl: '3600',
-                    upsert: false,
-                    headers: {
-                        Authorization: `Bearer ${firebaseToken}`
-                    }
-                });
-            if (error) throw new Error(`Failed to upload ${fileType}: ${error.message}`);
-            return data.path;
-        };
+    if (!file) return null;
+    try {
+        return await uploadFileToServer(file, 'request');
+    } catch (error) {
+        throw new Error(`Failed to upload ${fileType}: ${error.message}`);
+    }
+};
 
         const budgetPath = await uploadFile(budgetForm, 'Budget Form');
         const minutesPath = await uploadFile(meetingMinutes, 'Meeting Minutes');

@@ -750,42 +750,11 @@ function openOfficerNotificationFromUrl() {
 // ================================================================
 
 async function viewFileFromSupabase(filePath, fileName) {
-    try {
-        const { data } = window.supabaseClient.storage
-            .from('documents')
-            .getPublicUrl(filePath);
-
-        if (data && data.publicUrl) {
-            window.open(data.publicUrl, '_blank');
-        } else {
-            alert('Failed to generate view link.');
-        }
-    } catch (error) {
-        console.error('View error:', error);
-        alert('An unexpected error occurred: ' + error.message);
-    }
+    await openFileInNewTab(filePath);
 }
 
 async function downloadFileFromSupabase(filePath, fileName) {
-    try {
-        const { data } = window.supabaseClient.storage
-            .from('documents')
-            .getPublicUrl(filePath);
-
-        if (data && data.publicUrl) {
-            const a = document.createElement('a');
-            a.href = data.publicUrl;
-            a.download = fileName || filePath.split('/').pop();
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        } else {
-            alert('Failed to generate download link.');
-        }
-    } catch (error) {
-        console.error('Download error:', error);
-        alert('An unexpected error occurred while downloading: ' + error.message);
-    }
+    await downloadFileFromServer(filePath, fileName);
 }
 
 function getFileInfo(doc) {

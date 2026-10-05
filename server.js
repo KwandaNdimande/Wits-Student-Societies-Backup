@@ -6,6 +6,7 @@ const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const nodemailer = require('nodemailer');
 const helmet = require('helmet');
@@ -122,9 +123,16 @@ async function requireOfficer(req, res, next) {
 
 // Protect the whole API by default. Only the health check is public.
 app.use('/api', apiLimiter);
+const OTP_PATHS = ['/send-otp', '/verify-otp'];
 app.use('/api', (req, res, next) => {
   if (req.path === '/health') return next();
-  return verifyToken(req, res, next);
+  return verifyToken(req, res, () => {
+    // Accounts that have not verified their email may only use the OTP routes
+    if (!req.user.email_verified && !OTP_PATHS.includes(req.path)) {
+      return res.status(403).json({ error: 'Please verify your email first' });
+    }
+    next();
+  });
 });
 
 
@@ -375,24 +383,147 @@ app.get('/api/health', (req, res) => {
 // ============ OTP VERIFICATION ENDPOINT ============
 
 // Send verification email
-app.post('/api/send-verification-email', emailLimiter, async (req, res) => {
-  const { email, code, name } = req.body;
-  
-  if (!email || !code) {
-    return res.status(400).json({ error: 'Email and code are required' });
-  }
+// ============ OTP VERIFICATION ENDPOINTS ============
+const OTP_EXPIRY_MINUTES = 15;
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const OTP_MAX_ATTEMPTS = 5;
 
-  // A user may only request a code for their own email address
-  if (!req.user.email || String(email).toLowerCase() !== req.user.email.toLowerCase()) {
-    return res.status(403).json({ error: 'Email does not match your account' });
+function hashOtp(code, salt) {
+  return crypto.createHash('sha256').update(salt + code).digest('hex');
+}
+
+function otpMatches(code, salt, storedHash) {
+  const a = Buffer.from(hashOtp(code, salt), 'hex');
+  const b = Buffer.from(String(storedHash || ''), 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+const verifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 20,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many attempts. Please try again later.' }
+});
+
+// Create a code and email it to the signed-in user's own address
+app.post('/api/send-otp', emailLimiter, async (req, res) => {
+  try {
+    if (req.user.email_verified) {
+      return res.status(400).json({ error: 'Your email is already verified' });
+    }
+    if (!req.user.email) {
+      return res.status(400).json({ error: 'Your account has no email address' });
+    }
+
+    const ref = db.collection('emailVerifications').doc(req.user.uid);
+    const existing = await ref.get();
+
+    // Cooldown between sends
+    if (existing.exists && existing.data().lastSentAt) {
+      const secondsSince = (Date.now() - existing.data().lastSentAt.toDate().getTime()) / 1000;
+      if (secondsSince < OTP_RESEND_COOLDOWN_SECONDS) {
+        const retryAfter = Math.ceil(OTP_RESEND_COOLDOWN_SECONDS - secondsSince);
+        return res.status(429).json({
+          error: `Please wait ${retryAfter} seconds before requesting a new code.`,
+          retryAfter
+        });
+      }
+    }
+
+    // Use the name saved at registration (not something the browser sends)
+    const userDoc = await db.collection('users').doc(req.user.uid).get();
+    const u = userDoc.exists ? userDoc.data() : {};
+    const name = [u.firstName, u.lastName].filter(Boolean).join(' ');
+
+    const code = String(crypto.randomInt(100000, 1000000));
+    const salt = crypto.randomBytes(16).toString('hex');
+
+    // Send first; only save the code if the email actually went out
+    await sendVerificationEmail(req.user.email, code, name);
+
+    await ref.set({
+      userId: req.user.uid,
+      email: req.user.email,
+      codeHash: hashOtp(code, salt),
+      salt,
+      attempts: 0,
+      expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
+      lastSentAt: new Date(),
+      createdAt: new Date()
+    });
+
+    res.json({ success: true, message: 'Verification code sent' });
+  } catch (error) {
+    console.error('send-otp error:', error);
+    res.status(500).json({ error: 'Failed to send verification code' });
+  }
+});
+
+// Check the code the user typed
+app.post('/api/verify-otp', verifyLimiter, async (req, res) => {
+  const code = String(req.body.code || '').trim();
+
+  if (!/^\d{6}$/.test(code)) {
+    return res.status(400).json({ error: 'Please enter the 6-digit code.' });
   }
 
   try {
-    await sendVerificationEmail(email, code, name);
-    res.json({ success: true, message: 'Verification email sent' });
+    if (req.user.email_verified) {
+      return res.json({ success: true, message: 'Email already verified' });
+    }
+
+    const ref = db.collection('emailVerifications').doc(req.user.uid);
+
+    // A transaction keeps the attempt counter reliable, even if requests overlap
+    const result = await db.runTransaction(async (t) => {
+      const snap = await t.get(ref);
+
+      if (!snap.exists || !snap.data().codeHash) {
+        return { status: 400, error: 'No active code. Please request a new one.' };
+      }
+
+      const d = snap.data();
+      const expiresAt = d.expiresAt && d.expiresAt.toDate ? d.expiresAt.toDate() : new Date(0);
+
+      if (Date.now() > expiresAt.getTime()) {
+        t.delete(ref);
+        return { status: 400, error: 'Code has expired. Please request a new one.' };
+      }
+
+      const attempts = d.attempts || 0;
+      if (attempts >= OTP_MAX_ATTEMPTS) {
+        return { status: 429, error: 'Too many incorrect attempts. Please request a new code.' };
+      }
+
+      if (!otpMatches(code, d.salt, d.codeHash)) {
+        t.update(ref, { attempts: attempts + 1 });
+        const left = OTP_MAX_ATTEMPTS - attempts - 1;
+        return {
+          status: 400,
+          error: left > 0
+            ? `Incorrect code. ${left} attempt${left === 1 ? '' : 's'} left.`
+            : 'Incorrect code. Please request a new code.'
+        };
+      }
+
+      t.delete(ref); // a code can only be used once
+      return { ok: true };
+    });
+
+    if (!result.ok) {
+      return res.status(result.status).json({ error: result.error });
+    }
+
+    // Mark the account as verified (this is the flag the login page checks)
+    await admin.auth().updateUser(req.user.uid, { emailVerified: true });
+    await db.collection('users').doc(req.user.uid).set({
+      isEmailVerified: true,
+      verifiedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    res.json({ success: true, message: 'Email verified' });
   } catch (error) {
-    console.error('Email sending error:', error);
-    res.status(500).json({ error: 'Failed to send email' });
+    console.error('verify-otp error:', error);
+    res.status(500).json({ error: 'Verification failed. Please try again.' });
   }
 });
 

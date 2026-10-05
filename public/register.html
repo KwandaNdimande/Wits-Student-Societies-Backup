@@ -765,18 +765,9 @@
                 const user = userCredential.user;
                 createdAuthUser = user;
 
-                const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-                const expiresAt = new Date();
-                expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
-                await db.collection('emailVerifications').doc(user.uid).set({
-                    userId: user.uid,
-                    email: email,
-                    code: otpCode,
-                    expiresAt: expiresAt,
-                    createdAt: new Date(),
-                    verified: false
-                });
+
+
 
                 await db.collection('users').doc(user.uid).set({
                     uid: user.uid,
@@ -789,27 +780,14 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                localStorage.setItem('pendingUserId', user.uid);
-                localStorage.setItem('pendingUserEmail', email);
-                localStorage.setItem('pendingUserName', firstName + ' ' + lastName);
-
-                console.log('=========================================');
-                console.log('VERIFICATION CODE FOR:', email);
-                console.log('CODE:', otpCode);
-                console.log('Expires at:', expiresAt.toLocaleTimeString());
-                console.log('=========================================');
-
+                                // The server creates the code and emails it. The browser never sees it.
                 try {
                     const token = await user.getIdToken();
-                    await fetch('/api/send-verification-email', {
+                    const otpRes = await fetch('/api/send-otp', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                        body: JSON.stringify({
-                            email: email,
-                            code: otpCode,
-                            name: firstName + ' ' + lastName
-                        }),
+                        headers: { 'Authorization': 'Bearer ' + token }
                     });
+                    if (!otpRes.ok) throw new Error('Could not send the code');
                 } catch (emailError) {
                     console.error('Email sending error:', emailError);
                 }

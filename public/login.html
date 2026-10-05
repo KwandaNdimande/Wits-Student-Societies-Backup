@@ -272,6 +272,13 @@
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
                 const user = userCredential.user;
 
+                // Block login until the email is verified. Stay signed in so the
+                // verify page can use the login to check the code.
+                if (!user.emailVerified) {
+                    window.location.href = '/verify-otp.html?resend=1';
+                    return;
+                }
+
                 const userDoc = await db.collection('users').doc(user.uid).get();
 
                 if (!userDoc.exists) {

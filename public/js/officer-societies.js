@@ -31,6 +31,7 @@ const pageSize = 5;
 let societyFilter = 'active';
 let otherPortfolios = [];
 let editingOtherPortfolios = [];
+let editBaseline = null;
 
 function isValidEmail(email) {
     return String(email || '').includes('@');
@@ -98,7 +99,7 @@ function getIdToken() {
     });
 }
 
-// FIX: now attaches the Firebase ID token so /api/societies passes verifyToken
+// Attaches the Firebase ID token so /api/societies passes verifyToken
 async function societyApi(path, options = {}) {
     const token = await getIdToken();
     const response = await fetch(path, {
@@ -148,6 +149,24 @@ function updateAsteriskForInput(inputId, asteriskId) {
     if (!input) return;
     const hasValue = input.value.trim().length > 0;
     setAsterisk(asteriskId, !hasValue);
+}
+
+// ---------- Button loading helpers ----------
+function setButtonLoading(button, label) {
+    if (!button) return;
+    button.dataset.originalLabel = button.dataset.originalLabel || button.textContent.trim();
+    button.disabled = true;
+    button.classList.add('is-loading');
+    button.innerHTML = `<span class="btn-spinner" aria-hidden="true"></span>${label || 'Loading…'}`;
+}
+
+function clearButtonLoading(button) {
+    if (!button) return;
+    button.disabled = false;
+    button.classList.remove('is-loading');
+    if (button.dataset.originalLabel) {
+        button.textContent = button.dataset.originalLabel;
+    }
 }
 
 function validateKeyPortfolios() {
@@ -274,6 +293,72 @@ function updateAddButtonState() {
     btn.disabled = !isAddFormValid();
 }
 
+// ---------- Normalisation helpers for change detection ----------
+function normalizeField(value) {
+    // Trim, then collapse internal runs of whitespace to a single space.
+    return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+function hasEditFormChanged() {
+    if (!editBaseline) return false;
+
+    const current = {
+        name: normalizeField(document.getElementById('edit-soc-name')?.value),
+        category: normalizeField(document.getElementById('edit-soc-category')?.value),
+        email: normalizeField(document.getElementById('edit-soc-email')?.value),
+        description: normalizeField(document.getElementById('edit-soc-description')?.value),
+        chairperson: {
+            name: normalizeField(document.getElementById('edit-chairperson-name')?.value),
+            email: normalizeField(document.getElementById('edit-chairperson-email')?.value)
+        },
+        deputyChairperson: {
+            name: normalizeField(document.getElementById('edit-deputychairperson-name')?.value),
+            email: normalizeField(document.getElementById('edit-deputychairperson-email')?.value)
+        },
+        treasurer: {
+            name: normalizeField(document.getElementById('edit-treasurer-name')?.value),
+            email: normalizeField(document.getElementById('edit-treasurer-email')?.value)
+        },
+        secretary: {
+            name: normalizeField(document.getElementById('edit-secretary-name')?.value),
+            email: normalizeField(document.getElementById('edit-secretary-email')?.value)
+        },
+        organiser: {
+            name: normalizeField(document.getElementById('edit-organiser-name')?.value),
+            email: normalizeField(document.getElementById('edit-organiser-email')?.value)
+        },
+        otherPortfolios: (Array.isArray(editingOtherPortfolios) ? editingOtherPortfolios : [])
+            .map(p => ({
+                title: normalizeField(p?.title),
+                name: normalizeField(p?.name),
+                email: normalizeField(p?.email)
+            }))
+            .filter(p => p.title || p.name || p.email)
+    };
+
+    if (current.name !== editBaseline.name) return true;
+    if (current.category !== editBaseline.category) return true;
+    if (current.email !== editBaseline.email) return true;
+    if (current.description !== editBaseline.description) return true;
+
+    const keys = ['chairperson', 'deputyChairperson', 'treasurer', 'secretary', 'organiser'];
+    for (const key of keys) {
+        if (current[key].name !== editBaseline[key].name) return true;
+        if (current[key].email !== editBaseline[key].email) return true;
+    }
+
+    if (current.otherPortfolios.length !== editBaseline.otherPortfolios.length) return true;
+    for (let i = 0; i < current.otherPortfolios.length; i++) {
+        const a = current.otherPortfolios[i];
+        const b = editBaseline.otherPortfolios[i];
+        if (a.title !== b.title) return true;
+        if (a.name !== b.name) return true;
+        if (a.email !== b.email) return true;
+    }
+
+    return false;
+}
+
 function isEditFormValid() {
     const name = document.getElementById('edit-soc-name')?.value.trim() || '';
     const category = document.getElementById('edit-soc-category')?.value || '';
@@ -298,6 +383,9 @@ function isEditFormValid() {
     for (const portfolio of editingOtherPortfolios) {
         if (portfolio.title.length < 2 || portfolio.name.length < 2) return false;
     }
+
+    // Must be a real change
+    if (!hasEditFormChanged()) return false;
 
     return true;
 }
@@ -439,8 +527,8 @@ function renderTable() {
                 <td style="color:#6c757d;">${s.category || 'General'}</td>
                 <td style="color:#6c757d;">${s.email || 'No email'}</td>
                 <td>
-                    <button class="btn-action btn-view-society" onclick="viewSociety('${s.id}')">View</button>
-                    <button class="btn-action btn-edit-society" onclick="openEditSociety('${s.id}')">Edit</button>
+                    <button class="btn-action btn-view-society" onclick="viewSociety('${s.id}', this)">View</button>
+                    <button class="btn-action btn-edit-society" onclick="openEditSociety('${s.id}', this)">Edit</button>
                 </td>
             </tr>
         `;
@@ -730,18 +818,19 @@ function addEditOtherPortfolio() {
     }
 
     editingOtherPortfolios.push({ title, name, email });
-    
 
     document.getElementById('edit-other-portfolio-title').value = '';
     document.getElementById('edit-other-portfolio-name').value = '';
     document.getElementById('edit-other-portfolio-email').value = '';
 
     renderEditOtherPortfolios();
+    updateEditButtonState();
 }
 
 function removeEditOtherPortfolio(index) {
     editingOtherPortfolios.splice(index, 1);
     renderEditOtherPortfolios();
+    updateEditButtonState();
 }
 
 function renderEditOtherPortfolios() {
@@ -837,7 +926,6 @@ async function addSociety() {
             })
         });
 
-        // Mirror name into societiesIndex so the register page can see it
         try {
             const all = await societyApi('/api/societies');
             const match = Array.isArray(all) ? all.find(s => s.name === name) : null;
@@ -895,13 +983,15 @@ function closeSocietyModal() {
     document.getElementById('societyArchiveBtn').style.display = 'none';
     delete document.getElementById('societyModal').dataset.editingId;
     delete document.getElementById('societyModal').dataset.viewingId;
+    editBaseline = null;
 }
 
 function escapeHtml(str) {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-async function viewSociety(societyId) {
+async function viewSociety(societyId, button) {
+    setButtonLoading(button, 'Opening…');
     try {
         const s = await societyApi(`/api/societies/${societyId}`);
         const exec = s.execCommittee || {};
@@ -989,6 +1079,8 @@ async function viewSociety(societyId) {
     } catch (error) {
         console.error('Error viewing society:', error);
         alert('Error viewing society. ' + error.message);
+    } finally {
+        clearButtonLoading(button);
     }
 }
 
@@ -1017,14 +1109,77 @@ async function archiveSociety(societyId) {
     }
 }
 
-async function openEditSociety(societyId) {
+async function openEditSociety(societyId, button) {
+    setButtonLoading(button, 'Opening…');
     try {
         const s = await societyApi(`/api/societies/${societyId}`);
-        const exec = s.execCommittee || {};
 
-        const deputyChairperson = exec.deputyChairperson || exec.deputychairperson || {};
+        let exec = s.execCommittee || {};
+
+        if (Array.isArray(exec)) {
+            const asObject = {};
+            exec.forEach(item => {
+                const title = String(item?.title || '').trim().toLowerCase();
+                if (!title) return;
+                const key = title.replace(/\s+/g, '');
+                asObject[key] = { name: item.name || '', email: item.email || '' };
+            });
+            exec = asObject;
+        }
+
+        const deputyChairperson =
+            exec.deputyChairperson ||
+            exec.deputychairperson ||
+            exec.deputy_chairperson ||
+            {};
+
+        const chairperson = exec.chairperson || {};
+        const treasurer   = exec.treasurer   || {};
+        const secretary   = exec.secretary   || {};
+        const organiser   = exec.organiser   || {};
+
+        const KNOWN_CATEGORIES = ['Academic', 'Cultural', 'Social', 'Religious', 'Political', 'Business'];
+        const storedCategory = String(s.category || '').trim();
+        const isKnownCategory = KNOWN_CATEGORIES.includes(storedCategory);
+        const extraCategoryOption = (storedCategory && !isKnownCategory)
+            ? `<option value="${escapeHtml(storedCategory)}" selected>${escapeHtml(storedCategory)} (current)</option>`
+            : '';
 
         editingOtherPortfolios = Array.isArray(exec.otherPortfolios) ? [...exec.otherPortfolios] : [];
+
+        editBaseline = {
+            name: String(s.name || '').trim(),
+            category: String(s.category || '').trim(),
+            email: String(s.email || '').trim(),
+            description: String(s.description || '').trim(),
+            chairperson: {
+                name: String(chairperson.name || '').trim(),
+                email: String(chairperson.email || '').trim()
+            },
+            deputyChairperson: {
+                name: String(deputyChairperson.name || '').trim(),
+                email: String(deputyChairperson.email || '').trim()
+            },
+            treasurer: {
+                name: String(treasurer.name || '').trim(),
+                email: String(treasurer.email || '').trim()
+            },
+            secretary: {
+                name: String(secretary.name || '').trim(),
+                email: String(secretary.email || '').trim()
+            },
+            organiser: {
+                name: String(organiser.name || '').trim(),
+                email: String(organiser.email || '').trim()
+            },
+            otherPortfolios: (Array.isArray(editingOtherPortfolios) ? editingOtherPortfolios : [])
+                .map(p => ({
+                    title: String(p?.title || '').trim(),
+                    name: String(p?.name || '').trim(),
+                    email: String(p?.email || '').trim()
+                }))
+                .filter(p => p.title || p.name || p.email)
+        };
 
         const html = `
             <div class="edit-grid">
@@ -1035,13 +1190,14 @@ async function openEditSociety(societyId) {
                 <div class="field-wrap">
                     <label class="field-label">Category <span class="req-asterisk" id="req-edit-soc-category">*</span></label>
                     <select id="edit-soc-category">
-                        <option value="">Category...</option>
-                        <option value="Academic" ${s.category === 'Academic' ? 'selected' : ''}>Academic</option>
-                        <option value="Cultural" ${s.category === 'Cultural' ? 'selected' : ''}>Cultural</option>
-                        <option value="Social" ${s.category === 'Social' ? 'selected' : ''}>Social</option>
-                        <option value="Religious" ${s.category === 'Religious' ? 'selected' : ''}>Religious</option>
-                        <option value="Political" ${s.category === 'Political' ? 'selected' : ''}>Political</option>
-                        <option value="Business" ${s.category === 'Business' ? 'selected' : ''}>Business & Entrepreneur</option>
+                        <option value="" ${!storedCategory ? 'selected' : ''}>Category...</option>
+                        <option value="Academic"  ${storedCategory === 'Academic'  ? 'selected' : ''}>Academic</option>
+                        <option value="Cultural"  ${storedCategory === 'Cultural'  ? 'selected' : ''}>Cultural</option>
+                        <option value="Social"    ${storedCategory === 'Social'    ? 'selected' : ''}>Social</option>
+                        <option value="Religious" ${storedCategory === 'Religious' ? 'selected' : ''}>Religious</option>
+                        <option value="Political" ${storedCategory === 'Political' ? 'selected' : ''}>Political</option>
+                        <option value="Business"  ${storedCategory === 'Business'  ? 'selected' : ''}>Business & Entrepreneur</option>
+                        ${extraCategoryOption}
                     </select>
                 </div>
                 <div class="field-wrap">
@@ -1049,38 +1205,38 @@ async function openEditSociety(societyId) {
                     <input id="edit-soc-email" placeholder="Contact Email" value="${escapeHtml(s.email || '')}" />
                     <div class="field-error" id="edit-soc-email-error"></div>
                 </div>
-                                <textarea id="edit-soc-description" placeholder="Short description">${escapeHtml(s.description || '')}</textarea>
+                <textarea id="edit-soc-description" placeholder="Short description">${escapeHtml(s.description || '')}</textarea>
                 <div class="field-error" id="edit-soc-description-error"></div>
 
                 <div class="exec-subgrid">
                     <div class="exec-col">
                         <label>Chairperson <span class="req-asterisk" id="req-edit-chairperson">*</span></label>
-                        <input id="edit-chairperson-name" placeholder="Chairperson Name" value="${escapeHtml(exec.chairperson?.name || '')}" />
-                        <input id="edit-chairperson-email" placeholder="Chairperson Email" value="${escapeHtml(exec.chairperson?.email || '')}" />
+                        <input id="edit-chairperson-name" placeholder="Chairperson Name" value="${escapeHtml(chairperson.name || '')}" />
+                        <input id="edit-chairperson-email" placeholder="Chairperson Email" value="${escapeHtml(chairperson.email || '')}" />
                         <div class="field-error" id="edit-chairperson-error"></div>
                     </div>
                     <div class="exec-col">
                         <label>Deputy Chairperson <span class="req-asterisk" id="req-edit-deputychairperson">*</span></label>
-                        <input id="edit-deputychairperson-name" placeholder="Deputy Chairperson Name" value="${escapeHtml(deputyChairperson?.name || '')}" />
-                        <input id="edit-deputychairperson-email" placeholder="Deputy Chairperson Email" value="${escapeHtml(deputyChairperson?.email || '')}" />
+                        <input id="edit-deputychairperson-name" placeholder="Deputy Chairperson Name" value="${escapeHtml(deputyChairperson.name || '')}" />
+                        <input id="edit-deputychairperson-email" placeholder="Deputy Chairperson Email" value="${escapeHtml(deputyChairperson.email || '')}" />
                         <div class="field-error" id="edit-deputychairperson-error"></div>
                     </div>
                     <div class="exec-col">
                         <label>Treasurer <span class="req-asterisk" id="req-edit-treasurer">*</span></label>
-                        <input id="edit-treasurer-name" placeholder="Treasurer Name" value="${escapeHtml(exec.treasurer?.name || '')}" />
-                        <input id="edit-treasurer-email" placeholder="Treasurer Email" value="${escapeHtml(exec.treasurer?.email || '')}" />
+                        <input id="edit-treasurer-name" placeholder="Treasurer Name" value="${escapeHtml(treasurer.name || '')}" />
+                        <input id="edit-treasurer-email" placeholder="Treasurer Email" value="${escapeHtml(treasurer.email || '')}" />
                         <div class="field-error" id="edit-treasurer-error"></div>
                     </div>
                     <div class="exec-col">
                         <label>Secretary <span class="req-asterisk" id="req-edit-secretary">*</span></label>
-                        <input id="edit-secretary-name" placeholder="Secretary Name" value="${escapeHtml(exec.secretary?.name || '')}" />
-                        <input id="edit-secretary-email" placeholder="Secretary Email" value="${escapeHtml(exec.secretary?.email || '')}" />
+                        <input id="edit-secretary-name" placeholder="Secretary Name" value="${escapeHtml(secretary.name || '')}" />
+                        <input id="edit-secretary-email" placeholder="Secretary Email" value="${escapeHtml(secretary.email || '')}" />
                         <div class="field-error" id="edit-secretary-error"></div>
                     </div>
                     <div class="exec-col">
                         <label>Organiser <span class="req-asterisk" id="req-edit-organiser">*</span></label>
-                        <input id="edit-organiser-name" placeholder="Organiser Name" value="${escapeHtml(exec.organiser?.name || '')}" />
-                        <input id="edit-organiser-email" placeholder="Organiser Email" value="${escapeHtml(exec.organiser?.email || '')}" />
+                        <input id="edit-organiser-name" placeholder="Organiser Name" value="${escapeHtml(organiser.name || '')}" />
+                        <input id="edit-organiser-email" placeholder="Organiser Email" value="${escapeHtml(organiser.email || '')}" />
                         <div class="field-error" id="edit-organiser-error"></div>
                     </div>
                 </div>
@@ -1113,6 +1269,8 @@ async function openEditSociety(societyId) {
     } catch (error) {
         console.error('Error opening society for edit:', error);
         alert('Error opening society. ' + error.message);
+    } finally {
+        clearButtonLoading(button);
     }
 }
 
@@ -1226,7 +1384,6 @@ async function saveSocietyEdits() {
             })
         });
 
-        // Mirror name into societiesIndex so the register page can see it
         try {
             await db.collection('societiesIndex').doc(societyId).set({
                 name: name,

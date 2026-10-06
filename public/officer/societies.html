@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -507,6 +507,27 @@
             background: #1B3E73;
             transform: translateY(-1px);
             box-shadow: 0 2px 8px rgba(11, 31, 58, 0.3);
+        }
+
+        /* ===== ACTION BUTTON LOADING STATE ===== */
+        .btn-action.is-loading {
+            opacity: 0.75;
+            cursor: wait;
+            pointer-events: none;
+        }
+        .btn-spinner {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            margin-right: 6px;
+            vertical-align: -1px;
+            border: 2px solid rgba(255, 255, 255, 0.45);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: btn-spin 0.7s linear infinite;
+        }
+        @keyframes btn-spin {
+            to { transform: rotate(360deg); }
         }
 
         .quota-options { display: flex; flex-direction: column; gap: 8px; }

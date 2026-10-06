@@ -393,6 +393,8 @@ function isEditFormValid() {
 function updateEditButtonState() {
     const btn = document.getElementById('societySaveBtn');
     if (!btn) return;
+    // Don't touch the button while a save is in flight
+    if (btn.classList.contains('is-loading')) return;
     btn.disabled = !isEditFormValid();
 }
 
@@ -1372,6 +1374,9 @@ async function saveSocietyEdits() {
         otherPortfolios: [...editingOtherPortfolios]
     };
 
+    const saveBtn = document.getElementById('societySaveBtn');
+    setButtonLoading(saveBtn, 'Saving…');
+
     try {
         await societyApi(`/api/societies/${societyId}`, {
             method: 'PUT',
@@ -1399,6 +1404,8 @@ async function saveSocietyEdits() {
     } catch (error) {
         console.error('Error saving society edits:', error);
         alert('Error saving society. ' + error.message);
+    } finally {
+        clearButtonLoading(saveBtn);
     }
 }
 

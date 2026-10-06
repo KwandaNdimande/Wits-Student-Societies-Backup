@@ -510,7 +510,8 @@
         }
 
         /* ===== ACTION BUTTON LOADING STATE ===== */
-        .btn-action.is-loading {
+        .btn-action.is-loading,
+        .btn.is-loading {
             opacity: 0.75;
             cursor: wait;
             pointer-events: none;
@@ -564,9 +565,12 @@
             padding: 28px 32px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
+
+        /* ===== MODAL HEADER (Back chip + title) ===== */
         .modal-header {
             display: flex;
             align-items: center;
+            gap: 16px;
             margin-bottom: 20px;
             padding-bottom: 12px;
             border-bottom: 1px solid var(--border);
@@ -577,19 +581,39 @@
             font-weight: 600;
             color: var(--navy-900);
             flex: 1;
+            min-width: 0;
         }
+
+        /* ===== BACK BUTTON (chip style, more visible) ===== */
         .modal-back {
-            background: none;
-            border: none;
-            font-size: 14px;
-            cursor: pointer;
-            color: var(--text-500);
-            padding: 4px 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #F4F7FB;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-600);
             font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            white-space: nowrap;
         }
         .modal-back:hover {
-            color: var(--text-900);
+            background: #E7EEF8;
+            border-color: #c9d3e3;
+            color: var(--navy-900);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(11, 31, 58, 0.08);
         }
+        .modal-back:focus-visible {
+            outline: 2px solid var(--navy-900);
+            outline-offset: 2px;
+        }
+
         .modal-body {
             padding: 4px 0;
             color: var(--text-900);
@@ -707,6 +731,9 @@
             border: none;
             cursor: pointer;
             transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         .btn-primary {
             background: var(--navy-900);
@@ -807,6 +834,13 @@
             }
             .btn-open-add {
                 text-align: center;
+            }
+            .modal-header {
+                gap: 10px;
+            }
+            .modal-back {
+                padding: 7px 12px;
+                font-size: 12px;
             }
         }
         @media (max-width: 480px) {

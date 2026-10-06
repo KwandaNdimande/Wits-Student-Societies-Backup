@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -203,11 +203,60 @@
             font-size: 13px;
             font-family: 'Inter', sans-serif;
             background: var(--surface);
+            color: var(--text-500);
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .file-group input[type="file"]:hover {
+            border-color: #c9d3e3;
+        }
+        .file-group input[type="file"]:focus {
+            outline: none;
+            border-color: var(--navy-900);
+            box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
         }
         .file-group input[type="file"]:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
+
+        /* ===== STYLED FILE PICKER BUTTON =====
+           Matches the navy form controls above. The native "Choose File"
+           control is replaced with a consistent rounded navy button. */
+        .file-group input[type="file"]::file-selector-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: var(--navy-900);
+            color: #fff;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            margin-right: 12px;
+            transition: background 0.2s ease;
+        }
+        .file-group input[type="file"]::file-selector-button:hover {
+            background: var(--navy-800);
+        }
+        /* WebKit (Chrome, Edge, Safari) fallback */
+        .file-group input[type="file"]::-webkit-file-upload-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: var(--navy-900);
+            color: #fff;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            margin-right: 12px;
+            transition: background 0.2s ease;
+        }
+        .file-group input[type="file"]::-webkit-file-upload-button:hover {
+            background: var(--navy-800);
+        }
+
         .form-actions {
             display: flex;
             gap: 12px;

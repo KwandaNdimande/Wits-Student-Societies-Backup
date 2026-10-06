@@ -98,10 +98,16 @@ function getIdToken() {
     });
 }
 
+// FIX: now attaches the Firebase ID token so /api/societies passes verifyToken
 async function societyApi(path, options = {}) {
+    const token = await getIdToken();
     const response = await fetch(path, {
         ...options,
-        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+            ...(options.headers || {})
+        }
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || 'Society request failed');

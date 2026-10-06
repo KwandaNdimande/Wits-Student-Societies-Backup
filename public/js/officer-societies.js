@@ -602,6 +602,7 @@ function openAddSocietyModal() {
                     <option value="Religious">Religious</option>
                     <option value="Political">Political</option>
                     <option value="Business">Business & Entrepreneur</option>
+                    <option value="Sports">Sports</option>
                 </select>
             </div>
             <div class="field-wrap">
@@ -1141,7 +1142,7 @@ async function openEditSociety(societyId, button) {
         const secretary   = exec.secretary   || {};
         const organiser   = exec.organiser   || {};
 
-        const KNOWN_CATEGORIES = ['Academic', 'Cultural', 'Social', 'Religious', 'Political', 'Business'];
+        const KNOWN_CATEGORIES = ['Academic', 'Cultural', 'Social', 'Religious', 'Political', 'Business', 'Sports'];
         const storedCategory = String(s.category || '').trim();
         const isKnownCategory = KNOWN_CATEGORIES.includes(storedCategory);
         const extraCategoryOption = (storedCategory && !isKnownCategory)
@@ -1200,6 +1201,7 @@ async function openEditSociety(societyId, button) {
                         <option value="Religious" ${storedCategory === 'Religious' ? 'selected' : ''}>Religious</option>
                         <option value="Political" ${storedCategory === 'Political' ? 'selected' : ''}>Political</option>
                         <option value="Business"  ${storedCategory === 'Business'  ? 'selected' : ''}>Business & Entrepreneur</option>
+                        <option value="Sports"    ${storedCategory === 'Sports'    ? 'selected' : ''}>Sports</option>
                         ${extraCategoryOption}
                     </select>
                 </div>

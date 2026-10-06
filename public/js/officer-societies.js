@@ -1071,7 +1071,8 @@ async function viewSociety(societyId, button) {
             </div>
         `;
 
-        document.getElementById('societyModalTitle').textContent = escapeHtml(s.name || 'Society');
+        // Title matches the Edit modal pattern
+        document.getElementById('societyModalTitle').textContent = `View: ${s.name || 'Society'}`;
         document.getElementById('societyModalBody').innerHTML = html;
         document.getElementById('societyModal').dataset.viewingId = societyId;
         document.getElementById('societySaveBtn').style.display = 'none';

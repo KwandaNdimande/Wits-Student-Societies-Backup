@@ -169,6 +169,64 @@ function clearButtonLoading(button) {
     }
 }
 
+// ===== DAT-01 =====
+// Collect every email currently typed into the Add or Edit form.
+// scope is 'add' or 'edit'.
+function getFormEmails(scope) {
+    const isEdit = scope === 'edit';
+    const read = (id) => document.getElementById(id)?.value?.trim() || '';
+    const entries = [];
+
+    const contact = isEdit
+        ? read('edit-soc-email')
+        : read('society-email');
+    if (contact) entries.push({ label: 'Contact Email', value: contact });
+
+    const roleMap = isEdit
+        ? [
+            ['edit-chairperson-email', 'Chairperson'],
+            ['edit-deputychairperson-email', 'Deputy Chairperson'],
+            ['edit-treasurer-email', 'Treasurer'],
+            ['edit-secretary-email', 'Secretary'],
+            ['edit-organiser-email', 'Organiser']
+        ]
+        : [
+            ['chairperson-email', 'Chairperson'],
+            ['deputychairperson-email', 'Deputy Chairperson'],
+            ['treasurer-email', 'Treasurer'],
+            ['secretary-email', 'Secretary'],
+            ['organiser-email', 'Organiser']
+        ];
+
+    roleMap.forEach(([id, label]) => {
+        const v = read(id);
+        if (v) entries.push({ label, value: v });
+    });
+
+    const portfolios = isEdit ? editingOtherPortfolios : otherPortfolios;
+    (Array.isArray(portfolios) ? portfolios : []).forEach((p, i) => {
+        const v = String(p?.email || '').trim();
+        if (v) entries.push({ label: `Other Portfolio ${i + 1}`, value: v });
+    });
+
+    return entries;
+}
+
+// ===== DAT-01 =====
+// Returns the first email that appears twice in the form, or null.
+// Case-sensitive by design.
+function findWithinFormDuplicate(scope) {
+    const entries = getFormEmails(scope);
+    const seen = new Map();
+    for (const entry of entries) {
+        if (seen.has(entry.value)) {
+            return entry.value;
+        }
+        seen.set(entry.value, entry);
+    }
+    return null;
+}
+
 function validateKeyPortfolios() {
     const requiredPortfolios = [
         { id: 'chairperson', label: 'Chairperson' },
@@ -886,6 +944,13 @@ async function addSociety() {
         return;
     }
 
+    // ===== DAT-01: within-form duplicate check =====
+    const withinDupe = findWithinFormDuplicate('add');
+    if (withinDupe) {
+        alert(`This email is used more than once in this form: ${withinDupe}`);
+        return;
+    }
+
     const execCommittee = {
         chairperson: {
             name: document.getElementById('chairperson-name')?.value.trim() || '',
@@ -969,7 +1034,13 @@ async function addSociety() {
 
     } catch (error) {
         console.error('Error adding society:', error);
-        alert('Error adding society. ' + error.message);
+        const msg = String(error.message || '');
+        // ===== DAT-01: surface the uniqueness error without the doubled prefix =====
+        if (msg.startsWith('This email is')) {
+            alert(msg);
+        } else {
+            alert('Error adding society. ' + msg);
+        }
     } finally {
         const btn = document.querySelector('.btn-add');
         if (btn) {
@@ -1353,6 +1424,13 @@ async function saveSocietyEdits() {
         return;
     }
 
+    // ===== DAT-01: within-form duplicate check =====
+    const withinDupe = findWithinFormDuplicate('edit');
+    if (withinDupe) {
+        alert(`This email is used more than once in this form: ${withinDupe}`);
+        return;
+    }
+
     const execCommittee = {
         chairperson: {
             name: document.getElementById('edit-chairperson-name')?.value.trim() || '',
@@ -1406,7 +1484,13 @@ async function saveSocietyEdits() {
         alert('Society updated successfully!');
     } catch (error) {
         console.error('Error saving society edits:', error);
-        alert('Error saving society. ' + error.message);
+        const msg = String(error.message || '');
+        // ===== DAT-01: surface the uniqueness error without the doubled prefix =====
+        if (msg.startsWith('This email is')) {
+            alert(msg);
+        } else {
+            alert('Error saving society. ' + msg);
+        }
     } finally {
         clearButtonLoading(saveBtn);
     }

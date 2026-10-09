@@ -170,85 +170,131 @@ function clearButtonLoading(button) {
 }
 
 // ===== DAT-01 =====
-// Every email input on the current form.
+// Email inputs for the current form. Each entry: { inputId, errorId, label }
+// Order matters: this is the "natural" order used to decide which field is
+// the "first" occurrence of a duplicated email.
 function getEmailFieldMap(scope) {
     if (scope === 'edit') {
         return [
-            { inputId: 'edit-soc-email',                errorId: 'edit-soc-email-error' },
-            { inputId: 'edit-chairperson-email',        errorId: 'edit-chairperson-error' },
-            { inputId: 'edit-deputychairperson-email',  errorId: 'edit-deputychairperson-error' },
-            { inputId: 'edit-treasurer-email',          errorId: 'edit-treasurer-error' },
-            { inputId: 'edit-secretary-email',          errorId: 'edit-secretary-error' },
-            { inputId: 'edit-organiser-email',          errorId: 'edit-organiser-error' }
+            { inputId: 'edit-soc-email',                errorId: 'edit-soc-email-error',                label: 'Contact Email' },
+            { inputId: 'edit-chairperson-email',        errorId: 'edit-chairperson-error',              label: 'Chairperson' },
+            { inputId: 'edit-deputychairperson-email',  errorId: 'edit-deputychairperson-error',        label: 'Deputy Chairperson' },
+            { inputId: 'edit-treasurer-email',          errorId: 'edit-treasurer-error',                label: 'Treasurer' },
+            { inputId: 'edit-secretary-email',          errorId: 'edit-secretary-error',                label: 'Secretary' },
+            { inputId: 'edit-organiser-email',          errorId: 'edit-organiser-error',                label: 'Organiser' }
         ];
     }
     return [
-        { inputId: 'society-email',           errorId: 'society-email-error' },
-        { inputId: 'chairperson-email',       errorId: 'chairperson-error' },
-        { inputId: 'deputychairperson-email', errorId: 'deputychairperson-error' },
-        { inputId: 'treasurer-email',         errorId: 'treasurer-error' },
-        { inputId: 'secretary-email',         errorId: 'secretary-error' },
-        { inputId: 'organiser-email',         errorId: 'organiser-error' }
+        { inputId: 'society-email',           errorId: 'society-email-error',           label: 'Contact Email' },
+        { inputId: 'chairperson-email',       errorId: 'chairperson-error',             label: 'Chairperson' },
+        { inputId: 'deputychairperson-email', errorId: 'deputychairperson-error',       label: 'Deputy Chairperson' },
+        { inputId: 'treasurer-email',         errorId: 'treasurer-error',               label: 'Treasurer' },
+        { inputId: 'secretary-email',         errorId: 'secretary-error',               label: 'Secretary' },
+        { inputId: 'organiser-email',         errorId: 'organiser-error',               label: 'Organiser' }
     ];
 }
 
 // ===== DAT-01 =====
-// Every email currently typed in the form.
-function getFormEmails(scope) {
-    const isEdit = scope === 'edit';
-    const read = (id) => document.getElementById(id)?.value?.trim() || '';
-    const entries = [];
+// Walk the form's email inputs and detect every duplicate.
+// Returns an array of { email, inputId, errorId, firstLabel } — one entry per
+// later occurrence (i.e. every field after the first one that shares the email).
+function findAllWithinFormDuplicates(scope) {
+    const map = getEmailFieldMap(scope);
+    const seen = new Map(); // value -> first field label
+    const duplicates = [];
 
-    const contactId = isEdit ? 'edit-soc-email' : 'society-email';
-    const contact = read(contactId);
-    if (contact) entries.push({ inputId: contactId, label: 'Contact Email', value: contact });
+    for (const field of map) {
+        const input = document.getElementById(field.inputId);
+        if (!input) continue;
+        const value = String(input.value || '').trim();
+        if (!value) continue;
 
-    const roleMap = isEdit
-        ? [
-            ['edit-chairperson-email', 'Chairperson'],
-            ['edit-deputychairperson-email', 'Deputy Chairperson'],
-            ['edit-treasurer-email', 'Treasurer'],
-            ['edit-secretary-email', 'Secretary'],
-            ['edit-organiser-email', 'Organiser']
-        ]
-        : [
-            ['chairperson-email', 'Chairperson'],
-            ['deputychairperson-email', 'Deputy Chairperson'],
-            ['treasurer-email', 'Treasurer'],
-            ['secretary-email', 'Secretary'],
-            ['organiser-email', 'Organiser']
-        ];
-
-    roleMap.forEach(([id, label]) => {
-        const v = read(id);
-        if (v) entries.push({ inputId: id, label, value: v });
-    });
-
-    const portfolios = isEdit ? editingOtherPortfolios : otherPortfolios;
-    (Array.isArray(portfolios) ? portfolios : []).forEach((p, i) => {
-        const v = String(p?.email || '').trim();
-        if (v) entries.push({ inputId: null, label: `Other Portfolio ${i + 1}`, value: v });
-    });
-
-    return entries;
-}
-
-// ===== DAT-01 =====
-// Returns { email, inputId, label } of the first duplicate, or null.
-function findWithinFormDuplicate(scope) {
-    const entries = getFormEmails(scope);
-    const seen = new Map();
-    for (const entry of entries) {
-        if (seen.has(entry.value)) {
-            return { email: entry.value, inputId: entry.inputId, label: entry.label };
+        if (seen.has(value)) {
+            duplicates.push({
+                email: value,
+                inputId: field.inputId,
+                errorId: field.errorId,
+                firstLabel: seen.get(value)
+            });
+        } else {
+            seen.set(value, field.label);
         }
-        seen.set(entry.value, entry);
     }
-    return null;
+
+    // Also include other-portfolio emails in the duplicate check, but they
+    // don't have a dedicated <input> so we can't mark them; we still count
+    // them as "first occurrences" so a committee field pointing to a
+    // portfolio row references the right label.
+    const portfolios = scope === 'edit' ? editingOtherPortfolios : otherPortfolios;
+    (Array.isArray(portfolios) ? portfolios : []).forEach((p, i) => {
+        const value = String(p?.email || '').trim();
+        if (!value) return;
+        const label = `Other Portfolio ${i + 1}`;
+        if (seen.has(value)) {
+            // No input to mark; nothing to push. The officer will still see
+            // the button disabled and the tooltip.
+        } else {
+            seen.set(value, label);
+        }
+    });
+
+    return duplicates;
 }
 
 // ===== DAT-01 =====
-// Mark the field whose value matches the given email as invalid.
+// Apply or clear inline duplicate marks on the current form.
+// - Every later occurrence gets marked red with a message pointing to the
+//   label of the first occurrence.
+// - Fields that are no longer duplicating get their red mark cleared.
+function refreshDuplicateMarks(scope) {
+    const map = getEmailFieldMap(scope);
+    const duplicates = findAllWithinFormDuplicates(scope);
+    const markedIds = new Set(duplicates.map(d => d.inputId));
+
+    // Clear marks on fields that are no longer duplicates.
+    map.forEach(({ inputId, errorId }) => {
+        const input = document.getElementById(inputId);
+        const errEl = document.getElementById(errorId);
+        if (!input || !errEl) return;
+        if (markedIds.has(inputId)) return;
+        // Only clear the duplicate message; leave other messages (e.g. "email
+        // must contain an @") untouched.
+        if (/also used in the/i.test(errEl.textContent)) {
+            input.classList.remove('input-error');
+            errEl.classList.remove('show');
+            errEl.textContent = '';
+        }
+    });
+
+    // Apply marks on the current duplicates.
+    duplicates.forEach(({ inputId, errorId, firstLabel }) => {
+        const input = document.getElementById(inputId);
+        const errEl = document.getElementById(errorId);
+        if (!input || !errEl) return;
+        input.classList.add('input-error');
+        errEl.textContent = `Error: This email is also used in the ${firstLabel} field.`;
+        errEl.classList.add('show');
+    });
+
+    // Attach a one-time input listener per email field so editing clears the mark.
+    map.forEach(({ inputId, errorId }) => {
+        const input = document.getElementById(inputId);
+        if (!input || input.dataset.dupListener) return;
+        input.addEventListener('input', () => {
+            const errEl = document.getElementById(errorId);
+            if (errEl && /also used in the/i.test(errEl.textContent)) {
+                input.classList.remove('input-error');
+                errEl.classList.remove('show');
+                errEl.textContent = '';
+            }
+        });
+        input.dataset.dupListener = '1';
+    });
+}
+
+// ===== DAT-01 =====
+// Mark the field whose value matches the given email as invalid. Used for
+// cross-society collisions returned by the server.
 function showEmailFieldError(scope, email, message) {
     const map = getEmailFieldMap(scope);
     const target = String(email || '').trim();
@@ -281,23 +327,7 @@ function showEmailFieldError(scope, email, message) {
 }
 
 // ===== DAT-01 =====
-// Remove all inline email errors currently shown on the form.
-function clearEmailFieldErrors(scope) {
-    const map = getEmailFieldMap(scope);
-    map.forEach(({ inputId, errorId }) => {
-        const input = document.getElementById(inputId);
-        if (input) input.classList.remove('input-error');
-        const errEl = document.getElementById(errorId);
-        if (errEl && /already used|used more than once/i.test(errEl.textContent)) {
-            errEl.classList.remove('show');
-            errEl.textContent = '';
-        }
-    });
-}
-
-// ===== DAT-01 =====
-// Manage the button + tooltip state for the duplicate case.
-// The tooltip element is the sibling .tooltip inside .btn-wrapper.
+// Swap the .tooltip text inside the button's wrapper.
 function setDuplicateTooltip(buttonEl, isDuplicate) {
     if (!buttonEl) return;
     const wrapper = buttonEl.closest('.btn-wrapper');
@@ -428,17 +458,17 @@ function isAddFormValid() {
 }
 
 // ===== DAT-01 =====
-// Button state combines two things:
-//   1. required fields complete (existing rule)
-//   2. no email duplicate within the form (new rule)
-// Tooltip text reflects whichever rule is currently failing.
+// Button state combines required-field completeness with duplicate detection.
 function updateAddButtonState() {
     const btn = document.querySelector('.btn-add');
     if (!btn) return;
 
-    const duplicate = findWithinFormDuplicate('add');
+    // Refresh inline marks first so the red messages always reflect the
+    // current form values.
+    refreshDuplicateMarks('add');
 
-    if (duplicate) {
+    const duplicates = findAllWithinFormDuplicates('add');
+    if (duplicates.length > 0) {
         setDuplicateTooltip(btn, true);
         btn.disabled = true;
         return;
@@ -544,17 +574,16 @@ function isEditFormValid() {
 }
 
 // ===== DAT-01 =====
-// Same logic as Add: duplicates disable the button and swap the tooltip.
+// Same duplicate-awareness as the Add form.
 function updateEditButtonState() {
     const btn = document.getElementById('societySaveBtn');
     if (!btn) return;
     if (btn.classList.contains('is-loading')) return;
 
-    const duplicate = findWithinFormDuplicate('edit');
-    if (duplicate) {
-        // The Edit modal doesn't have its own .tooltip element, so nothing to
-        // swap here — the button just disables. The field-level red message
-        // is what tells the officer what's wrong.
+    refreshDuplicateMarks('edit');
+
+    const duplicates = findAllWithinFormDuplicates('edit');
+    if (duplicates.length > 0) {
         btn.disabled = true;
         return;
     }
@@ -1052,9 +1081,8 @@ async function addSociety() {
         return;
     }
 
-    // Defensive: the button is disabled when a duplicate exists, but if this
-    // handler is ever reached programmatically, quietly return without marking.
-    if (findWithinFormDuplicate('add')) {
+    // Defensive: the button is disabled when a duplicate exists.
+    if (findAllWithinFormDuplicates('add').length > 0) {
         updateAddButtonState();
         return;
     }
@@ -1538,7 +1566,7 @@ async function saveSocietyEdits() {
     }
 
     // Defensive: the button is disabled when a duplicate exists.
-    if (findWithinFormDuplicate('edit')) {
+    if (findAllWithinFormDuplicates('edit').length > 0) {
         updateEditButtonState();
         return;
     }

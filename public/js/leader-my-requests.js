@@ -32,6 +32,8 @@ let filteredRequests = [];
 let currentPage = 1;
 const pageSize = 5;
 
+let currentRequestDocuments = {};
+
 // Status colors
 const statusColors = {
     "Submitted": "status-submitted",
@@ -419,7 +421,6 @@ function renderTable() {
     container.innerHTML = html;
 }
 
-// Change page
 function changePage(page) {
     const totalPages = Math.ceil(filteredRequests.length / pageSize) || 1;
     if (page < 1 || page > totalPages) return;
@@ -480,7 +481,6 @@ function openDetailView(requestId) {
         }
     }).join('');
 
-    // Build timeline HTML with reversal support
     const history = request.statusHistory || [];
     const historyHtml = getRequestHistoryHtml(history);
 
@@ -660,7 +660,6 @@ async function openUpdateModal(requestId) {
             }
         });
 
-        // Store existing documents for later comparison (used by same-file check)
         currentRequestDocuments = data.documents || {};
 
         checkUpdateFormValidity();
@@ -669,9 +668,6 @@ async function openUpdateModal(requestId) {
         alert('Error loading documents. ' + error.message);
     }
 }
-
-// Stores the current request's document paths while the Update modal is open
-let currentRequestDocuments = {};
 
 // ============ COMMENT VALIDATION ============
 
@@ -733,23 +729,21 @@ function validateUpdateFile(key, input) {
 }
 
 // ============ SAME-FILE DETECTION (Update modal) ============
-// Two selections are the same when name, size, and lastModified all match.
+// Same file when name and size both match. Timestamps are unreliable
+// (copies, downloads and syncs touch them), so we do not compare them.
 function isSameSelectedFile(a, b) {
     if (!a || !b) return false;
-    return a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
+    return a.name === b.name && a.size === b.size;
 }
 
-// Compare new selections against each other and against stored documents.
-// Returns an array of { key, label, message } for each slot that's flagged.
 function findUpdateDuplicateSlots() {
     const selections = FILE_SLOTS.map(slot => {
         const file = document.getElementById(`file_${slot.key}`)?.files?.[0] || null;
         return { slot, file };
     });
 
-    const flagged = new Map(); // key -> message
+    const flagged = new Map();
 
-    // new vs new
     for (let i = 0; i < selections.length; i++) {
         for (let j = i + 1; j < selections.length; j++) {
             const a = selections[i];
@@ -764,7 +758,6 @@ function findUpdateDuplicateSlots() {
         }
     }
 
-    // new vs stored (by filename only — we don't have size/lastModified for stored files)
     selections.forEach(sel => {
         if (!sel.file) return;
         const newName = sel.file.name;
@@ -854,7 +847,6 @@ async function submitUpdate() {
     if (!currentRequestId) return;
     if (!validateUpdateComment()) return;
 
-    // Same-file check runs before anything else
     if (findUpdateDuplicateSlots().length > 0) {
         refreshUpdateDuplicateMarks();
         checkUpdateFormValidity();
@@ -914,7 +906,6 @@ async function submitUpdate() {
             return;
         }
 
-        // 2. Delete old files
         const oldPathsToDelete = [];
         for (const key of ['budgetForm', 'meetingMinutes', 'vendorQuotation']) {
             if (newPaths[key]) {
@@ -934,7 +925,6 @@ async function submitUpdate() {
 }
         }
 
-        // 3. Update Firestore
         const comment = document.getElementById('updateComment')?.value.trim() || '';
         await db.collection('requests').doc(currentRequestId).update({
             documents: updatedDocs,

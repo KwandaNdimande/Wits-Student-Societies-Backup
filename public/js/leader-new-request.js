@@ -87,8 +87,6 @@ function getDescriptionError(value) {
 }
 
 // ============ FILE-SLOT DEFINITIONS ============
-// Each entry describes one of the three required document slots.
-// Used by both the required-file checks and the same-file detection.
 const FILE_SLOTS = [
     {
         id: 'budget-form',
@@ -114,16 +112,13 @@ const FILE_SLOTS = [
 ];
 
 // ============ SAME-FILE DETECTION ============
-// Two files are considered identical when name, size, and lastModified all match.
+// Same file when name and size both match. Timestamps are unreliable
+// (copies, downloads and syncs touch them), so we do not compare them.
 function isSameFile(a, b) {
     if (!a || !b) return false;
-    return a.name === b.name
-        && a.size === b.size
-        && a.lastModified === b.lastModified;
+    return a.name === b.name && a.size === b.size;
 }
 
-// Return an array of { slotId, errorId, otherLabel } for each slot whose
-// currently-selected file matches another slot's file.
 function findDuplicateFileSlots() {
     const selected = FILE_SLOTS.map(slot => {
         const input = document.getElementById(slot.id);
@@ -248,8 +243,6 @@ function updateTextFieldWarning(inputId, warningId, label, getError) {
 }
 
 // ============ DUPLICATE-FILE MARKS ============
-// Mark both offending slots red and show a message under each. Clears marks
-// on any slot that is no longer duplicated.
 function refreshDuplicateFileMarks() {
     const duplicates = findDuplicateFileSlots();
     const markedIds = new Set(duplicates.map(d => d.slotId));
@@ -307,7 +300,6 @@ function updateProgress() {
 }
 
 function updateFormState() {
-    // Update all asterisks
     updateAsteriskForField('request-type');
     updateAsteriskForField('item-name');
     updateAsteriskForField('amount');
@@ -316,20 +308,15 @@ function updateFormState() {
     updateAsteriskForField('meeting-minutes');
     updateAsteriskForField('vendor-quotation');
 
-    // Update warnings
     updateTextFieldWarning('item-name', 'item-warning', 'Event / Item name', getItemNameError);
     updateTextFieldWarning('description', 'description-warning', 'Description', getDescriptionError);
 
-    // Update amount error
     updateAmountError();
 
-    // Same-file marks
     refreshDuplicateFileMarks();
 
-    // Update progress + button state
     updateProgress();
 
-    // Clear any old error summary if form is valid
     if (isFormValid()) {
         errorSummary.textContent = '';
         errorSummary.classList.remove('show');
@@ -439,7 +426,6 @@ document.getElementById('submit-another').addEventListener('click', function () 
 submitBtn.addEventListener('click', async (e) => {
     e.preventDefault();
 
-    // Same-file check runs first so the officer sees the real problem.
     if (findDuplicateFileSlots().length > 0) {
         refreshDuplicateFileMarks();
         return;

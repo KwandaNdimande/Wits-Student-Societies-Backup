@@ -170,8 +170,7 @@ function clearButtonLoading(button) {
 }
 
 // ===== DAT-01 =====
-// Every email input on the current form, in the order they appear.
-// Each entry: { inputId, errorId, label }
+// Every email input on the current form.
 function getEmailFieldMap(scope) {
     if (scope === 'edit') {
         return [
@@ -181,22 +180,20 @@ function getEmailFieldMap(scope) {
             { inputId: 'edit-treasurer-email',          errorId: 'edit-treasurer-error' },
             { inputId: 'edit-secretary-email',          errorId: 'edit-secretary-error' },
             { inputId: 'edit-organiser-email',          errorId: 'edit-organiser-error' }
-            // otherPortfolios rows share one error element and one email input each;
-            // they are handled by findWithinFormDuplicate via the in-memory array.
         ];
     }
     return [
-        { inputId: 'society-email',          errorId: 'society-email-error' },
-        { inputId: 'chairperson-email',      errorId: 'chairperson-error' },
+        { inputId: 'society-email',           errorId: 'society-email-error' },
+        { inputId: 'chairperson-email',       errorId: 'chairperson-error' },
         { inputId: 'deputychairperson-email', errorId: 'deputychairperson-error' },
-        { inputId: 'treasurer-email',        errorId: 'treasurer-error' },
-        { inputId: 'secretary-email',        errorId: 'secretary-error' },
-        { inputId: 'organiser-email',        errorId: 'organiser-error' }
+        { inputId: 'treasurer-email',         errorId: 'treasurer-error' },
+        { inputId: 'secretary-email',         errorId: 'secretary-error' },
+        { inputId: 'organiser-email',         errorId: 'organiser-error' }
     ];
 }
 
 // ===== DAT-01 =====
-// Collect every email currently typed into the Add or Edit form.
+// Every email currently typed in the form.
 function getFormEmails(scope) {
     const isEdit = scope === 'edit';
     const read = (id) => document.getElementById(id)?.value?.trim() || '';
@@ -230,8 +227,6 @@ function getFormEmails(scope) {
     const portfolios = isEdit ? editingOtherPortfolios : otherPortfolios;
     (Array.isArray(portfolios) ? portfolios : []).forEach((p, i) => {
         const v = String(p?.email || '').trim();
-        // Other-portfolio emails are tracked in-memory; we still register them
-        // for duplicate detection, but there is no dedicated <input> to mark.
         if (v) entries.push({ inputId: null, label: `Other Portfolio ${i + 1}`, value: v });
     });
 
@@ -240,7 +235,6 @@ function getFormEmails(scope) {
 
 // ===== DAT-01 =====
 // Returns { email, inputId, label } of the first duplicate, or null.
-// Case-sensitive by design.
 function findWithinFormDuplicate(scope) {
     const entries = getFormEmails(scope);
     const seen = new Map();
@@ -254,9 +248,7 @@ function findWithinFormDuplicate(scope) {
 }
 
 // ===== DAT-01 =====
-// Mark the field whose value matches the given email as invalid, and
-// show the message under it. Falls back silently if the email belongs to
-// an other-portfolio row (no dedicated input to highlight).
+// Mark the field whose value matches the given email as invalid.
 function showEmailFieldError(scope, email, message) {
     const map = getEmailFieldMap(scope);
     const target = String(email || '').trim();
@@ -271,7 +263,6 @@ function showEmailFieldError(scope, email, message) {
                 errEl.textContent = message;
                 errEl.classList.add('show');
             }
-            // Clear the error the moment the officer edits this field
             if (!input.dataset.emailErrorListener) {
                 const handler = () => {
                     input.classList.remove('input-error');
@@ -302,6 +293,20 @@ function clearEmailFieldErrors(scope) {
             errEl.textContent = '';
         }
     });
+}
+
+// ===== DAT-01 =====
+// Manage the button + tooltip state for the duplicate case.
+// The tooltip element is the sibling .tooltip inside .btn-wrapper.
+function setDuplicateTooltip(buttonEl, isDuplicate) {
+    if (!buttonEl) return;
+    const wrapper = buttonEl.closest('.btn-wrapper');
+    if (!wrapper) return;
+    const tooltip = wrapper.querySelector('.tooltip');
+    if (!tooltip) return;
+    tooltip.textContent = isDuplicate
+        ? 'Please fix duplicate emails'
+        : 'Please complete all required fields';
 }
 
 function validateKeyPortfolios() {
@@ -422,9 +427,24 @@ function isAddFormValid() {
     return true;
 }
 
+// ===== DAT-01 =====
+// Button state combines two things:
+//   1. required fields complete (existing rule)
+//   2. no email duplicate within the form (new rule)
+// Tooltip text reflects whichever rule is currently failing.
 function updateAddButtonState() {
     const btn = document.querySelector('.btn-add');
     if (!btn) return;
+
+    const duplicate = findWithinFormDuplicate('add');
+
+    if (duplicate) {
+        setDuplicateTooltip(btn, true);
+        btn.disabled = true;
+        return;
+    }
+
+    setDuplicateTooltip(btn, false);
     btn.disabled = !isAddFormValid();
 }
 
@@ -523,10 +543,22 @@ function isEditFormValid() {
     return true;
 }
 
+// ===== DAT-01 =====
+// Same logic as Add: duplicates disable the button and swap the tooltip.
 function updateEditButtonState() {
     const btn = document.getElementById('societySaveBtn');
     if (!btn) return;
     if (btn.classList.contains('is-loading')) return;
+
+    const duplicate = findWithinFormDuplicate('edit');
+    if (duplicate) {
+        // The Edit modal doesn't have its own .tooltip element, so nothing to
+        // swap here — the button just disables. The field-level red message
+        // is what tells the officer what's wrong.
+        btn.disabled = true;
+        return;
+    }
+
     btn.disabled = !isEditFormValid();
 }
 
@@ -892,11 +924,13 @@ function addOtherPortfolio() {
     document.getElementById('other-portfolio-email').value = '';
 
     renderOtherPortfolios();
+    updateAddButtonState();
 }
 
 function removeOtherPortfolio(index) {
     otherPortfolios.splice(index, 1);
     renderOtherPortfolios();
+    updateAddButtonState();
 }
 
 function renderOtherPortfolios() {
@@ -1018,13 +1052,10 @@ async function addSociety() {
         return;
     }
 
-    // ===== DAT-01: clear previous uniqueness errors, then check within-form =====
-    clearEmailFieldErrors('add');
-
-    const withinDupe = findWithinFormDuplicate('add');
-    if (withinDupe) {
-        showEmailFieldError('add', withinDupe.email,
-            'Error: This email is used more than once in this form.');
+    // Defensive: the button is disabled when a duplicate exists, but if this
+    // handler is ever reached programmatically, quietly return without marking.
+    if (findWithinFormDuplicate('add')) {
+        updateAddButtonState();
         return;
     }
 
@@ -1112,7 +1143,6 @@ async function addSociety() {
     } catch (error) {
         console.error('Error adding society:', error);
         const msg = String(error.message || '');
-        // ===== DAT-01: inline the uniqueness error on the offending field =====
         const m = msg.match(/^This email is already used by another society: (.+?) \((.+?)\)$/);
         if (m) {
             const offendingEmail = m[1].trim();
@@ -1120,7 +1150,6 @@ async function addSociety() {
             const marked = showEmailFieldError('add', offendingEmail,
                 `Error: This email is already used by another society: ${offendingEmail} (${otherSociety})`);
             if (!marked) {
-                // Email belonged to an other-portfolio row (no dedicated input).
                 alert(msg);
             }
         } else {
@@ -1129,9 +1158,9 @@ async function addSociety() {
     } finally {
         const btn = document.querySelector('.btn-add');
         if (btn) {
-            btn.disabled = false;
             btn.textContent = 'Add Society';
         }
+        updateAddButtonState();
     }
 }
 
@@ -1508,13 +1537,9 @@ async function saveSocietyEdits() {
         return;
     }
 
-    // ===== DAT-01: clear previous uniqueness errors, then check within-form =====
-    clearEmailFieldErrors('edit');
-
-    const withinDupe = findWithinFormDuplicate('edit');
-    if (withinDupe) {
-        showEmailFieldError('edit', withinDupe.email,
-            'Error: This email is used more than once in this form.');
+    // Defensive: the button is disabled when a duplicate exists.
+    if (findWithinFormDuplicate('edit')) {
+        updateEditButtonState();
         return;
     }
 
@@ -1572,7 +1597,6 @@ async function saveSocietyEdits() {
     } catch (error) {
         console.error('Error saving society edits:', error);
         const msg = String(error.message || '');
-        // ===== DAT-01: inline the uniqueness error on the offending field =====
         const m = msg.match(/^This email is already used by another society: (.+?) \((.+?)\)$/);
         if (m) {
             const offendingEmail = m[1].trim();

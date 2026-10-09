@@ -65,6 +65,20 @@ function isNameTooShort(value) {
     return trimmed.length > 0 && trimmed.length < 2;
 }
 
+// ===== DAT-02 =====
+// Society name rule, mirroring the server-side check:
+//   - must not be purely numeric
+//   - must be at least 3 characters after trim
+// Returns '' when the value is acceptable (including the empty case, which
+// is handled by the existing required-field rule), otherwise the error text.
+function getSocietyNameError(value) {
+    const trimmed = String(value || '').trim();
+    if (!trimmed) return '';
+    if (/^[0-9]+$/.test(trimmed)) return 'Error: Society name cannot be numbers only.';
+    if (trimmed.length < 3) return 'Error: Society name must be at least 3 characters.';
+    return '';
+}
+
 function attachDescriptionCheck(textareaId, errorId) {
     const textarea = document.getElementById(textareaId);
     if (!textarea) return;
@@ -171,8 +185,6 @@ function clearButtonLoading(button) {
 
 // ===== DAT-01 =====
 // Email inputs for the current form. Each entry: { inputId, errorId, label }
-// Order matters: this is the "natural" order used to decide which field is
-// the "first" occurrence of a duplicated email.
 function getEmailFieldMap(scope) {
     if (scope === 'edit') {
         return [
@@ -195,12 +207,9 @@ function getEmailFieldMap(scope) {
 }
 
 // ===== DAT-01 =====
-// Walk the form's email inputs and detect every duplicate.
-// Returns an array of { email, inputId, errorId, firstLabel } — one entry per
-// later occurrence (i.e. every field after the first one that shares the email).
 function findAllWithinFormDuplicates(scope) {
     const map = getEmailFieldMap(scope);
-    const seen = new Map(); // value -> first field label
+    const seen = new Map();
     const duplicates = [];
 
     for (const field of map) {
@@ -221,44 +230,28 @@ function findAllWithinFormDuplicates(scope) {
         }
     }
 
-    // Also include other-portfolio emails in the duplicate check, but they
-    // don't have a dedicated <input> so we can't mark them; we still count
-    // them as "first occurrences" so a committee field pointing to a
-    // portfolio row references the right label.
     const portfolios = scope === 'edit' ? editingOtherPortfolios : otherPortfolios;
     (Array.isArray(portfolios) ? portfolios : []).forEach((p, i) => {
         const value = String(p?.email || '').trim();
         if (!value) return;
         const label = `Other Portfolio ${i + 1}`;
-        if (seen.has(value)) {
-            // No input to mark; nothing to push. The officer will still see
-            // the button disabled and the tooltip.
-        } else {
-            seen.set(value, label);
-        }
+        if (!seen.has(value)) seen.set(value, label);
     });
 
     return duplicates;
 }
 
 // ===== DAT-01 =====
-// Apply or clear inline duplicate marks on the current form.
-// - Every later occurrence gets marked red with a message pointing to the
-//   label of the first occurrence.
-// - Fields that are no longer duplicating get their red mark cleared.
 function refreshDuplicateMarks(scope) {
     const map = getEmailFieldMap(scope);
     const duplicates = findAllWithinFormDuplicates(scope);
     const markedIds = new Set(duplicates.map(d => d.inputId));
 
-    // Clear marks on fields that are no longer duplicates.
     map.forEach(({ inputId, errorId }) => {
         const input = document.getElementById(inputId);
         const errEl = document.getElementById(errorId);
         if (!input || !errEl) return;
         if (markedIds.has(inputId)) return;
-        // Only clear the duplicate message; leave other messages (e.g. "email
-        // must contain an @") untouched.
         if (/also used in the/i.test(errEl.textContent)) {
             input.classList.remove('input-error');
             errEl.classList.remove('show');
@@ -266,7 +259,6 @@ function refreshDuplicateMarks(scope) {
         }
     });
 
-    // Apply marks on the current duplicates.
     duplicates.forEach(({ inputId, errorId, firstLabel }) => {
         const input = document.getElementById(inputId);
         const errEl = document.getElementById(errorId);
@@ -276,7 +268,6 @@ function refreshDuplicateMarks(scope) {
         errEl.classList.add('show');
     });
 
-    // Attach a one-time input listener per email field so editing clears the mark.
     map.forEach(({ inputId, errorId }) => {
         const input = document.getElementById(inputId);
         if (!input || input.dataset.dupListener) return;
@@ -293,8 +284,6 @@ function refreshDuplicateMarks(scope) {
 }
 
 // ===== DAT-01 =====
-// Mark the field whose value matches the given email as invalid. Used for
-// cross-society collisions returned by the server.
 function showEmailFieldError(scope, email, message) {
     const map = getEmailFieldMap(scope);
     const target = String(email || '').trim();
@@ -327,7 +316,6 @@ function showEmailFieldError(scope, email, message) {
 }
 
 // ===== DAT-01 =====
-// Swap the .tooltip text inside the button's wrapper.
 function setDuplicateTooltip(buttonEl, isDuplicate) {
     if (!buttonEl) return;
     const wrapper = buttonEl.closest('.btn-wrapper');
@@ -436,7 +424,7 @@ function isAddFormValid() {
     const description = document.getElementById('society-description')?.value || '';
 
     if (!name || !category || !email) return false;
-    if (name.length < 2) return false;
+    if (getSocietyNameError(name)) return false;
     if (!isValidEmail(email)) return false;
     if (isDescriptionOnlyNumbers(description)) return false;
     if (isDescriptionTooShort(description)) return false;
@@ -458,13 +446,10 @@ function isAddFormValid() {
 }
 
 // ===== DAT-01 =====
-// Button state combines required-field completeness with duplicate detection.
 function updateAddButtonState() {
     const btn = document.querySelector('.btn-add');
     if (!btn) return;
 
-    // Refresh inline marks first so the red messages always reflect the
-    // current form values.
     refreshDuplicateMarks('add');
 
     const duplicates = findAllWithinFormDuplicates('add');
@@ -550,7 +535,7 @@ function isEditFormValid() {
     const description = document.getElementById('edit-soc-description')?.value || '';
 
     if (!name || !category || !email) return false;
-    if (name.length < 2) return false;
+    if (getSocietyNameError(name)) return false;
     if (!isValidEmail(email)) return false;
     if (isDescriptionOnlyNumbers(description)) return false;
     if (isDescriptionTooShort(description)) return false;
@@ -574,7 +559,6 @@ function isEditFormValid() {
 }
 
 // ===== DAT-01 =====
-// Same duplicate-awareness as the Add form.
 function updateEditButtonState() {
     const btn = document.getElementById('societySaveBtn');
     if (!btn) return;
@@ -784,6 +768,7 @@ function openAddSocietyModal() {
             <div class="field-wrap">
                 <label class="field-label">Society Name <span class="req-asterisk" id="req-society-name">*</span></label>
                 <input id="society-name" placeholder="Society Name" />
+                <div class="field-error" id="society-name-error"></div>
             </div>
             <div class="field-wrap">
                 <label class="field-label">Category <span class="req-asterisk" id="req-society-category">*</span></label>
@@ -893,6 +878,29 @@ function wireAddFormListeners() {
         });
     });
 
+    // ===== DAT-02: live society name feedback on the Add form =====
+    const societyNameInput = document.getElementById('society-name');
+    if (societyNameInput) {
+        societyNameInput.addEventListener('input', () => {
+            const value = societyNameInput.value;
+            const errorEl = document.getElementById('society-name-error');
+            const message = getSocietyNameError(value);
+            if (message) {
+                societyNameInput.classList.add('input-error');
+                if (errorEl) {
+                    errorEl.textContent = message;
+                    errorEl.classList.add('show');
+                }
+            } else {
+                societyNameInput.classList.remove('input-error');
+                if (errorEl) {
+                    errorEl.classList.remove('show');
+                    errorEl.textContent = '';
+                }
+            }
+        });
+    }
+
     const portfolios = ['chairperson', 'deputychairperson', 'treasurer', 'secretary', 'organiser'];
     portfolios.forEach(id => {
         const nameInput = document.getElementById(`${id}-name`);
@@ -919,7 +927,7 @@ function wireAddFormListeners() {
         attachEmailBlurValidation('other-portfolio-email', 'other-portfolio-email-error');
 
 
-    const addNameFields = ['society-name', 'chairperson-name', 'deputychairperson-name', 'treasurer-name', 'secretary-name', 'organiser-name', 'other-portfolio-title', 'other-portfolio-name'];
+    const addNameFields = ['chairperson-name', 'deputychairperson-name', 'treasurer-name', 'secretary-name', 'organiser-name', 'other-portfolio-title', 'other-portfolio-name'];
     addNameFields.forEach(restrictToNameCharacters);
 
     attachDescriptionCheck('society-description', 'society-description-error');
@@ -1076,12 +1084,18 @@ async function addSociety() {
         return;
     }
 
+    // ===== DAT-02: block purely numeric or too-short society names =====
+    const nameError = getSocietyNameError(name);
+    if (nameError) {
+        showFieldError('society-name', 'society-name-error', nameError);
+        return;
+    }
+
     if (!validateKeyPortfolios()) {
         alert('Please complete all required key portfolios with valid names and emails.');
         return;
     }
 
-    // Defensive: the button is disabled when a duplicate exists.
     if (findAllWithinFormDuplicates('add').length > 0) {
         updateAddButtonState();
         return;
@@ -1171,6 +1185,13 @@ async function addSociety() {
     } catch (error) {
         console.error('Error adding society:', error);
         const msg = String(error.message || '');
+
+        // ===== DAT-02: server-side name rule =====
+        if (/^Society name (cannot be numbers only|must be at least 3 characters)\.?$/i.test(msg)) {
+            showFieldError('society-name', 'society-name-error', 'Error: ' + msg.replace(/^Error:\s*/i, ''));
+            return;
+        }
+
         const m = msg.match(/^This email is already used by another society: (.+?) \((.+?)\)$/);
         if (m) {
             const offendingEmail = m[1].trim();
@@ -1402,6 +1423,7 @@ async function openEditSociety(societyId, button) {
                 <div class="field-wrap">
                     <label class="field-label">Society Name <span class="req-asterisk" id="req-edit-soc-name">*</span></label>
                     <input id="edit-soc-name" placeholder="Society Name" value="${escapeHtml(s.name || '')}" />
+                    <div class="field-error" id="edit-soc-name-error"></div>
                 </div>
                 <div class="field-wrap">
                     <label class="field-label">Category <span class="req-asterisk" id="req-edit-soc-category">*</span></label>
@@ -1510,6 +1532,29 @@ function wireEditFormListeners() {
         refresh();
     });
 
+    // ===== DAT-02: live society name feedback on the Edit form =====
+    const editSocietyNameInput = document.getElementById('edit-soc-name');
+    if (editSocietyNameInput) {
+        editSocietyNameInput.addEventListener('input', () => {
+            const value = editSocietyNameInput.value;
+            const errorEl = document.getElementById('edit-soc-name-error');
+            const message = getSocietyNameError(value);
+            if (message) {
+                editSocietyNameInput.classList.add('input-error');
+                if (errorEl) {
+                    errorEl.textContent = message;
+                    errorEl.classList.add('show');
+                }
+            } else {
+                editSocietyNameInput.classList.remove('input-error');
+                if (errorEl) {
+                    errorEl.classList.remove('show');
+                    errorEl.textContent = '';
+                }
+            }
+        });
+    }
+
     const portfolios = ['edit-chairperson', 'edit-deputychairperson', 'edit-treasurer', 'edit-secretary', 'edit-organiser'];
     portfolios.forEach(id => {
         const nameInput = document.getElementById(`${id}-name`);
@@ -1538,7 +1583,7 @@ function wireEditFormListeners() {
         attachEmailBlurValidation('edit-soc-email', 'edit-soc-email-error');
         attachEmailBlurValidation('edit-other-portfolio-email', 'edit-other-portfolio-email-error');
 
-    const editNameFields = ['edit-soc-name', 'edit-chairperson-name', 'edit-deputychairperson-name', 'edit-treasurer-name', 'edit-secretary-name', 'edit-organiser-name', 'edit-other-portfolio-title', 'edit-other-portfolio-name'];
+    const editNameFields = ['edit-chairperson-name', 'edit-deputychairperson-name', 'edit-treasurer-name', 'edit-secretary-name', 'edit-organiser-name', 'edit-other-portfolio-title', 'edit-other-portfolio-name'];
     editNameFields.forEach(restrictToNameCharacters);
 
     attachDescriptionCheck('edit-soc-description', 'edit-soc-description-error');
@@ -1560,12 +1605,18 @@ async function saveSocietyEdits() {
         return;
     }
 
+    // ===== DAT-02: block purely numeric or too-short society names =====
+    const nameError = getSocietyNameError(name);
+    if (nameError) {
+        showFieldError('edit-soc-name', 'edit-soc-name-error', nameError);
+        return;
+    }
+
     if (!validateEditKeyPortfolios()) {
         alert('Please complete all required key portfolios with valid names and emails.');
         return;
     }
 
-    // Defensive: the button is disabled when a duplicate exists.
     if (findAllWithinFormDuplicates('edit').length > 0) {
         updateEditButtonState();
         return;
@@ -1625,6 +1676,13 @@ async function saveSocietyEdits() {
     } catch (error) {
         console.error('Error saving society edits:', error);
         const msg = String(error.message || '');
+
+        // ===== DAT-02: server-side name rule =====
+        if (/^Society name (cannot be numbers only|must be at least 3 characters)\.?$/i.test(msg)) {
+            showFieldError('edit-soc-name', 'edit-soc-name-error', 'Error: ' + msg.replace(/^Error:\s*/i, ''));
+            return;
+        }
+
         const m = msg.match(/^This email is already used by another society: (.+?) \((.+?)\)$/);
         if (m) {
             const offendingEmail = m[1].trim();

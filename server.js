@@ -305,6 +305,17 @@ function formatSocietyName(name) {
   ).join(' ');
 }
 
+// ===== DAT-02 =====
+// Society names must be at least 3 characters and not purely numeric.
+// Returns an error string, or null if the name is acceptable.
+function validateSocietyName(rawName) {
+  const trimmed = String(rawName || '').trim();
+  if (!trimmed) return 'Society name is required';
+  if (/^[0-9]+$/.test(trimmed)) return 'Society name cannot be numbers only.';
+  if (trimmed.length < 3) return 'Society name must be at least 3 characters.';
+  return null;
+}
+
 // Helper function to validate executive committee structure
 function validateExecCommittee(execCommittee) {
   if (!execCommittee || typeof execCommittee !== 'object') {
@@ -859,6 +870,12 @@ app.post('/api/societies', requireOfficer, async (req, res) => {
 
     }
 
+    // ===== DAT-02 =====
+    const nameError = validateSocietyName(name);
+    if (nameError) {
+      return res.status(400).json({ error: nameError });
+    }
+
     const formattedName = formatSocietyName(name);
     const normalizedName = normalizeSocietyName(formattedName);
 
@@ -962,6 +979,14 @@ app.put('/api/societies/:id', requireOfficer, async (req, res) => {
 
     if (name !== undefined && (!name || typeof name !== 'string')) {
       return res.status(400).json({ error: 'Society name is required' });
+    }
+
+    // ===== DAT-02 =====
+    if (name !== undefined) {
+      const nameError = validateSocietyName(name);
+      if (nameError) {
+        return res.status(400).json({ error: nameError });
+      }
     }
 
     // Validate executive committee if provided

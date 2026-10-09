@@ -296,12 +296,19 @@ function normalizeSocietyName(name) {
   return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
+// ===== DAT-03 =====
+// Title-cases society names, but preserves any word that already contains
+// two or more uppercase letters so acronyms like COMS / SASCO / IEEE survive
+// a re-save.
 function formatSocietyName(name) {
   return String(name || '').trim().replace(/\s+/g, ' ').split(' ').map(word =>
-    word.split(/([-'])/).map(part => /^[a-z]/i.test(part)
-      ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-      : part
-    ).join('')
+    word.split(/([-'])/).map(part => {
+      const upperCount = (part.match(/[A-Z]/g) || []).length;
+      if (upperCount >= 2) return part;
+      return /^[a-z]/i.test(part)
+        ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+        : part;
+    }).join('')
   ).join(' ');
 }
 

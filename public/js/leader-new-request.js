@@ -75,7 +75,76 @@ function getDescriptionError(value) {
     return '';
 }
 
-// ============ VALIDATION ============
+// ============ FILE-SLOT DEFINITIONS ============
+const FILE_SLOTS = [
+    {
+        id: 'budget-form',
+        label: 'Budget Form',
+        errorId: 'budget-form-error',
+        acceptPattern: /\.(xlsx|xls)$/i,
+        acceptLabel: 'Excel (.xlsx or .xls)'
+    },
+    {
+        id: 'meeting-minutes',
+        label: 'Meeting Minutes',
+        errorId: 'meeting-minutes-error',
+        acceptPattern: /\.pdf$/i,
+        acceptLabel: 'PDF'
+    },
+    {
+        id: 'vendor-quotation',
+        label: 'Vendor Quotation',
+        errorId: 'vendor-quotation-error',
+        acceptPattern: /\.pdf$/i,
+        acceptLabel: 'PDF'
+    }
+];
+
+// ============ SAME-FILE DETECTION ============
+// Same file when name and size both match. Timestamps are unreliable
+// (copies, downloads and syncs touch them), so we do not compare them.
+function isSameFile(a, b) {
+    if (!a || !b) return false;
+    return a.name === b.name && a.size === b.size;
+}
+
+function findDuplicateFileSlots() {
+    const selected = FILE_SLOTS.map(slot => {
+        const input = document.getElementById(slot.id);
+        const file = input?.files?.[0] || null;
+        return { slot, file };
+    }).filter(entry => entry.file);
+
+    const duplicates = [];
+    for (let i = 0; i < selected.length; i++) {
+        for (let j = i + 1; j < selected.length; j++) {
+            if (isSameFile(selected[i].file, selected[j].file)) {
+                duplicates.push({
+                    slotId: selected[i].slot.id,
+                    errorId: selected[i].slot.errorId,
+                    otherLabel: selected[j].slot.label
+                });
+                duplicates.push({
+                    slotId: selected[j].slot.id,
+                    errorId: selected[j].slot.errorId,
+                    otherLabel: selected[i].slot.label
+                });
+            }
+        }
+    }
+    return duplicates;
+}
+
+// ============ FILE VALIDATION (extension) ============
+function isSlotFileValid(slotId) {
+    const slot = FILE_SLOTS.find(s => s.id === slotId);
+    if (!slot) return false;
+    const file = document.getElementById(slotId)?.files?.[0];
+    if (!file) return false;
+    return slot.acceptPattern.test(file.name);
+}
+
+// ============ FIELD VALIDATION ============
 function isFieldValid(fieldId, value) {
     switch (fieldId) {
         case 'request-type':
@@ -88,14 +157,9 @@ function isFieldValid(fieldId, value) {
         case 'description':
             return value && value.trim() !== '' && !getDescriptionError(value);
         case 'budget-form':
-            const fileB = document.getElementById('budget-form').files[0];
-            return fileB && /\.(xlsx|xls)$/i.test(fileB.name);
         case 'meeting-minutes':
-            const fileM = document.getElementById('meeting-minutes').files[0];
-            return fileM && /\.pdf$/i.test(fileM.name);
         case 'vendor-quotation':
-            const fileQ = document.getElementById('vendor-quotation').files[0];
-            return fileQ && /\.pdf$/i.test(fileQ.name);
+            return isSlotFileValid(fieldId);
         default:
             return true;
     }
@@ -167,6 +231,34 @@ function updateTextFieldWarning(inputId, warningId, label, getError) {
     }
 }
 
+// ============ DUPLICATE-FILE MARKS ============
+function refreshDuplicateFileMarks() {
+    const duplicates = findDuplicateFileSlots();
+    const markedIds = new Set(duplicates.map(d => d.slotId));
+
+    FILE_SLOTS.forEach(slot => {
+        const input = document.getElementById(slot.id);
+        const errorEl = document.getElementById(slot.errorId);
+        if (!input || !errorEl) return;
+        if (!markedIds.has(slot.id)) {
+            if (/also used for|already used for/i.test(errorEl.textContent)) {
+                input.classList.remove('error');
+                errorEl.classList.remove('show');
+                errorEl.textContent = '';
+            }
+        }
+    });
+
+    duplicates.forEach(({ slotId, errorId, otherLabel }) => {
+        const input = document.getElementById(slotId);
+        const errorEl = document.getElementById(errorId);
+        if (!input || !errorEl) return;
+        input.classList.add('error');
+        errorEl.textContent = `Error: This file is also used for ${otherLabel}.`;
+        errorEl.classList.add('show');
+    });
+}
+
 // ============ PROGRESS AND BUTTON STATE ============
 function updateProgress() {
     const fields = [
@@ -192,11 +284,11 @@ function updateProgress() {
     document.getElementById('progressCount').textContent =
         `${completed} / ${total} fields complete`;
 
-    submitBtn.disabled = isSubmitting || completed !== total;
+    const hasDuplicate = findDuplicateFileSlots().length > 0;
+    submitBtn.disabled = isSubmitting || completed !== total || hasDuplicate;
 }
 
 function updateFormState() {
-    // Update all asterisks
     updateAsteriskForField('request-type');
     updateAsteriskForField('item-name');
     updateAsteriskForField('amount');
@@ -205,18 +297,15 @@ function updateFormState() {
     updateAsteriskForField('meeting-minutes');
     updateAsteriskForField('vendor-quotation');
 
-    // Update warnings
-       // Update warnings
     updateTextFieldWarning('item-name', 'item-warning', 'Event / Item name', getItemNameError);
     updateTextFieldWarning('description', 'description-warning', 'Description', getDescriptionError);
 
-    // Update amount error
     updateAmountError();
 
-    // Update progress + button state
+    refreshDuplicateFileMarks();
+
     updateProgress();
 
-    // Clear any old error summary if form is valid
     if (isFormValid()) {
         errorSummary.textContent = '';
         errorSummary.classList.remove('show');
@@ -325,6 +414,11 @@ document.getElementById('submit-another').addEventListener('click', function () 
 // ============ SUBMIT ============
 submitBtn.addEventListener('click', async (e) => {
     e.preventDefault();
+
+    if (findDuplicateFileSlots().length > 0) {
+        refreshDuplicateFileMarks();
+        return;
+    }
 
     if (!isFormValid()) {
         updateFormState();

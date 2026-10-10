@@ -68,6 +68,20 @@ function isNameTooShort(value) {
     return trimmed.length > 0 && trimmed.length < 2;
 }
 
+// ===== DAT-02 =====
+// Society name rule, mirroring the server-side check:
+//   - must not be purely numeric
+//   - must be at least 3 characters after trim
+// Returns '' when the value is acceptable (including the empty case, which
+// is handled by the existing required-field rule), otherwise the error text.
+function getSocietyNameError(value) {
+    const trimmed = String(value || '').trim();
+    if (!trimmed) return '';
+    if (/^[0-9]+$/.test(trimmed)) return 'Error: Society name cannot be numbers only.';
+    if (trimmed.length < 3) return 'Error: Society name must be at least 3 characters.';
+    return '';
+}
+
 function attachDescriptionCheck(textareaId, errorId) {
     const textarea = document.getElementById(textareaId);
     if (!textarea) return;
@@ -172,6 +186,150 @@ function clearButtonLoading(button) {
     }
 }
 
+// ===== DAT-01 =====
+// Email inputs for the current form. Each entry: { inputId, errorId, label }
+function getEmailFieldMap(scope) {
+    if (scope === 'edit') {
+        return [
+            { inputId: 'edit-soc-email',                errorId: 'edit-soc-email-error',                label: 'Contact Email' },
+            { inputId: 'edit-chairperson-email',        errorId: 'edit-chairperson-error',              label: 'Chairperson' },
+            { inputId: 'edit-deputychairperson-email',  errorId: 'edit-deputychairperson-error',        label: 'Deputy Chairperson' },
+            { inputId: 'edit-treasurer-email',          errorId: 'edit-treasurer-error',                label: 'Treasurer' },
+            { inputId: 'edit-secretary-email',          errorId: 'edit-secretary-error',                label: 'Secretary' },
+            { inputId: 'edit-organiser-email',          errorId: 'edit-organiser-error',                label: 'Organiser' }
+        ];
+    }
+    return [
+        { inputId: 'society-email',           errorId: 'society-email-error',           label: 'Contact Email' },
+        { inputId: 'chairperson-email',       errorId: 'chairperson-error',             label: 'Chairperson' },
+        { inputId: 'deputychairperson-email', errorId: 'deputychairperson-error',       label: 'Deputy Chairperson' },
+        { inputId: 'treasurer-email',         errorId: 'treasurer-error',               label: 'Treasurer' },
+        { inputId: 'secretary-email',         errorId: 'secretary-error',               label: 'Secretary' },
+        { inputId: 'organiser-email',         errorId: 'organiser-error',               label: 'Organiser' }
+    ];
+}
+
+// ===== DAT-01 =====
+function findAllWithinFormDuplicates(scope) {
+    const map = getEmailFieldMap(scope);
+    const seen = new Map();
+    const duplicates = [];
+
+    for (const field of map) {
+        const input = document.getElementById(field.inputId);
+        if (!input) continue;
+        const value = String(input.value || '').trim();
+        if (!value) continue;
+
+        if (seen.has(value)) {
+            duplicates.push({
+                email: value,
+                inputId: field.inputId,
+                errorId: field.errorId,
+                firstLabel: seen.get(value)
+            });
+        } else {
+            seen.set(value, field.label);
+        }
+    }
+
+    const portfolios = scope === 'edit' ? editingOtherPortfolios : otherPortfolios;
+    (Array.isArray(portfolios) ? portfolios : []).forEach((p, i) => {
+        const value = String(p?.email || '').trim();
+        if (!value) return;
+        const label = `Other Portfolio ${i + 1}`;
+        if (!seen.has(value)) seen.set(value, label);
+    });
+
+    return duplicates;
+}
+
+// ===== DAT-01 =====
+function refreshDuplicateMarks(scope) {
+    const map = getEmailFieldMap(scope);
+    const duplicates = findAllWithinFormDuplicates(scope);
+    const markedIds = new Set(duplicates.map(d => d.inputId));
+
+    map.forEach(({ inputId, errorId }) => {
+        const input = document.getElementById(inputId);
+        const errEl = document.getElementById(errorId);
+        if (!input || !errEl) return;
+        if (markedIds.has(inputId)) return;
+        if (/also used in the/i.test(errEl.textContent)) {
+            input.classList.remove('input-error');
+            errEl.classList.remove('show');
+            errEl.textContent = '';
+        }
+    });
+
+    duplicates.forEach(({ inputId, errorId, firstLabel }) => {
+        const input = document.getElementById(inputId);
+        const errEl = document.getElementById(errorId);
+        if (!input || !errEl) return;
+        input.classList.add('input-error');
+        errEl.textContent = `Error: This email is also used in the ${firstLabel} field.`;
+        errEl.classList.add('show');
+    });
+
+    map.forEach(({ inputId, errorId }) => {
+        const input = document.getElementById(inputId);
+        if (!input || input.dataset.dupListener) return;
+        input.addEventListener('input', () => {
+            const errEl = document.getElementById(errorId);
+            if (errEl && /also used in the/i.test(errEl.textContent)) {
+                input.classList.remove('input-error');
+                errEl.classList.remove('show');
+                errEl.textContent = '';
+            }
+        });
+        input.dataset.dupListener = '1';
+    });
+}
+
+// ===== DAT-01 =====
+function showEmailFieldError(scope, email, message) {
+    const map = getEmailFieldMap(scope);
+    const target = String(email || '').trim();
+
+    for (const { inputId, errorId } of map) {
+        const input = document.getElementById(inputId);
+        if (!input) continue;
+        if (String(input.value || '').trim() === target) {
+            input.classList.add('input-error');
+            const errEl = document.getElementById(errorId);
+            if (errEl) {
+                errEl.textContent = message;
+                errEl.classList.add('show');
+            }
+            if (!input.dataset.emailErrorListener) {
+                const handler = () => {
+                    input.classList.remove('input-error');
+                    if (errEl) {
+                        errEl.classList.remove('show');
+                        errEl.textContent = '';
+                    }
+                };
+                input.addEventListener('input', handler);
+                input.dataset.emailErrorListener = '1';
+            }
+            return input;
+        }
+    }
+    return null;
+}
+
+// ===== DAT-01 =====
+function setDuplicateTooltip(buttonEl, isDuplicate) {
+    if (!buttonEl) return;
+    const wrapper = buttonEl.closest('.btn-wrapper');
+    if (!wrapper) return;
+    const tooltip = wrapper.querySelector('.tooltip');
+    if (!tooltip) return;
+    tooltip.textContent = isDuplicate
+        ? 'Please fix duplicate emails'
+        : 'Please complete all required fields';
+}
+
 function validateKeyPortfolios() {
     const requiredPortfolios = [
         { id: 'chairperson', label: 'Chairperson' },
@@ -269,7 +427,7 @@ function isAddFormValid() {
     const description = document.getElementById('society-description')?.value || '';
 
     if (!name || !category || !email) return false;
-    if (name.length < 2) return false;
+    if (getSocietyNameError(name)) return false;
     if (!isValidEmail(email)) return false;
     if (isDescriptionOnlyNumbers(description)) return false;
     if (isDescriptionTooShort(description)) return false;
@@ -290,15 +448,26 @@ function isAddFormValid() {
     return true;
 }
 
+// ===== DAT-01 =====
 function updateAddButtonState() {
     const btn = document.querySelector('.btn-add');
     if (!btn) return;
+
+    refreshDuplicateMarks('add');
+
+    const duplicates = findAllWithinFormDuplicates('add');
+    if (duplicates.length > 0) {
+        setDuplicateTooltip(btn, true);
+        btn.disabled = true;
+        return;
+    }
+
+    setDuplicateTooltip(btn, false);
     btn.disabled = !isAddFormValid();
 }
 
 // ---------- Normalisation helpers for change detection ----------
 function normalizeField(value) {
-    // Trim, then collapse internal runs of whitespace to a single space.
     return String(value || '').trim().replace(/\s+/g, ' ');
 }
 
@@ -369,7 +538,7 @@ function isEditFormValid() {
     const description = document.getElementById('edit-soc-description')?.value || '';
 
     if (!name || !category || !email) return false;
-    if (name.length < 2) return false;
+    if (getSocietyNameError(name)) return false;
     if (!isValidEmail(email)) return false;
     if (isDescriptionOnlyNumbers(description)) return false;
     if (isDescriptionTooShort(description)) return false;
@@ -387,17 +556,25 @@ function isEditFormValid() {
         if (portfolio.title.length < 2 || portfolio.name.length < 2) return false;
     }
 
-    // Must be a real change
     if (!hasEditFormChanged()) return false;
 
     return true;
 }
 
+// ===== DAT-01 =====
 function updateEditButtonState() {
     const btn = document.getElementById('societySaveBtn');
     if (!btn) return;
-    // Don't touch the button while a save is in flight
     if (btn.classList.contains('is-loading')) return;
+
+    refreshDuplicateMarks('edit');
+
+    const duplicates = findAllWithinFormDuplicates('edit');
+    if (duplicates.length > 0) {
+        btn.disabled = true;
+        return;
+    }
+
     btn.disabled = !isEditFormValid();
 }
 
@@ -594,6 +771,7 @@ function openAddSocietyModal() {
             <div class="field-wrap">
                 <label class="field-label">Society Name <span class="req-asterisk" id="req-society-name">*</span></label>
                 <input id="society-name" placeholder="Society Name" />
+                <div class="field-error" id="society-name-error"></div>
             </div>
             <div class="field-wrap">
                 <label class="field-label">Category <span class="req-asterisk" id="req-society-category">*</span></label>
@@ -703,6 +881,29 @@ function wireAddFormListeners() {
         });
     });
 
+    // ===== DAT-02: live society name feedback on the Add form =====
+    const societyNameInput = document.getElementById('society-name');
+    if (societyNameInput) {
+        societyNameInput.addEventListener('input', () => {
+            const value = societyNameInput.value;
+            const errorEl = document.getElementById('society-name-error');
+            const message = getSocietyNameError(value);
+            if (message) {
+                societyNameInput.classList.add('input-error');
+                if (errorEl) {
+                    errorEl.textContent = message;
+                    errorEl.classList.add('show');
+                }
+            } else {
+                societyNameInput.classList.remove('input-error');
+                if (errorEl) {
+                    errorEl.classList.remove('show');
+                    errorEl.textContent = '';
+                }
+            }
+        });
+    }
+
     const portfolios = ['chairperson', 'deputychairperson', 'treasurer', 'secretary', 'organiser'];
     portfolios.forEach(id => {
         const nameInput = document.getElementById(`${id}-name`);
@@ -729,7 +930,7 @@ function wireAddFormListeners() {
         attachEmailBlurValidation('other-portfolio-email', 'other-portfolio-email-error');
 
 
-    const addNameFields = ['society-name', 'chairperson-name', 'deputychairperson-name', 'treasurer-name', 'secretary-name', 'organiser-name', 'other-portfolio-title', 'other-portfolio-name'];
+    const addNameFields = ['chairperson-name', 'deputychairperson-name', 'treasurer-name', 'secretary-name', 'organiser-name', 'other-portfolio-title', 'other-portfolio-name'];
     addNameFields.forEach(restrictToNameCharacters);
 
     attachDescriptionCheck('society-description', 'society-description-error');
@@ -763,11 +964,13 @@ function addOtherPortfolio() {
     document.getElementById('other-portfolio-email').value = '';
 
     renderOtherPortfolios();
+    updateAddButtonState();
 }
 
 function removeOtherPortfolio(index) {
     otherPortfolios.splice(index, 1);
     renderOtherPortfolios();
+    updateAddButtonState();
 }
 
 function renderOtherPortfolios() {
@@ -884,8 +1087,20 @@ async function addSociety() {
         return;
     }
 
+    // ===== DAT-02: block purely numeric or too-short society names =====
+    const nameError = getSocietyNameError(name);
+    if (nameError) {
+        showFieldError('society-name', 'society-name-error', nameError);
+        return;
+    }
+
     if (!validateKeyPortfolios()) {
         alert('Please complete all required key portfolios with valid names and emails.');
+        return;
+    }
+
+    if (findAllWithinFormDuplicates('add').length > 0) {
+        updateAddButtonState();
         return;
     }
 
@@ -972,13 +1187,32 @@ async function addSociety() {
 
     } catch (error) {
         console.error('Error adding society:', error);
-        alert('Error adding society. ' + error.message);
+        const msg = String(error.message || '');
+
+        // ===== DAT-02: server-side name rule =====
+        if (/^Society name (cannot be numbers only|must be at least 3 characters)\.?$/i.test(msg)) {
+            showFieldError('society-name', 'society-name-error', 'Error: ' + msg.replace(/^Error:\s*/i, ''));
+            return;
+        }
+
+        const m = msg.match(/^This email is already used by another society: (.+?) \((.+?)\)$/);
+        if (m) {
+            const offendingEmail = m[1].trim();
+            const otherSociety = m[2].trim();
+            const marked = showEmailFieldError('add', offendingEmail,
+                `Error: This email is already used by another society: ${offendingEmail} (${otherSociety})`);
+            if (!marked) {
+                alert(msg);
+            }
+        } else {
+            alert('Error adding society. ' + msg);
+        }
     } finally {
         const btn = document.querySelector('.btn-add');
         if (btn) {
-            btn.disabled = false;
             btn.textContent = 'Add Society';
         }
+        updateAddButtonState();
     }
 }
 
@@ -1071,7 +1305,6 @@ async function viewSociety(societyId, button) {
             </div>
         `;
 
-        // Title matches the Edit modal pattern
         document.getElementById('societyModalTitle').textContent = `View: ${s.name || 'Society'}`;
         document.getElementById('societyModalBody').innerHTML = html;
         document.getElementById('societyModal').dataset.viewingId = societyId;
@@ -1189,6 +1422,7 @@ async function openEditSociety(societyId, button) {
                 <div class="field-wrap">
                     <label class="field-label">Society Name <span class="req-asterisk" id="req-edit-soc-name">*</span></label>
                     <input id="edit-soc-name" placeholder="Society Name" value="${escapeHtml(s.name || '')}" />
+                    <div class="field-error" id="edit-soc-name-error"></div>
                 </div>
                 <div class="field-wrap">
                     <label class="field-label">Category <span class="req-asterisk" id="req-edit-soc-category">*</span></label>
@@ -1297,6 +1531,29 @@ function wireEditFormListeners() {
         refresh();
     });
 
+    // ===== DAT-02: live society name feedback on the Edit form =====
+    const editSocietyNameInput = document.getElementById('edit-soc-name');
+    if (editSocietyNameInput) {
+        editSocietyNameInput.addEventListener('input', () => {
+            const value = editSocietyNameInput.value;
+            const errorEl = document.getElementById('edit-soc-name-error');
+            const message = getSocietyNameError(value);
+            if (message) {
+                editSocietyNameInput.classList.add('input-error');
+                if (errorEl) {
+                    errorEl.textContent = message;
+                    errorEl.classList.add('show');
+                }
+            } else {
+                editSocietyNameInput.classList.remove('input-error');
+                if (errorEl) {
+                    errorEl.classList.remove('show');
+                    errorEl.textContent = '';
+                }
+            }
+        });
+    }
+
     const portfolios = ['edit-chairperson', 'edit-deputychairperson', 'edit-treasurer', 'edit-secretary', 'edit-organiser'];
     portfolios.forEach(id => {
         const nameInput = document.getElementById(`${id}-name`);
@@ -1325,7 +1582,7 @@ function wireEditFormListeners() {
         attachEmailBlurValidation('edit-soc-email', 'edit-soc-email-error');
         attachEmailBlurValidation('edit-other-portfolio-email', 'edit-other-portfolio-email-error');
 
-    const editNameFields = ['edit-soc-name', 'edit-chairperson-name', 'edit-deputychairperson-name', 'edit-treasurer-name', 'edit-secretary-name', 'edit-organiser-name', 'edit-other-portfolio-title', 'edit-other-portfolio-name'];
+    const editNameFields = ['edit-chairperson-name', 'edit-deputychairperson-name', 'edit-treasurer-name', 'edit-secretary-name', 'edit-organiser-name', 'edit-other-portfolio-title', 'edit-other-portfolio-name'];
     editNameFields.forEach(restrictToNameCharacters);
 
     attachDescriptionCheck('edit-soc-description', 'edit-soc-description-error');
@@ -1347,8 +1604,20 @@ async function saveSocietyEdits() {
         return;
     }
 
+    // ===== DAT-02: block purely numeric or too-short society names =====
+    const nameError = getSocietyNameError(name);
+    if (nameError) {
+        showFieldError('edit-soc-name', 'edit-soc-name-error', nameError);
+        return;
+    }
+
     if (!validateEditKeyPortfolios()) {
         alert('Please complete all required key portfolios with valid names and emails.');
+        return;
+    }
+
+    if (findAllWithinFormDuplicates('edit').length > 0) {
+        updateEditButtonState();
         return;
     }
 
@@ -1405,7 +1674,26 @@ async function saveSocietyEdits() {
         alert('Society updated successfully!');
     } catch (error) {
         console.error('Error saving society edits:', error);
-        alert('Error saving society. ' + error.message);
+        const msg = String(error.message || '');
+
+        // ===== DAT-02: server-side name rule =====
+        if (/^Society name (cannot be numbers only|must be at least 3 characters)\.?$/i.test(msg)) {
+            showFieldError('edit-soc-name', 'edit-soc-name-error', 'Error: ' + msg.replace(/^Error:\s*/i, ''));
+            return;
+        }
+
+        const m = msg.match(/^This email is already used by another society: (.+?) \((.+?)\)$/);
+        if (m) {
+            const offendingEmail = m[1].trim();
+            const otherSociety = m[2].trim();
+            const marked = showEmailFieldError('edit', offendingEmail,
+                `Error: This email is already used by another society: ${offendingEmail} (${otherSociety})`);
+            if (!marked) {
+                alert(msg);
+            }
+        } else {
+            alert('Error saving society. ' + msg);
+        }
     } finally {
         clearButtonLoading(saveBtn);
     }

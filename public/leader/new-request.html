@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -188,19 +188,13 @@
         .file-group {
             margin-bottom: 14px;
         }
-
-        /* ===== FILE GROUP LABELS =====
-           Bumped from 12px/500/--text-500 to 13px/600/--text-600 so each
-           document name reads clearly, sitting just below the section
-           heading in visual hierarchy. */
         .file-group label {
             display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-600);
-            margin-bottom: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-500);
+            margin-bottom: 2px;
         }
-
         .file-group input[type="file"] {
             width: 100%;
             padding: 8px 12px;
@@ -209,60 +203,11 @@
             font-size: 13px;
             font-family: 'Inter', sans-serif;
             background: var(--surface);
-            color: var(--text-500);
-            cursor: pointer;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .file-group input[type="file"]:hover {
-            border-color: #c9d3e3;
-        }
-        .file-group input[type="file"]:focus {
-            outline: none;
-            border-color: var(--navy-900);
-            box-shadow: 0 0 0 3px rgba(11, 31, 58, 0.08);
         }
         .file-group input[type="file"]:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
-
-        /* ===== STYLED FILE PICKER BUTTON =====
-           Matches the navy form controls above. The native "Choose File"
-           control is replaced with a consistent rounded navy button. */
-        .file-group input[type="file"]::file-selector-button {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            background: var(--navy-900);
-            color: #fff;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            cursor: pointer;
-            margin-right: 12px;
-            transition: background 0.2s ease;
-        }
-        .file-group input[type="file"]::file-selector-button:hover {
-            background: var(--navy-800);
-        }
-        /* WebKit (Chrome, Edge, Safari) fallback */
-        .file-group input[type="file"]::-webkit-file-upload-button {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            background: var(--navy-900);
-            color: #fff;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            cursor: pointer;
-            margin-right: 12px;
-            transition: background 0.2s ease;
-        }
-        .file-group input[type="file"]::-webkit-file-upload-button:hover {
-            background: var(--navy-800);
-        }
-
         .form-actions {
             display: flex;
             gap: 12px;
@@ -543,14 +488,17 @@
                     <div class="file-group" id="group-budget-form">
                         <label>Budget Form (Excel only) <span class="required" id="req-budget">*</span></label>
                         <input id="budget-form" type="file" accept=".xlsx,.xls" />
+                        <div class="field-error" id="budget-form-error"></div>
                     </div>
                     <div class="file-group" id="group-meeting-minutes">
                         <label>Meeting Minutes <span class="required" id="req-meeting">*</span></label>
                         <input id="meeting-minutes" type="file" accept=".pdf" />
+                        <div class="field-error" id="meeting-minutes-error"></div>
                     </div>
                     <div class="file-group" id="group-vendor-quotation">
                         <label>Vendor Quotation <span class="required" id="req-quotation">*</span></label>
                         <input id="vendor-quotation" type="file" accept=".pdf" />
+                        <div class="field-error" id="vendor-quotation-error"></div>
                     </div>
                 </div>
 

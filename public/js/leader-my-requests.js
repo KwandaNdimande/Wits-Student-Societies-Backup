@@ -35,6 +35,8 @@ let filteredRequests = [];
 let currentPage = 1;
 const pageSize = 5;
 
+let currentRequestDocuments = {};
+
 // Status colors
 const statusColors = {
     "Submitted": "status-submitted",
@@ -51,6 +53,13 @@ const docLabels = {
     'meetingMinutes': 'Meeting Minutes',
     'vendorQuotation': 'Vendor Quotation'
 };
+
+// ============ FILE SLOT DEFINITIONS (for the Update modal) ============
+const FILE_SLOTS = [
+    { key: 'budgetForm',       label: 'Budget Form',       accept: '.xlsx,.xls', acceptLabel: 'Excel' },
+    { key: 'meetingMinutes',   label: 'Meeting Minutes',   accept: '.pdf',       acceptLabel: 'PDF' },
+    { key: 'vendorQuotation',  label: 'Vendor Quotation',  accept: '.pdf',       acceptLabel: 'PDF' }
+];
 
 // ================================================================
 // HELPER: Get timestamp in milliseconds from any format
@@ -76,7 +85,7 @@ function formatTimestamp(timestamp) {
 }
 
 // ================================================================
-// VIEW FILE IN NEW TAB (PUBLIC BUCKET)
+// VIEW FILE IN NEW TAB
 // ================================================================
 
 async function viewFileFromSupabase(filePath, fileName) {
@@ -84,7 +93,7 @@ async function viewFileFromSupabase(filePath, fileName) {
 }
 
 // ================================================================
-// DOWNLOAD FILE (PUBLIC BUCKET)
+// DOWNLOAD FILE
 // ================================================================
 
 async function downloadFileFromSupabase(filePath, fileName) {
@@ -306,7 +315,7 @@ function searchRequests() {
 }
 
 // ================================================================
-// RENDER TABLE (removed Amount and Date columns)
+// RENDER TABLE
 // ================================================================
 
 function renderTable() {
@@ -415,7 +424,6 @@ function renderTable() {
     container.innerHTML = html;
 }
 
-// Change page
 function changePage(page) {
     const totalPages = Math.ceil(filteredRequests.length / pageSize) || 1;
     if (page < 1 || page > totalPages) return;
@@ -477,7 +485,6 @@ function openDetailView(requestId) {
         }
     }).join('');
 
-    // Build timeline HTML with reversal support
     const history = request.statusHistory || [];
     const historyHtml = getRequestHistoryHtml(history);
 
@@ -500,7 +507,7 @@ function closeDetailView() {
 }
 
 // ================================================================
-// ACTIVITY TIMELINE (with reversal support for leaders)
+// ACTIVITY TIMELINE
 // ================================================================
 
 function getRequestHistoryHtml(history = []) {
@@ -508,7 +515,6 @@ function getRequestHistoryHtml(history = []) {
         return `<div style="margin-top:16px;padding:16px 0;color:var(--text-500);font-size:13px;">No activity history yet.</div>`;
     }
 
-    // Sort by timestamp descending (most recent first)
     const sortedHistory = [...history].sort((a, b) => {
         const aTime = getTimestampMs(a.timestamp);
         const bTime = getTimestampMs(b.timestamp);
@@ -521,11 +527,9 @@ function getRequestHistoryHtml(history = []) {
             ${sortedHistory.map(entry => {
                 const when = formatTimestamp(entry.timestamp);
                 let statusLabel = entry.status || 'Status changed';
-                // Check if this is a reversal entry
                 if (entry.isReversal) {
                     statusLabel = `Reversed to ${entry.status}`;
                 }
-                // Check if this is a deletion entry
                 if (entry.isDeletion) {
                     statusLabel = 'Request deleted';
                 }
@@ -548,7 +552,7 @@ function getRequestHistoryHtml(history = []) {
     `;
 }
 
-// ============ UPDATE DOCUMENTS MODAL (with View button) ============
+// ============ UPDATE DOCUMENTS MODAL ============
 
 async function openUpdateModal(requestId) {
     currentRequestId = requestId;
@@ -584,20 +588,19 @@ async function openUpdateModal(requestId) {
             </p>
         `;
 
-        const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
         const fileConfigs = {
             'budgetForm': { label: 'Budget Form', accept: '.xlsx,.xls', hint: 'Excel file required' },
             'meetingMinutes': { label: 'Meeting Minutes', accept: '.pdf', hint: 'PDF only' },
             'vendorQuotation': { label: 'Vendor Quotation', accept: '.pdf', hint: 'PDF only' }
         };
 
-        docOrder.forEach(key => {
-            const config = fileConfigs[key];
+        FILE_SLOTS.forEach(slot => {
+            const config = fileConfigs[slot.key];
             const label = config.label;
             const accept = config.accept;
             const hint = config.hint;
 
-            const currentFile = data.documents?.[key];
+            const currentFile = data.documents?.[slot.key];
             const info = getFileInfo(currentFile);
             const currentFileName = info.name || 'No file uploaded';
             const currentPath = info.path || '';
@@ -609,6 +612,8 @@ async function openUpdateModal(requestId) {
                     </label>
 
                     <div style="font-size:12px;color:var(--text-500);margin-bottom:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <span>Current: <strong id="current_${slot.key}" style="color:${currentFileName === 'No file uploaded' ? '#D64545' : '#2E7D32'};">${currentFileName}</strong></span>
+                        ${currentPath ? `<button class="btn-view-doc" onclick="viewFileFromSupabase('${currentPath}', '${currentFileName}')" style="padding:2px 10px;font-size:12px;">View</button>` : ''}
                         <span>Current: <strong id="current_${key}" style="color:${currentFileName === 'No file uploaded' ? '#D64545' : '#2E7D32'};">${escapeHtml(currentFileName)}</strong></span>
                         ${currentPath ? `<button class="btn-view-doc" data-file-action="view" data-path="${escapeHtml(currentPath)}" data-name="${escapeHtml(currentFileName)}" style="padding:2px 10px;font-size:12px;">View</button>` : ''}
                     </div>
@@ -616,14 +621,14 @@ async function openUpdateModal(requestId) {
                     <div class="file-input">
                         <input
                             type="file"
-                            id="file_${key}"
+                            id="file_${slot.key}"
                             accept="${accept}"
                             style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;background:var(--surface);"
                         />
                         <div style="font-size:12px;color:var(--text-500);margin-top:4px;">
                             Upload new version (${hint})
                         </div>
-                        <div class="form-error" id="file_${key}_error" style="font-size:12px;color:#D64545;margin-top:4px;min-height:18px;"></div>
+                        <div class="form-error" id="file_${slot.key}_error" style="font-size:12px;color:#D64545;margin-top:4px;min-height:18px;"></div>
                     </div>
                 </div>
             `;
@@ -645,13 +650,13 @@ async function openUpdateModal(requestId) {
         document.getElementById('modalBody').innerHTML = modalBody;
         document.getElementById('updateModal').classList.add('active');
 
-        docOrder.forEach(key => {
-            const fileInput = document.getElementById(`file_${key}`);
+        FILE_SLOTS.forEach(slot => {
+            const fileInput = document.getElementById(`file_${slot.key}`);
             if (fileInput) {
                 fileInput.addEventListener('change', function() {
-                    validateUpdateFile(key, this);
+                    validateUpdateFile(slot.key, this);
                     const file = this.files[0];
-                    const currentFileEl = document.getElementById(`current_${key}`);
+                    const currentFileEl = document.getElementById(`current_${slot.key}`);
                     if (file && currentFileEl) {
                         currentFileEl.textContent = file.name;
                         currentFileEl.style.color = '#2E7D32';
@@ -660,6 +665,9 @@ async function openUpdateModal(requestId) {
                 });
             }
         });
+
+        currentRequestDocuments = data.documents || {};
+
         checkUpdateFormValidity();
     } catch (error) {
         console.error('Error loading documents:', error);
@@ -699,9 +707,7 @@ function handleCommentInput() {
     checkUpdateFormValidity();
 }
 
-
-
-// ============ UPDATE FORM VALIDATION ============
+// ============ UPDATE FORM FILE VALIDATION ============
 
 function validateUpdateFile(key, input) {
     const errorEl = document.getElementById(`file_${key}_error`);
@@ -728,18 +734,109 @@ function validateUpdateFile(key, input) {
     }
 }
 
+// ============ SAME-FILE DETECTION (Update modal) ============
+// Same file when name and size both match. Timestamps are unreliable
+// (copies, downloads and syncs touch them), so we do not compare them.
+function isSameSelectedFile(a, b) {
+    if (!a || !b) return false;
+    return a.name === b.name && a.size === b.size;
+}
+
+function findUpdateDuplicateSlots() {
+    const selections = FILE_SLOTS.map(slot => {
+        const file = document.getElementById(`file_${slot.key}`)?.files?.[0] || null;
+        return { slot, file };
+    });
+
+    const flagged = new Map();
+
+    for (let i = 0; i < selections.length; i++) {
+        for (let j = i + 1; j < selections.length; j++) {
+            const a = selections[i];
+            const b = selections[j];
+            if (!a.file || !b.file) continue;
+            if (isSameSelectedFile(a.file, b.file)) {
+                const msgForA = `Error: This file is also used for ${b.slot.label}.`;
+                const msgForB = `Error: This file is also used for ${a.slot.label}.`;
+                if (!flagged.has(a.slot.key)) flagged.set(a.slot.key, msgForA);
+                if (!flagged.has(b.slot.key)) flagged.set(b.slot.key, msgForB);
+            }
+        }
+    }
+
+    selections.forEach(sel => {
+        if (!sel.file) return;
+        const newName = sel.file.name;
+
+        FILE_SLOTS.forEach(other => {
+            if (other.key === sel.slot.key) return;
+            const storedPath = currentRequestDocuments?.[other.key];
+            if (!storedPath) return;
+            const storedInfo = getFileInfo(storedPath);
+            const storedName = storedInfo?.name || '';
+            if (storedName && storedName === newName) {
+                if (!flagged.has(sel.slot.key)) {
+                    flagged.set(sel.slot.key, `Error: A file with this name is already used for ${other.label}.`);
+                }
+            }
+        });
+    });
+
+    return Array.from(flagged.entries()).map(([key, message]) => {
+        const slot = FILE_SLOTS.find(s => s.key === key);
+        return { key, label: slot?.label || key, message };
+    });
+}
+
+function refreshUpdateDuplicateMarks() {
+    const flagged = findUpdateDuplicateSlots();
+    const flaggedKeys = new Set(flagged.map(f => f.key));
+
+    FILE_SLOTS.forEach(slot => {
+        const input = document.getElementById(`file_${slot.key}`);
+        const errorEl = document.getElementById(`file_${slot.key}_error`);
+        if (!input || !errorEl) return;
+        if (!flaggedKeys.has(slot.key)) {
+            if (/also used for|already used for/i.test(errorEl.textContent)) {
+                errorEl.textContent = '';
+                input.style.borderColor = '';
+            }
+        }
+    });
+
+    flagged.forEach(f => {
+        const input = document.getElementById(`file_${f.key}`);
+        const errorEl = document.getElementById(`file_${f.key}_error`);
+        if (!input || !errorEl) return;
+        errorEl.textContent = f.message;
+        input.style.borderColor = '#D64545';
+    });
+}
+
+// ============ FORM VALIDITY (Update modal) ============
+
 function checkUpdateFormValidity() {
     const btn = document.getElementById('updateResubmitBtn');
     if (!btn) return;
-    const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
+
+    refreshUpdateDuplicateMarks();
+
+    const duplicates = findUpdateDuplicateSlots();
+    if (duplicates.length > 0) {
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        btn.style.cursor = 'not-allowed';
+        return;
+    }
+
     let hasFile = false;
     let hasError = false;
-    docOrder.forEach(key => {
-        const input = document.getElementById(`file_${key}`);
-        const errorEl = document.getElementById(`file_${key}_error`);
+    FILE_SLOTS.forEach(slot => {
+        const input = document.getElementById(`file_${slot.key}`);
+        const errorEl = document.getElementById(`file_${slot.key}_error`);
         if (input && input.files && input.files[0]) {
             hasFile = true;
-            if (errorEl && errorEl.textContent) {
+            if (errorEl && errorEl.textContent && !/also used for|already used for/i.test(errorEl.textContent)) {
                 hasError = true;
             }
         }
@@ -750,11 +847,17 @@ function checkUpdateFormValidity() {
     btn.style.cursor = btn.disabled ? 'not-allowed' : 'pointer';
 }
 
-// ============ SUBMIT UPDATE (SAFE: upload new first, then delete old) ============
+// ============ SUBMIT UPDATE ============
 
 async function submitUpdate() {
     if (!currentRequestId) return;
-     if (!validateUpdateComment()) return;
+    if (!validateUpdateComment()) return;
+
+    if (findUpdateDuplicateSlots().length > 0) {
+        refreshUpdateDuplicateMarks();
+        checkUpdateFormValidity();
+        return;
+    }
 
     const btn = document.getElementById('updateResubmitBtn');
     btn.disabled = true;
@@ -774,15 +877,15 @@ async function submitUpdate() {
 
         const user = auth.currentUser;
         if (!user) throw new Error('User not logged in.');
-       const uploadFile = async (file, key) => {
-    if (!file) return null;
-    try {
-        return await uploadFileToServer(file, 'request');
-    } catch (error) {
-        throw new Error(`Failed to upload ${key}: ${error.message}`);
-    }
-};
 
+        const uploadFile = async (file, key) => {
+            if (!file) return null;
+            try {
+                return await uploadFileToServer(file, 'request');
+            } catch (error) {
+                throw new Error(`Failed to upload ${key}: ${error.message}`);
+            }
+        };
 
         const newPaths = {};
         let hasUpdate = false;
@@ -809,7 +912,6 @@ async function submitUpdate() {
             return;
         }
 
-        // 2. Delete old files
         const oldPathsToDelete = [];
         for (const key of ['budgetForm', 'meetingMinutes', 'vendorQuotation']) {
             if (newPaths[key]) {
@@ -829,7 +931,6 @@ async function submitUpdate() {
 }
         }
 
-        // 3. Update Firestore
         const comment = document.getElementById('updateComment')?.value.trim() || '';
         await db.collection('requests').doc(currentRequestId).update({
             documents: updatedDocs,
@@ -857,6 +958,7 @@ async function submitUpdate() {
 function closeUpdateModal() {
     document.getElementById('updateModal').classList.remove('active');
     currentRequestId = null;
+    currentRequestDocuments = {};
 }
 
 document.getElementById('updateModal').addEventListener('click', function(e) {
@@ -864,45 +966,6 @@ document.getElementById('updateModal').addEventListener('click', function(e) {
         closeUpdateModal();
     }
 });
-
-// ============ DELETE REQUEST ============
-
-async function deleteRequest(requestId) {
-    if (!confirm('Are you sure you want to delete this request? This cannot be undone.')) return;
-
-    try {
-        const docRef = db.collection('requests').doc(requestId);
-        const doc = await docRef.get();
-        if (!doc.exists) {
-            alert('Request not found.');
-            return;
-        }
-        const data = doc.data();
-        const documents = data.documents || {};
-
-        const filePaths = [];
-        if (documents.budgetForm) filePaths.push(documents.budgetForm);
-        if (documents.meetingMinutes) filePaths.push(documents.meetingMinutes);
-        if (documents.vendorQuotation) filePaths.push(documents.vendorQuotation);
-
-        if (filePaths.length > 0) {
-            const { data, error } = await window.supabaseClient.storage
-                .from('documents')
-                .remove(filePaths);
-            if (error) {
-                console.error('Error deleting files from Supabase:', error);
-                alert('Failed to delete some files from storage. Check console for details.');
-            }
-        }
-
-        await docRef.delete();
-        loadRequests();
-        alert('Request deleted successfully.');
-    } catch (error) {
-        console.error('Error deleting request:', error);
-        alert('Error deleting request. ' + error.message);
-    }
-}
 
 window.searchRequests = searchRequests;
 authReady.then(loadRequests);

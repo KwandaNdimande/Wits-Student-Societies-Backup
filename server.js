@@ -296,13 +296,31 @@ function normalizeSocietyName(name) {
   return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
+// ===== DAT-03 =====
+// Title-cases society names, but preserves any word that already contains
+// two or more uppercase letters so acronyms like COMS / SASCO / IEEE survive
+// a re-save.
 function formatSocietyName(name) {
   return String(name || '').trim().replace(/\s+/g, ' ').split(' ').map(word =>
-    word.split(/([-'])/).map(part => /^[a-z]/i.test(part)
-      ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-      : part
-    ).join('')
+    word.split(/([-'])/).map(part => {
+      const upperCount = (part.match(/[A-Z]/g) || []).length;
+      if (upperCount >= 2) return part;
+      return /^[a-z]/i.test(part)
+        ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
+        : part;
+    }).join('')
   ).join(' ');
+}
+
+// ===== DAT-02 =====
+// Society names must be at least 3 characters and not purely numeric.
+// Returns an error string, or null if the name is acceptable.
+function validateSocietyName(rawName) {
+  const trimmed = String(rawName || '').trim();
+  if (!trimmed) return 'Society name is required';
+  if (/^[0-9]+$/.test(trimmed)) return 'Society name cannot be numbers only.';
+  if (trimmed.length < 3) return 'Society name must be at least 3 characters.';
+  return null;
 }
 
 // Helper function to validate executive committee structure
@@ -364,6 +382,65 @@ function validateExecCommittee(execCommittee) {
   }
 
   return { valid: true };
+}
+
+// ===== DAT-01 =====
+// Collect every email address stored on a society (contact + committee + other portfolios).
+// Case is preserved — the uniqueness rule is case-sensitive by design.
+function collectSocietyEmails(society) {
+  const emails = [];
+  if (society && society.email) emails.push(String(society.email).trim());
+
+  const exec = (society && society.execCommittee) || {};
+  const keys = ['chairperson', 'deputyChairperson', 'deputychairperson', 'treasurer', 'secretary', 'organiser'];
+  keys.forEach(key => {
+    const member = exec[key];
+    if (member && member.email) emails.push(String(member.email).trim());
+  });
+
+  if (Array.isArray(exec.otherPortfolios)) {
+    exec.otherPortfolios.forEach(p => {
+      if (p && p.email) emails.push(String(p.email).trim());
+    });
+  }
+
+  return emails.filter(e => e !== '');
+}
+
+// ===== DAT-01 =====
+// Search every other society for any of the given emails. Returns the first
+// conflict found, or null. excludeId skips the society being edited.
+async function findEmailConflict(emails, excludeId = null) {
+  const wanted = new Set(emails.filter(e => e !== ''));
+  if (wanted.size === 0) return null;
+
+  const snapshot = await db.collection('societies').get();
+  for (const doc of snapshot.docs) {
+    if (excludeId && doc.id === excludeId) continue;
+    const data = doc.data();
+    const theirs = collectSocietyEmails({
+      email: data.email,
+      execCommittee: data.execCommittee
+    });
+    for (const addr of theirs) {
+      if (wanted.has(addr)) {
+        return { email: addr, societyName: data.name || 'Unknown Society' };
+      }
+    }
+  }
+  return null;
+}
+
+// ===== DAT-01 =====
+// Check whether the given emails list contains any repeated value.
+// Returns the repeated address, or null.
+function findWithinPayloadDuplicate(emails) {
+  const seen = new Set();
+  for (const addr of emails) {
+    if (seen.has(addr)) return addr;
+    seen.add(addr);
+  }
+  return null;
 }
 
 // ============ API ROUTES ============
@@ -800,6 +877,12 @@ app.post('/api/societies', requireOfficer, async (req, res) => {
 
     }
 
+    // ===== DAT-02 =====
+    const nameError = validateSocietyName(name);
+    if (nameError) {
+      return res.status(400).json({ error: nameError });
+    }
+
     const formattedName = formatSocietyName(name);
     const normalizedName = normalizeSocietyName(formattedName);
 
@@ -811,6 +894,23 @@ app.post('/api/societies', requireOfficer, async (req, res) => {
           error: 'Invalid executive committee: ' + validation.error
         });
       }
+    }
+
+    // ===== DAT-01: contact + committee email uniqueness =====
+    const emails = collectSocietyEmails({ email, execCommittee: execCommittee || {} });
+
+    const withinDupe = findWithinPayloadDuplicate(emails);
+    if (withinDupe) {
+      return res.status(409).json({
+        error: `This email is used more than once in this form: ${withinDupe}`
+      });
+    }
+
+    const conflict = await findEmailConflict(emails);
+    if (conflict) {
+      return res.status(409).json({
+        error: `This email is already used by another society: ${conflict.email} (${conflict.societyName})`
+      });
     }
 
     const newSociety = {
@@ -888,12 +988,49 @@ app.put('/api/societies/:id', requireOfficer, async (req, res) => {
       return res.status(400).json({ error: 'Society name is required' });
     }
 
+    // ===== DAT-02 =====
+    if (name !== undefined) {
+      const nameError = validateSocietyName(name);
+      if (nameError) {
+        return res.status(400).json({ error: nameError });
+      }
+    }
+
     // Validate executive committee if provided
     if (execCommittee) {
       const validation = validateExecCommittee(execCommittee);
       if (!validation.valid) {
         return res.status(400).json({
           error: 'Invalid executive committee: ' + validation.error
+        });
+      }
+    }
+
+    // ===== DAT-01: contact + committee email uniqueness (excludes this society) =====
+    if (email !== undefined || execCommittee !== undefined) {
+      const currentDoc = await db.collection('societies').doc(req.params.id).get();
+      if (!currentDoc.exists) {
+        return res.status(404).json({ error: 'Society not found' });
+      }
+      const current = currentDoc.data();
+
+      const payloadForCheck = {
+        email: email !== undefined ? email : current.email,
+        execCommittee: execCommittee !== undefined ? execCommittee : current.execCommittee
+      };
+      const emails = collectSocietyEmails(payloadForCheck);
+
+      const withinDupe = findWithinPayloadDuplicate(emails);
+      if (withinDupe) {
+        return res.status(409).json({
+          error: `This email is used more than once in this form: ${withinDupe}`
+        });
+      }
+
+      const conflict = await findEmailConflict(emails, req.params.id);
+      if (conflict) {
+        return res.status(409).json({
+          error: `This email is already used by another society: ${conflict.email} (${conflict.societyName})`
         });
       }
     }

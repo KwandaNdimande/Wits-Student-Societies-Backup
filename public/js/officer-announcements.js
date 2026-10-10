@@ -18,10 +18,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-const userUid = localStorage.getItem('userUid');
-if (!userUid) {
-    window.location.href = '/login.html';
-}
+// Auth: the real Firebase login and the Firestore role decide access.
+// localStorage is a display hint only and is never trusted here.
+let userUid = null;
+let userRole = null;
+const authReady = requireRole('officer').then(function (session) {
+    userUid = session.user.uid;
+    userRole = session.role;
+});
 
 // Category colors (no emoji)
 const categoryColors = {
@@ -558,11 +562,6 @@ async function deleteAnnouncement(id) {
 // ================================================================
 // HELPERS
 // ================================================================
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
 function timeAgo(ms) {
     if (!ms) return 'Unknown';
     const s = Math.floor((Date.now() - ms) / 1000);
@@ -632,5 +631,5 @@ document.addEventListener('DOMContentLoaded', function() {
     updateAsterisks();
     updateCreateButtonState();
 
-    loadAnnouncements(false);
+    authReady.then(() => loadAnnouncements(false));
 });

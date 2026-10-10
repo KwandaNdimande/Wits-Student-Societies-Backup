@@ -382,7 +382,7 @@ function scrollToBottom() {
 
 function initializeChat() {
     const userName = getUserName();
-    addBotMessage(`Hello ${userName}.<br><br>I can help you with budget requests, required documents, request status, revisions and contacting the SGO.<br><br>What would you like help with?`);
+    addBotMessage(`Hello ${escapeHtml(userName)}.<br><br>I can help you with budget requests, required documents, request status, revisions and contacting the SGO.<br><br>What would you like help with?`);
     showCategories();
 }
 

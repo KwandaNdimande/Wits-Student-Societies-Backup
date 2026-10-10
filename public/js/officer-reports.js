@@ -13,12 +13,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Check authentication
-const userUid = localStorage.getItem('userUid');
-const userRole = localStorage.getItem('userRole');
-if (!userUid || userRole !== 'officer') {
-    window.location.href = '/login.html';
-}
+// Auth: the real Firebase login and the Firestore role decide access.
+// localStorage is a display hint only and is never trusted here.
+let userUid = null;
+let userRole = null;
+const authReady = requireRole('officer').then(function (session) {
+    userUid = session.user.uid;
+    userRole = session.role;
+});
 
 let allRequests = [];
 let allSocieties = [];
@@ -503,12 +505,12 @@ function renderReport1() {
     } else {
         tbody.innerHTML = pageItems.map(r => `
             <tr>
-                <td class="strong">REQ-${String(r.id).slice(0, 8)}</td>
-                <td>${r.societyName || 'Unknown'}</td>
-                <td>${r.type || 'N/A'}</td>
+                <td class="strong">REQ-${escapeHtml(String(r.id).slice(0, 8))}</td>
+                <td>${escapeHtml(r.societyName || 'Unknown')}</td>
+                <td>${escapeHtml(r.type || 'N/A')}</td>
                 <td>R ${r.amount ? r.amount.toLocaleString() : '0'}</td>
                 <td>${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
-                <td><span class="badge ${statusBadgeMap[r.status] || 'pending'}"><span class="dot"></span>${r.status || 'N/A'}</span></td>
+                <td><span class="badge ${statusBadgeMap[r.status] || 'pending'}"><span class="dot"></span>${escapeHtml(r.status || 'N/A')}</span></td>
             </tr>
         `).join('');
     }
@@ -657,8 +659,8 @@ function renderReport2() {
     } else {
         tbody.innerHTML = display.map(s => `
             <tr>
-                <td class="strong">${s.name}</td>
-                <td>${s.category || 'General'}</td>
+                <td class="strong">${escapeHtml(s.name)}</td>
+                <td>${escapeHtml(s.category || 'General')}</td>
                 <td>${s.eventReqs}</td>
                 <td>${s.regaliaReqs}</td>
                 <td>${s.totalReqs}</td>
@@ -715,8 +717,8 @@ function renderReport3() {
     } else {
         tbody.innerHTML = pageItems.map(r => `
             <tr>
-                <td class="strong">${r.societyName || 'Unknown'}</td>
-                <td>${r.type || 'N/A'}</td>
+                <td class="strong">${escapeHtml(r.societyName || 'Unknown')}</td>
+                <td>${escapeHtml(r.type || 'N/A')}</td>
                 <td>R ${r.amount ? r.amount.toLocaleString() : '0'}</td>
                 <td>${totalApproved > 0 ? Math.round(((r.amount || 0)/totalApproved)*100) : 0}%</td>
                 <td><span class="badge ${r.amount && r.amount > 10000 ? 'full' : 'partial'}"><span class="dot"></span>${r.amount && r.amount > 10000 ? 'Fully Allocated' : 'Partially Allocated'}</span></td>
@@ -791,9 +793,9 @@ if (total === 0) {
     } else {
         tbody.innerHTML = pageItems.map(r => `
             <tr>
-                <td class="strong">REQ-${String(r.id).slice(0, 8)}</td>
-                <td>${r.societyName || 'Unknown'}</td>
-                <td>${r.issueType || 'Not specified'}</td>
+                <td class="strong">REQ-${escapeHtml(String(r.id).slice(0, 8))}</td>
+                <td>${escapeHtml(r.societyName || 'Unknown')}</td>
+                <td>${escapeHtml(r.issueType || 'Not specified')}</td>
                 <td>${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
                 <td>Review and resubmit</td>
                 <td><span class="badge await"><span class="dot"></span>Awaiting Resubmission</span></td>
@@ -1058,5 +1060,5 @@ document.querySelectorAll('.pill').forEach(pill => {
 
 // ============ INITIALIZE ============
 document.addEventListener('DOMContentLoaded', function() {
-    loadAllData();
+    authReady.then(loadAllData);
 });

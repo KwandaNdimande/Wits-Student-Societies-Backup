@@ -20,24 +20,13 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 
 let currentUser = null;
-let userUid = localStorage.getItem('userUid');
+let userUid = null;
 
-if (!userUid) {
-    window.location.href = '/login.html';
-}
-
-// Load user data
-auth.onAuthStateChanged(async (user) => {
-    if (user) {
-        currentUser = user;
-        const userDoc = await db.collection('users').doc(user.uid).get();
-        if (userDoc.exists) {
-            const userData = userDoc.data();
-            document.getElementById('society-name').value = userData.societyName || 'Your Society';
-        }
-    } else {
-        window.location.href = '/login.html';
-    }
+// Auth: the real Firebase login and the Firestore role decide access.
+const authReady = requireRole('leader').then(function (session) {
+    currentUser = session.user;
+    userUid = session.user.uid;
+    document.getElementById('society-name').value = session.profile.societyName || 'Your Society';
 });
 
 // ============ DOM REFS ============
@@ -450,7 +439,8 @@ submitBtn.addEventListener('click', async (e) => {
     const vendorQuotation = document.getElementById('vendor-quotation').files[0];
 
     try {
-        const user = auth.currentUser;
+        await authReady;
+        const user = currentUser;
         if (!user) throw new Error('User not logged in.');
         const uploadFile = async (file, fileType) => {
     if (!file) return null;

@@ -13,11 +13,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Check authentication
-const userUid = localStorage.getItem('userUid');
-if (!userUid) {
-    window.location.href = '/login.html';
-}
+// Auth: the real Firebase login and the Firestore role decide access.
+// localStorage is a display hint only and is never trusted here.
+let userUid = null;
+let userRole = null;
+const authReady = requireRole('leader').then(function (session) {
+    userUid = session.user.uid;
+    userRole = session.role;
+});
 
 // Load dashboard data
 async function loadDashboard() {
@@ -89,11 +92,11 @@ async function loadDashboard() {
             let html = `<h2>Most Recent</h2>
                 <div style="border:1px solid #e6eef8;border-radius:10px;padding:16px;margin-bottom:12px;background:#fff;display:flex;justify-content:space-between;align-items:center;">
                     <div>
-                        <div style="font-size:16px;font-weight:700;color:#0B1F3A;">${latestName}</div>
-                        <div style="color:#5A6B87;margin-top:6px;">${latest.societyName || ''}</div>
+                    <div style="font-size:16px;font-weight:700;color:#0B1F3A;">${escapeHtml(latestName)}</div>
+                        <div style="color:#5A6B87;margin-top:6px;">${escapeHtml(latest.societyName || '')}</div>
                     </div>
                     <div style="text-align:right;">
-                        <div style="display:inline-block;padding:6px 12px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-weight:700;color:var(--text-600);">${latest.status}</div>
+                        <div style="display:inline-block;padding:6px 12px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-weight:700;color:var(--text-600);">${escapeHtml(latest.status)}</div>
                     </div>
                 </div>`;
 
@@ -102,8 +105,8 @@ async function loadDashboard() {
                 others.forEach(r => {
                     const name = r.itemName || r.name || r.title || 'Untitled Request';
                     html += `<div style="border-bottom:1px solid #eee;padding:10px 0;display:flex;justify-content:space-between;align-items:center;">
-                        <div style="font-weight:600;color:#0B1F3A;">${name}<div style="font-size:13px;color:#6c757d;">${r.societyName || ''}</div></div>
-                        <div style="color:#6c757d;">${r.status}</div>
+                        <div style="font-weight:600;color:#0B1F3A;">${escapeHtml(name)}<div style="font-size:13px;color:#6c757d;">${escapeHtml(r.societyName || '')}</div></div>
+                        <div style="color:#6c757d;">${escapeHtml(r.status)}</div>
                     </div>`;
                 });
             }
@@ -118,4 +121,4 @@ async function loadDashboard() {
     }
 }
 
-loadDashboard();
+authReady.then(() => loadDashboard());

@@ -202,7 +202,8 @@ function updateNavigation() {
         document.body.insertBefore(navLinks, document.body.firstChild);
     }
 
-    const userInfoHtml = `<div class="nav-user-info">${sharedNavUserName}${sharedNavUserRole ? ' · ' + capitalizeRole(sharedNavUserRole) : ''}</div>`;
+        const userInfoHtml = `<div class="nav-user-info">${escapeHtml(sharedNavUserName)}${escapeHtml(sharedNavUserRole ? ' · ' + capitalizeRole(sharedNavUserRole) : '')}</div>`;
+
     const links = getSharedNavLinks();
     const linksHtml = links.map(link => {
         const activeClass = isSharedNavActiveLink(link.href) ? ' class="active"' : '';

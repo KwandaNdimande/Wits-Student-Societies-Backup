@@ -18,12 +18,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Check authentication
-const userUid = localStorage.getItem('userUid');
-const userRole = localStorage.getItem('userRole');
-if (!userUid || userRole !== 'officer') {
-    window.location.href = '/login.html';
-}
+// Auth: the real Firebase login and the Firestore role decide access.
+// localStorage is a display hint only and is never trusted here.
+let userUid = null;
+let userRole = null;
+const authReady = requireRole('officer').then(function (session) {
+    userUid = session.user.uid;
+    userRole = session.role;
+});
 
 let currentEditingId = null;
 
@@ -893,11 +895,6 @@ document.getElementById('infoModal').addEventListener('click', function(e) {
 // ================================================================
 // HELPER
 // ================================================================
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
 // ================================================================
 // EVENT LISTENERS
 // ================================================================
@@ -910,4 +907,4 @@ loadMoreBtn.addEventListener('click', function() {
 // ================================================================
 // LOAD DATA
 // ================================================================
-loadDocuments(false);
+authReady.then(() => loadDocuments(false));

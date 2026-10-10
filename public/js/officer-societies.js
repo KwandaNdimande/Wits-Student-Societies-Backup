@@ -18,11 +18,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-const userUid = localStorage.getItem('userUid');
-const userRole = localStorage.getItem('userRole');
-if (!userUid || userRole !== 'officer') {
-    window.location.href = '/login.html';
-}
+// Auth: the real Firebase login and the Firestore role decide access.
+// localStorage is a display hint only and is never trusted here.
+let userUid = null;
+let userRole = null;
+const authReady = requireRole('officer').then(function (session) {
+    userUid = session.user.uid;
+    userRole = session.role;
+});
 
 let allSocieties = [];
 let filteredSocieties = [];
@@ -525,9 +528,9 @@ function renderTable() {
         html += `
             <tr>
                 <td style="color:#6c757d;font-weight:500;">${num}</td>
-                <td class="strong">${s.name}</td>
-                <td style="color:#6c757d;">${s.category || 'General'}</td>
-                <td style="color:#6c757d;">${s.email || 'No email'}</td>
+                <td class="strong">${escapeHtml(s.name)}</td>
+                <td style="color:#6c757d;">${escapeHtml(s.category || 'General')}</td>
+                <td style="color:#6c757d;">${escapeHtml(s.email || 'No email')}</td>
                 <td>
                     <button class="btn-action btn-view-society" onclick="viewSociety('${s.id}', this)">View</button>
                     <button class="btn-action btn-edit-society" onclick="openEditSociety('${s.id}', this)">Edit</button>
@@ -989,10 +992,6 @@ function closeSocietyModal() {
     editBaseline = null;
 }
 
-function escapeHtml(str) {
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
 async function viewSociety(societyId, button) {
     setButtonLoading(button, 'Opening…');
     try {
@@ -1412,4 +1411,4 @@ async function saveSocietyEdits() {
     }
 }
 
-loadSocieties();
+authReady.then(loadSocieties);

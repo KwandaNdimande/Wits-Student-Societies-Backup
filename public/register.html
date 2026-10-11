@@ -86,6 +86,19 @@
         }
         .field-error { color: var(--error); font-size: 12px; margin-top: 4px; display: none; }
         .field-error.show { display: block; }
+
+        /* Password strength bar and checklist */
+        .pw-help { display: none; margin-top: 8px; }
+        .pw-help.show { display: block; }
+        .pw-meter { height: 6px; background: var(--border); border-radius: 999px; overflow: hidden; }
+        .pw-meter-bar { height: 100%; width: 0; border-radius: 999px; transition: width 0.2s ease, background 0.2s ease; }
+        .pw-meter-bar.s1 { background: #C0392B; }
+        .pw-meter-bar.s2 { background: #E0A100; }
+        .pw-meter-bar.s3 { background: #1E8E5A; }
+        .pw-meter-label { font-size: 12px; color: var(--text-500); margin-top: 4px; min-height: 16px; }
+        .pw-rules { list-style: none; margin: 6px 0 0; padding: 0; font-size: 12px; color: var(--text-500); }
+        .pw-rules li { padding: 1px 0; }
+        .pw-rules li.met { color: #1E8E5A; }
         .society-row { display: flex; gap: 8px; align-items: center; }
         .dropdown-wrapper { position: relative; flex: 1; }
         .dropdown-wrapper input {
@@ -260,8 +273,13 @@
                 </div>
                 <div class="form-group">
                     <label for="signup-password">Password <span class="required" id="req-password">*</span></label>
-                    <input id="signup-password" type="password" placeholder="Use a strong password" />
+                    <input id="signup-password" type="password" placeholder="At least 8 characters" autocomplete="new-password" maxlength="128" aria-describedby="pw-rules" />
                     <div class="field-error" id="password-error"></div>
+                    <div class="pw-help" id="pw-help">
+                        <div class="pw-meter" aria-hidden="true"><div class="pw-meter-bar" id="pw-meter-bar"></div></div>
+                        <div class="pw-meter-label" id="pw-meter-label" aria-live="polite"></div>
+                        <ul class="pw-rules" id="pw-rules"></ul>
+                    </div>
                 </div>
 
                 <div id="register-error" class="field-error" style="margin-bottom:12px;"></div>
@@ -301,6 +319,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="/js/password-policy.js"></script>
 
     <script>
         const firebaseConfig = {
@@ -354,7 +373,33 @@
         };
 
                 function isValidEmail(value) { return value.includes('@'); }
-        function isValidPassword(value) { return value.length >= 6; }
+        function getPasswordContext() {
+            return {
+                email: fields.email.value.trim(),
+                firstName: fields.firstName.value.trim(),
+                lastName: fields.lastName.value.trim()
+            };
+        }
+        function checkPasswordNow(value) { return PasswordPolicy.check(value, getPasswordContext()); }
+        function isValidPassword(value) { return checkPasswordNow(value).ok; }
+
+        // Live strength bar and checklist under the password box
+        const pwHelp = document.getElementById('pw-help');
+        const pwBar = document.getElementById('pw-meter-bar');
+        const pwLabel = document.getElementById('pw-meter-label');
+        const pwRules = document.getElementById('pw-rules');
+        function renderPasswordHelp() {
+            const result = checkPasswordNow(fields.password.value);
+            pwBar.style.width = ['0%', '33%', '66%', '100%'][result.score];
+            pwBar.className = 'pw-meter-bar' + (result.score ? ' s' + result.score : '');
+            pwLabel.textContent = result.label ? 'Password strength: ' + result.label : '';
+            pwRules.replaceChildren(...result.rules.map(function (r) {
+                const li = document.createElement('li');
+                li.className = r.met ? 'met' : '';
+                li.textContent = (r.met ? '✓ ' : '○ ') + r.label;
+                return li;
+            }));
+        }
         function sanitizeNameInput(value) { return String(value || '').replace(/[^A-Za-z\s]/g, ''); }
 
         function showAsterisk(fieldId) { if (asterisks[fieldId]) asterisks[fieldId].classList.remove('hidden'); }
@@ -426,8 +471,10 @@
                 hideFieldError('signup-password', fieldErrors.password);
             } else if (!isValidPassword(passwordVal)) {
                 isValid = false;
-                fieldErrors.password.textContent = 'Error: Password must be at least 6 characters';
+                fieldErrors.password.textContent = 'Error: ' + checkPasswordNow(passwordVal).problems[0];
                 showFieldError('signup-password', fieldErrors.password);
+                pwHelp.classList.add('show');
+                renderPasswordHelp();
             } else hideFieldError('signup-password', fieldErrors.password);
 
             if (!isValid) {
@@ -618,9 +665,21 @@
         });
         fields.password.addEventListener('input', function() {
             updateAsterisk('password', this.value);
+            pwHelp.classList.add('show');
+            renderPasswordHelp();
             if (fieldErrors.password.classList.contains('show') && isValidPassword(this.value)) {
                 hideFieldError('signup-password', fieldErrors.password);
             }
+        });
+        fields.password.addEventListener('focus', function() {
+            pwHelp.classList.add('show');
+            renderPasswordHelp();
+        });
+        // The name and email are part of the password rules, so re-check when they change
+        ['firstName', 'lastName', 'email'].forEach(function (name) {
+            fields[name].addEventListener('input', function () {
+                if (fields.password.value.length > 0) renderPasswordHelp();
+            });
         });
 
         fields.email.addEventListener('blur', function() {
@@ -636,7 +695,7 @@
             const val = this.value;
             if (val.length === 0) return;
             if (!isValidPassword(val)) {
-                fieldErrors.password.textContent = 'Error: Password must be at least 6 characters';
+                fieldErrors.password.textContent = 'Error: ' + checkPasswordNow(val).problems[0];
                 showFieldError('signup-password', fieldErrors.password);
             } else hideFieldError('signup-password', fieldErrors.password);
         });
@@ -825,7 +884,8 @@
             const messages = {
                 'auth/email-already-in-use': 'This email is already registered. Please sign in instead.',
                 'auth/invalid-email': 'The email address is not valid. Please check and try again.',
-                'auth/weak-password': 'Password is too weak. Please use at least 6 characters.',
+                'auth/weak-password': 'Password is too weak. Use at least 8 characters with a mix of upper and lowercase letters and a number.',
+                'auth/password-does-not-meet-requirements': 'Password does not meet the security requirements. Use at least 8 characters with a mix of upper and lowercase letters and a number.',
                 'auth/network-request-failed': 'Network error. Please check your internet connection.',
                 'auth/internal-error': 'Something went wrong. Please try again.',
                 'permission-denied': 'Permission denied. Please contact support.'

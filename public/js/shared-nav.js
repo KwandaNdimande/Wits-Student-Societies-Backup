@@ -230,10 +230,7 @@ function updateNavigation() {
         logoutLink.addEventListener('click', function(event) {
             event.preventDefault();
             if (confirm('Are you sure you want to log out?')) {
-                localStorage.removeItem('userUid');
-                localStorage.removeItem('userRole');
-                localStorage.removeItem('userName');
-                window.location.href = '/login.html';
+                appSignOut(); // signs out of Firebase, clears the saved details, goes to login
             }
         });
     }

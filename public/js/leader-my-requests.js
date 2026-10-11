@@ -612,9 +612,7 @@ async function openUpdateModal(requestId) {
                     </label>
 
                     <div style="font-size:12px;color:var(--text-500);margin-bottom:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                        <span>Current: <strong id="current_${slot.key}" style="color:${currentFileName === 'No file uploaded' ? '#D64545' : '#2E7D32'};">${currentFileName}</strong></span>
-                        ${currentPath ? `<button class="btn-view-doc" onclick="viewFileFromSupabase('${currentPath}', '${currentFileName}')" style="padding:2px 10px;font-size:12px;">View</button>` : ''}
-                        <span>Current: <strong id="current_${key}" style="color:${currentFileName === 'No file uploaded' ? '#D64545' : '#2E7D32'};">${escapeHtml(currentFileName)}</strong></span>
+                        <span>Current: <strong id="current_${slot.key}" style="color:${currentFileName === 'No file uploaded' ? '#D64545' : '#2E7D32'};">${escapeHtml(currentFileName)}</strong></span>
                         ${currentPath ? `<button class="btn-view-doc" data-file-action="view" data-path="${escapeHtml(currentPath)}" data-name="${escapeHtml(currentFileName)}" style="padding:2px 10px;font-size:12px;">View</button>` : ''}
                     </div>
 

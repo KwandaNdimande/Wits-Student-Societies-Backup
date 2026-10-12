@@ -1,6 +1,6 @@
 // ---------- SUPABASE INITIALIZATION ----------
 const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-XuYM9f7T8C0F2tfqB_4';
 
 // Create a global supabase client
 window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
@@ -20,14 +20,11 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Auth: the real Firebase login and the Firestore role decide access.
-// localStorage is a display hint only and is never trusted here.
-let userUid = null;
-let userRole = null;
-const authReady = requireRole('leader').then(function (session) {
-    userUid = session.user.uid;
-    userRole = session.role;
-});
+// Check authentication
+const userUid = localStorage.getItem('userUid');
+if (!userUid) {
+    window.location.href = '/login.html';
+}
 
 let currentRequestId = null;
 let allRequests = [];
@@ -153,15 +150,15 @@ async function viewLeaderDocuments(requestId) {
                 }
                 const info = getFileInfo(doc);
                 if (!info.path) {
-                    return `<div class="doc-item"><div class="doc-name">${docLabels[key] || key}</div><div class="doc-detail">${escapeHtml(info.name || 'File not found')}</div></div>`;
+                    return `<div class="doc-item"><div class="doc-name">${docLabels[key] || key}</div><div class="doc-detail">${info.name || 'File not found'}</div></div>`;
                 }
                 return `
                     <div class="doc-item">
                         <div class="doc-name">${docLabels[key] || key}</div>
-                        <div class="doc-detail">${escapeHtml(info.name)}</div>
+                        <div class="doc-detail">${info.name}</div>
                         <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
-                        <button class="btn-view-doc" data-file-action="view" data-path="${escapeHtml(info.path)}" data-name="${escapeHtml(info.name)}">View</button>
-                            <button class="btn-download" data-file-action="download" data-path="${escapeHtml(info.path)}" data-name="${escapeHtml(info.name)}">Download</button>
+                            <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
+                            <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">Download</button>
                         </div>
                     </div>
                 `;
@@ -192,6 +189,7 @@ async function loadRequests() {
         renderTable();
         renderLeaderNotifications();
         openLeaderNotificationFromUrl();
+        applyHighlightFromUrl();
     } catch (error) {
         console.error('Error loading requests:', error);
         document.getElementById('requests-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading requests. Please try again.</p>';
@@ -260,9 +258,9 @@ function renderLeaderNotifications() {
         const title = request.itemName || request.name || 'Request';
         return `
             <div class="notification-item" onclick="openLeaderNotification('${request.id}')">
-                <div class="title">${escapeHtml(title)} — ${escapeHtml(entry.status || 'Updated')}</div>
-                <div class="meta">${escapeHtml(request.societyName || '')} · ${escapeHtml(when)}</div>
-                ${entry.note ? `<div class="note">${escapeHtml(entry.note)}</div>` : ''}
+                <div class="title">${title} — ${entry.status || 'Updated'}</div>
+                <div class="meta">${request.societyName || ''} · ${when}</div>
+                ${entry.note ? `<div class="note">${entry.note}</div>` : ''}
             </div>
         `;
     }).join('');
@@ -296,6 +294,32 @@ function openLeaderNotificationFromUrl() {
     if (requestId) {
         openDetailView(requestId);
     }
+}
+
+// ===== Highlight support =====
+// When arriving from the dashboard with ?highlight=<id>, the matching row
+// in the table is flashed with the same soft blue that the clickable items
+// use on the dashboard, then left to fade naturally.
+function applyHighlightFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const highlightId = params.get('highlight');
+    if (!highlightId) return;
+
+    // Make sure the row is on the currently rendered page (page 1 by default,
+    // and the Recent list only ever contains the top 5 requests, so it will be).
+    const row = document.querySelector(`#requests-container tr[data-request-id="${cssEscape(highlightId)}"]`);
+    if (!row) return;
+
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.classList.add('row-highlight');
+
+    setTimeout(() => {
+        row.classList.remove('row-highlight');
+    }, 2500);
+}
+
+function cssEscape(s) {
+    return String(s).replace(/["\\]/g, '\\$&');
 }
 
 // Search function
@@ -367,13 +391,13 @@ function renderTable() {
         const hasDocs = r.documents && Object.keys(r.documents).length > 0;
 
         html += `
-            <tr>
+            <tr data-request-id="${r.id}">
                 <td style="color:#6c757d;font-weight:500;">${num}</td>
-                <td class="strong">${escapeHtml(r.itemName || r.name || 'Untitled')}</td>
-                <td style="color:#6c757d;">${escapeHtml(r.type || 'N/A')}</td>
+                <td class="strong">${r.itemName || r.name || 'Untitled'}</td>
+                <td style="color:#6c757d;">${r.type || 'N/A'}</td>
                 <td>
-                    <span class="status-badge ${statusClass}">${escapeHtml(r.status || 'N/A')}</span>
-                    ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">${escapeHtml(r.officerComment)}</span>` : ''}
+                    <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
+                    ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">${r.officerComment}</span>` : ''}
                 </td>
                 <td>
                     <button class="btn-action btn-details" onclick="openDetailView('${r.id}')" style="margin-right:6px;">
@@ -422,6 +446,19 @@ function renderTable() {
         </div>
     `;
     container.innerHTML = html;
+
+    // Inject the highlight styling once
+    if (!document.getElementById('my-requests-highlight-styles')) {
+        const style = document.createElement('style');
+        style.id = 'my-requests-highlight-styles';
+        style.textContent = `
+            #requests-container tbody tr.row-highlight td {
+                background: #F4F7FB;
+                transition: background 0.6s ease;
+            }
+        `;
+        document.head.appendChild(style);
+    }
 }
 
 function changePage(page) {
@@ -447,12 +484,12 @@ function openDetailView(requestId) {
     statusEl.textContent = request.status || 'N/A';
     statusEl.className = `status-badge ${statusColors[request.status] || 'status-submitted'}`;
 
-    const amountText = formatAmount(request.amount);
+    const amountText = request.amount ? `R${request.amount.toLocaleString()}` : 'N/A';
     const submittedDate = request.submittedAt ? new Date(request.submittedAt.seconds * 1000).toLocaleString() : 'N/A';
     const description = request.description || 'No description provided.';
     const documents = request.documents || {};
-    const officerComment = request.officerComment ? `<div class="officer-comment"><strong>Officer Feedback:</strong> ${escapeHtml(request.officerComment)}</div>` : '';
-    const leaderComment = request.leaderComment ? `<div style="margin-top:12px;color:#2E6FBA;font-size:14px;"><strong>Your comment:</strong> ${escapeHtml(request.leaderComment)}</div>` : '';
+    const officerComment = request.officerComment ? `<div class="officer-comment"><strong>Officer Feedback:</strong> ${request.officerComment}</div>` : '';
+    const leaderComment = request.leaderComment ? `<div style="margin-top:12px;color:#2E6FBA;font-size:14px;"><strong>Your comment:</strong> ${request.leaderComment}</div>` : '';
 
     const isRevision = request.status === 'Revision Required';
     const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
@@ -467,18 +504,17 @@ function openDetailView(requestId) {
             return `
                 <div class="doc-item">
                     <strong>${label}</strong>
-                    <div>${escapeHtml(info.name)}</div>
+                    <div>${info.name}</div>
                 </div>
             `;
         } else {
             return `
                 <div class="doc-item">
                     <strong>${label}</strong>
-                    <div>${escapeHtml(info.name)}</div>
+                    <div>${info.name}</div>
                     <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
-
-                     <button class="btn-view-doc" data-file-action="view" data-path="${escapeHtml(info.path)}" data-name="${escapeHtml(info.name)}">View</button>
-                        <button class="btn-download" data-file-action="download" data-path="${escapeHtml(info.path)}" data-name="${escapeHtml(info.name)}">Download</button>  
+                        <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
+                        <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">Download</button>
                     </div>
                 </div>
             `;
@@ -489,10 +525,10 @@ function openDetailView(requestId) {
     const historyHtml = getRequestHistoryHtml(history);
 
     document.getElementById('detailBody').innerHTML = `
-        <div class="detail-row"><div class="detail-label">Request Type</div><div class="detail-value">${escapeHtml(request.type || 'N/A')}</div></div>
-        <div class="detail-row"><div class="detail-label">Amount</div><div class="detail-value">${escapeHtml(amountText)}</div></div>
+        <div class="detail-row"><div class="detail-label">Request Type</div><div class="detail-value">${request.type || 'N/A'}</div></div>
+        <div class="detail-row"><div class="detail-label">Amount</div><div class="detail-value">${amountText}</div></div>
         <div class="detail-row"><div class="detail-label">Submitted</div><div class="detail-value">${submittedDate}</div></div>
-        <div class="detail-row"><div class="detail-label">Description</div><div class="detail-value">${escapeHtml(description)}</div></div>
+        <div class="detail-row"><div class="detail-label">Description</div><div class="detail-value">${description}</div></div>
         ${officerComment}
         ${leaderComment}
         <div class="detail-docs"><h3 style="font-size:15px;color:var(--text-600);margin-bottom:10px;">Documents</h3>${docsHtml}</div>
@@ -536,15 +572,15 @@ function getRequestHistoryHtml(history = []) {
                 return `
                     <div style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;margin-bottom:12px;background:#FAFBFD;">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-                            <span style="font-weight:600;color:var(--text-900);">${escapeHtml(statusLabel)}</span>
+                            <span style="font-weight:600;color:var(--text-900);">${statusLabel}</span>
                             <span style="font-size:12px;color:var(--text-500);">${when}</span>
                         </div>
                         <div style="margin-top:8px;font-size:13px;color:var(--text-600);">
-                            ${escapeHtml(entry.actorName || 'Officer')} · ${escapeHtml(entry.actorRole || 'officer')}
+                            ${entry.actorName || 'Officer'} · ${entry.actorRole || 'officer'}
                         </div>
-                        ${entry.note ? `<div style="margin-top:8px;font-size:13px;color:var(--text-600);">${escapeHtml(entry.note)}</div>` : ''}
-                        ${entry.isReversal ? `<div style="margin-top:8px;font-size:12px;color:#E65100;font-style:italic;">Reversal reason: ${escapeHtml(entry.note || 'No reason provided')}</div>` : ''}
-                        ${entry.isDeletion ? `<div style="margin-top:8px;font-size:12px;color:#E65100;font-style:italic;">Deletion reason: ${escapeHtml(entry.note || 'No reason provided')}</div>` : ''}
+                        ${entry.note ? `<div style="margin-top:8px;font-size:13px;color:var(--text-600);">${entry.note}</div>` : ''}
+                        ${entry.isReversal ? `<div style="margin-top:8px;font-size:12px;color:#E65100;font-style:italic;">Reversal reason: ${entry.note || 'No reason provided'}</div>` : ''}
+                        ${entry.isDeletion ? `<div style="margin-top:8px;font-size:12px;color:#E65100;font-style:italic;">Deletion reason: ${entry.note || 'No reason provided'}</div>` : ''}
                     </div>
                 `;
             }).join('')}
@@ -568,7 +604,7 @@ async function openUpdateModal(requestId) {
 
         let modalBody = `
             <div style="margin-bottom:20px;">
-                <div style="font-size:14px;color:var(--text-600);margin-bottom:4px;"><strong>Request:</strong> ${escapeHtml(itemName)}</div>
+                <div style="font-size:14px;color:var(--text-600);margin-bottom:4px;"><strong>Request:</strong> ${itemName}</div>
                 <div style="font-size:13px;color:var(--text-500);">Update the documents below to resubmit your request.</div>
             </div>
         `;
@@ -577,7 +613,7 @@ async function openUpdateModal(requestId) {
             modalBody += `
                 <div style="background:#FFF3E0;padding:14px 16px;border-radius:8px;margin-bottom:20px;border-left:4px solid #E65100;">
                     <strong style="color:#E65100;font-size:13px;">Officer's Feedback</strong>
-                    <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${escapeHtml(officerComment)}</p>
+                    <p style="color:#5A6B87;font-size:14px;margin:4px 0 0;">${officerComment}</p>
                 </div>
             `;
         }
@@ -612,8 +648,8 @@ async function openUpdateModal(requestId) {
                     </label>
 
                     <div style="font-size:12px;color:var(--text-500);margin-bottom:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                        <span>Current: <strong id="current_${slot.key}" style="color:${currentFileName === 'No file uploaded' ? '#D64545' : '#2E7D32'};">${escapeHtml(currentFileName)}</strong></span>
-                        ${currentPath ? `<button class="btn-view-doc" data-file-action="view" data-path="${escapeHtml(currentPath)}" data-name="${escapeHtml(currentFileName)}" style="padding:2px 10px;font-size:12px;">View</button>` : ''}
+                        <span>Current: <strong id="current_${slot.key}" style="color:${currentFileName === 'No file uploaded' ? '#D64545' : '#2E7D32'};">${currentFileName}</strong></span>
+                        ${currentPath ? `<button class="btn-view-doc" onclick="viewFileFromSupabase('${currentPath}', '${currentFileName}')" style="padding:2px 10px;font-size:12px;">View</button>` : ''}
                     </div>
 
                     <div class="file-input">
@@ -733,8 +769,7 @@ function validateUpdateFile(key, input) {
 }
 
 // ============ SAME-FILE DETECTION (Update modal) ============
-// Same file when name and size both match. Timestamps are unreliable
-// (copies, downloads and syncs touch them), so we do not compare them.
+// Same file when name and size both match.
 function isSameSelectedFile(a, b) {
     if (!a || !b) return false;
     return a.name === b.name && a.size === b.size;
@@ -966,4 +1001,4 @@ document.getElementById('updateModal').addEventListener('click', function(e) {
 });
 
 window.searchRequests = searchRequests;
-authReady.then(loadRequests);
+loadRequests();

@@ -30,17 +30,12 @@ function getIdToken() {
     });
 }
 
-// Auth: the real Firebase login and the Firestore role decide access.
-// localStorage is a display hint only and is never trusted here.
-let userUid = null;
-let userRole = null;
-let userName = null;
-const authReady = requireRole('officer').then(function (session) {
-    userUid = session.user.uid;
-    userRole = session.role;
-    const p = session.profile || {};
-    userName = ((p.firstName || '') + ' ' + (p.lastName || '')).trim() || 'Officer';
-});
+// Check authentication
+const userUid = localStorage.getItem('userUid');
+const userRole = localStorage.getItem('userRole');
+if (!userUid || userRole !== 'officer') {
+    window.location.href = '/login.html';
+}
 
 let allRequests = [];
 let filteredRequests = [];
@@ -191,8 +186,6 @@ function updateStatusSaveState() {
     saveBtn.disabled = !valid;
 }
 
-
-
 // ================================================================
 // TAB SWITCHING
 // ================================================================
@@ -229,11 +222,35 @@ async function loadRequests() {
         renderTable();
         renderOfficerNotifications();
         openOfficerNotificationFromUrl();
-
+        applyHighlightFromUrl();
     } catch (error) {
         console.error('Error loading requests:', error);
         document.getElementById('requests-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading requests. Please try again.</p>';
     }
+}
+
+// ===== Highlight support =====
+// When arriving from the dashboard with ?highlight=<id>, the matching row
+// in the Active table is flashed with the same soft blue that the clickable
+// items use on the dashboard, then left to fade naturally.
+function applyHighlightFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const highlightId = params.get('highlight');
+    if (!highlightId) return;
+
+    const row = document.querySelector(`#requests-container tr[data-request-id="${cssEscape(highlightId)}"]`);
+    if (!row) return;
+
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.classList.add('row-highlight');
+
+    setTimeout(() => {
+        row.classList.remove('row-highlight');
+    }, 2500);
+}
+
+function cssEscape(s) {
+    return String(s).replace(/["\\]/g, '\\$&');
 }
 
 // ================================================================
@@ -357,13 +374,13 @@ function renderTable() {
         }
 
         html += `
-            <tr>
+            <tr data-request-id="${r.id}">
                 <td style="color:#6c757d;font-weight:500;">${num}</td>
-                <td class="strong">${escapeHtml(r.societyName || 'Unknown')}</td>
-                <td style="color:#6c757d;">${escapeHtml(r.type || 'N/A')}</td>
+                <td class="strong">${r.societyName || 'Unknown'}</td>
+                <td style="color:#6c757d;">${r.type || 'N/A'}</td>
                 <td>
-                    <span class="status-badge ${statusClass}">${escapeHtml(r.status || 'N/A')}</span>
-                    ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">${escapeHtml(r.officerComment)}</span>` : ''}
+                    <span class="status-badge ${statusClass}">${r.status || 'N/A'}</span>
+                    ${hasOfficerComment ? `<br><span style="font-size:11px;color:#E65100;">${r.officerComment}</span>` : ''}
                 </td>
                 <td>
                     ${isRevisionLocked ? 
@@ -419,9 +436,21 @@ function renderTable() {
     `;
 
     container.innerHTML = html;
+
+    // Inject the highlight styling once
+    if (!document.getElementById('all-requests-highlight-styles')) {
+        const style = document.createElement('style');
+        style.id = 'all-requests-highlight-styles';
+        style.textContent = `
+            #requests-container tbody tr.row-highlight td {
+                background: #F4F7FB;
+                transition: background 0.6s ease;
+            }
+        `;
+        document.head.appendChild(style);
+    }
 }
 
-// Change page
 function changePage(page) {
     const totalPages = Math.ceil(filteredRequests.length / pageSize) || 1;
     if (page < 1 || page > totalPages) return;
@@ -430,7 +459,7 @@ function changePage(page) {
 }
 
 // ================================================================
-// RENDER DELETED TABLE (with Permanently Delete button)
+// RENDER DELETED TABLE
 // ================================================================
 
 function renderDeletedTable() {
@@ -474,9 +503,9 @@ function renderDeletedTable() {
         html += `
             <tr>
                 <td style="color:#6c757d;font-weight:500;">${num}</td>
-                <td class="strong">${escapeHtml(r.societyName || 'Unknown')}</td>
-                <td>${escapeHtml(r.requestName || r.originalData?.itemName || 'Untitled')}</td>
-                <td style="color:#6c757d;">${escapeHtml(r.originalData?.type || 'N/A')}</td>
+                <td class="strong">${r.societyName || 'Unknown'}</td>
+                <td>${r.requestName || r.originalData?.itemName || 'Untitled'}</td>
+                <td style="color:#6c757d;">${r.originalData?.type || 'N/A'}</td>
                 <td>
                     <button class="btn-view" onclick="viewDeletedRequestDetails('${r.id}')">View</button>
                     <button class="btn-delete" onclick="openPermanentDeleteModal('${r.id}')">Permanently Delete</button>
@@ -533,7 +562,7 @@ function changeDeletedPage(page) {
 }
 
 // ================================================================
-// VIEW DELETED REQUEST DETAILS (matching active view style)
+// VIEW DELETED REQUEST DETAILS
 // ================================================================
 
 async function viewDeletedRequestDetails(deletedId) {
@@ -544,12 +573,11 @@ async function viewDeletedRequestDetails(deletedId) {
     }
 
     const data = request.originalData || {};
-const submitterName = await getSubmitterName(data);
+    const submitterName = await getSubmitterName(data);
     const itemName = request.requestName || data.itemName || 'Untitled Request';
     const society = request.societyName || 'Unknown Society';
-    const status = 'Deleted';
     const type = data.type || 'N/A';
-    const amount = formatAmount(data.amount);
+    const amount = data.amount ? `R${data.amount.toLocaleString()}` : 'N/A';
     const submittedAt = data.submittedAt ? new Date(data.submittedAt.seconds * 1000).toLocaleString() : 'N/A';
     const description = data.description || 'No description provided.';
     const documents = data.documents || {};
@@ -558,7 +586,6 @@ const submitterName = await getSubmitterName(data);
     const deletedAt = formatTimestamp(request.deletedAt);
     const deletionReason = request.reason || 'No reason provided';
 
-    // Build documents HTML
     const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
     const docLabels = {
         'budgetForm': 'Budget Form',
@@ -585,17 +612,17 @@ const submitterName = await getSubmitterName(data);
                 return `
                     <div class="doc-item">
                         <span class="doc-name">${docLabels[key] || key}</span>
-                        <span class="doc-detail">${escapeHtml(info.name || 'File not found')}</span>
+                        <span class="doc-detail">${info.name || 'File not found'}</span>
                     </div>
                 `;
             }
             return `
                 <div class="doc-item">
                     <span class="doc-name">${docLabels[key] || key}</span>
-                    <span class="doc-detail">${escapeHtml(info.name)}</span>
+                    <span class="doc-detail">${info.name}</span>
                     <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
-                        <button class="btn-view-doc" data-file-action="view" data-path="${escapeHtml(info.path)}" data-name="${escapeHtml(info.name)}">View</button>
-                        <button class="btn-download" data-file-action="download" data-path="${escapeHtml(info.path)}" data-name="${escapeHtml(info.name)}">Download</button>
+                        <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
+                        <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">Download</button>
                     </div>
                 </div>
             `;
@@ -604,24 +631,22 @@ const submitterName = await getSubmitterName(data);
         docsHtml = '<div style="color:var(--text-500);font-size:13px;">No documents were uploaded for this request.</div>';
     }
 
-    // Build activity timeline
     const historyHtml = getRequestHistoryHtml(history);
 
-    // Build modal body using the same row style as active view
     const detailRows = `
-        <div class="detail-row"><span class="detail-label">Request Type</span><span class="detail-value">${escapeHtml(type)}</span></div>
-        <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${escapeHtml(amount)}</span></div>
-        <div class="detail-row"><span class="detail-label">Submitted</span><span class="detail-value">${escapeHtml(submittedAt)}</span></div>
-        <div class="detail-row"><span class="detail-label">Deleted By</span><span class="detail-value">${escapeHtml(deletedBy)}</span></div>
-        <div class="detail-row"><span class="detail-label">Deleted At</span><span class="detail-value">${escapeHtml(deletedAt)}</span></div>
-        <div class="detail-row"><span class="detail-label">Deletion Reason</span><span class="detail-value">${escapeHtml(deletionReason)}</span></div>
-        <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">${escapeHtml(description)}</span></div>
+        <div class="detail-row"><span class="detail-label">Request Type</span><span class="detail-value">${type}</span></div>
+        <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${amount}</span></div>
+        <div class="detail-row"><span class="detail-label">Submitted</span><span class="detail-value">${submittedAt}</span></div>
+        <div class="detail-row"><span class="detail-label">Deleted By</span><span class="detail-value">${deletedBy}</span></div>
+        <div class="detail-row"><span class="detail-label">Deleted At</span><span class="detail-value">${deletedAt}</span></div>
+        <div class="detail-row"><span class="detail-label">Deletion Reason</span><span class="detail-value">${deletionReason}</span></div>
+        <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">${description}</span></div>
     `;
 
     const modalBody = `
         <div style="margin-bottom:16px;">
-            <div style="font-size:14px;color:var(--text-500);margin-bottom:4px;">${escapeHtml(society)}</div>
-            <div style="font-size:20px;font-weight:700;color:var(--navy-900);">${escapeHtml(itemName)}</div>
+            <div style="font-size:14px;color:var(--text-500);margin-bottom:4px;">${society}</div>
+            <div style="font-size:20px;font-weight:700;color:var(--navy-900);">${itemName}</div>
             <div style="margin-top:8px;">
                 <span class="status-badge status-deleted">Deleted</span>
             </div>
@@ -712,8 +737,8 @@ function renderOfficerNotifications() {
         const title = request.itemName || request.name || 'New Request';
         return `
             <div class="notification-item" onclick="openOfficerNotification('${request.id}')">
-                <div class="title">${escapeHtml(title)}</div>
-                <div class="meta">${escapeHtml(request.societyName || 'Leader')} · ${when}</div>
+                <div class="title">${title}</div>
+                <div class="meta">${request.societyName || 'Leader'} · ${when}</div>
                 <div class="note">New submission received.</div>
             </div>
         `;
@@ -804,7 +829,7 @@ async function viewRequestDetails(requestId) {
         const society = data.societyName || 'Unknown Society';
         const status = data.status || 'N/A';
         const type = data.type || 'N/A';
-        const amount = formatAmount(data.amount);
+        const amount = data.amount ? `R${data.amount.toLocaleString()}` : 'N/A';
         const submittedAt = data.submittedAt ? new Date(data.submittedAt.seconds * 1000).toLocaleString() : 'N/A';
         const description = data.description || 'No description provided.';
         const documents = data.documents || {};
@@ -812,7 +837,6 @@ async function viewRequestDetails(requestId) {
         const leaderComment = data.leaderComment || '';
         const history = data.statusHistory || [];
 
-        // Build documents HTML
         const docOrder = ['budgetForm', 'meetingMinutes', 'vendorQuotation'];
         const docLabels = {
             'budgetForm': 'Budget Form',
@@ -835,47 +859,47 @@ async function viewRequestDetails(requestId) {
                 return `
                     <div class="doc-item">
                         <span class="doc-name">${docLabels[key] || key}</span>
-                        <span class="doc-detail">${escapeHtml(info.name || 'File not found')}</span>
+                        <span class="doc-detail">${info.name || 'File not found'}</span>
                     </div>
                 `;
             }
             return `
                 <div class="doc-item">
                     <span class="doc-name">${docLabels[key] || key}</span>
-                    <span class="doc-detail">${escapeHtml(info.name)}</span>
+                    <span class="doc-detail">${info.name}</span>
                     <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap;">
-                        <button class="btn-view-doc" data-file-action="view" data-path="${escapeHtml(info.path)}" data-name="${escapeHtml(info.name)}">View</button>
-                        <button class="btn-download" data-file-action="download" data-path="${escapeHtml(info.path)}" data-name="${escapeHtml(info.name)}">Download</button>
+                        <button class="btn-view-doc" onclick="viewFileFromSupabase('${info.path}', '${info.name}')">View</button>
+                        <button class="btn-download" onclick="downloadFileFromSupabase('${info.path}', '${info.name}')">Download</button>
                     </div>
                 </div>
             `;
         }).join('');
 
         const detailRows = `
-            <div class="detail-row"><span class="detail-label">Request Type</span><span class="detail-value">${escapeHtml(type)}</span></div>
-            <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${escapeHtml(amount)}</span></div>
+            <div class="detail-row"><span class="detail-label">Request Type</span><span class="detail-value">${type}</span></div>
+            <div class="detail-row"><span class="detail-label">Amount</span><span class="detail-value">${amount}</span></div>
             <div class="detail-row">
     <span class="detail-label">Submitted By</span>
     <span class="detail-value">${escapeSubmitterText(submitterName)}</span>
     </div>
 <div class="detail-row">
     <span class="detail-label">Submitted At</span>
-    <span class="detail-value">${escapeHtml(submittedAt)}</span>
+    <span class="detail-value">${submittedAt}</span>
 </div>
-            <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">${escapeHtml(description)}</span></div>
+            <div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">${description}</span></div>
         `;
 
         const officerCommentHtml = officerComment ? `
             <div class="detail-row" style="background:#FFF3E0;padding:8px 12px;border-radius:6px;margin-bottom:12px;border-left:4px solid #E65100;">
                 <span class="detail-label" style="font-weight:600;color:#E65100;">Officer Feedback</span>
-                <span class="detail-value">${escapeHtml(officerComment)}</span>
+                <span class="detail-value">${officerComment}</span>
             </div>
         ` : '';
 
         const leaderCommentHtml = leaderComment ? `
             <div class="detail-row" style="background:#E3F2FD;padding:8px 12px;border-radius:6px;margin-bottom:12px;border-left:4px solid #0D47A1;">
                 <span class="detail-label" style="font-weight:600;color:#0D47A1;">Leader's Note</span>
-                <span class="detail-value">${escapeHtml(leaderComment)}</span>
+                <span class="detail-value">${leaderComment}</span>
             </div>
         ` : '';
 
@@ -883,10 +907,10 @@ async function viewRequestDetails(requestId) {
 
         const modalBody = `
             <div style="margin-bottom:16px;">
-                <div style="font-size:14px;color:var(--text-500);margin-bottom:4px;">${escapeHtml(society)}</div>
-                <div style="font-size:20px;font-weight:700;color:var(--navy-900);">${escapeHtml(itemName)}</div>
+                <div style="font-size:14px;color:var(--text-500);margin-bottom:4px;">${society}</div>
+                <div style="font-size:20px;font-weight:700;color:var(--navy-900);">${itemName}</div>
                 <div style="margin-top:8px;">
-                    <span class="status-badge ${statusColors[status] || 'status-submitted'}">${escapeHtml(status)}</span>
+                    <span class="status-badge ${statusColors[status] || 'status-submitted'}">${status}</span>
                 </div>
             </div>
             <div style="margin-bottom:16px;">
@@ -940,15 +964,15 @@ function getRequestHistoryHtml(history = []) {
                 return `
                     <div style="padding:14px 16px;border:1px solid var(--border);border-radius:12px;margin-bottom:12px;background:#FAFBFD;">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-                            <span style="font-weight:600;color:var(--text-900);">${escapeHtml(statusLabel)}</span>
+                            <span style="font-weight:600;color:var(--text-900);">${statusLabel}</span>
                             <span style="font-size:12px;color:var(--text-500);">${when}</span>
                         </div>
                         <div style="margin-top:8px;font-size:13px;color:var(--text-600);">
-                            ${escapeHtml(entry.actorName || 'Officer')} · ${escapeHtml(entry.actorRole || 'officer')}
+                            ${entry.actorName || 'Officer'} · ${entry.actorRole || 'officer'}
                         </div>
-                        ${entry.note ? `<div style="margin-top:8px;font-size:13px;color:var(--text-600);">${escapeHtml(entry.note)}</div>` : ''}
-                        ${entry.isReversal ? `<div style="margin-top:8px;font-size:12px;color:#E65100;font-style:italic;">Reversal reason: ${escapeHtml(entry.note || 'No reason provided')}</div>` : ''}
-                        ${entry.isDeletion ? `<div style="margin-top:8px;font-size:12px;color:#E65100;font-style:italic;">Deletion reason: ${escapeHtml(entry.note || 'No reason provided')}</div>` : ''}
+                        ${entry.note ? `<div style="margin-top:8px;font-size:13px;color:var(--text-600);">${entry.note}</div>` : ''}
+                        ${entry.isReversal ? `<div style="margin-top:8px;font-size:12px;color:#E65100;font-style:italic;">Reversal reason: ${entry.note || 'No reason provided'}</div>` : ''}
+                        ${entry.isDeletion ? `<div style="margin-top:8px;font-size:12px;color:#E65100;font-style:italic;">Deletion reason: ${entry.note || 'No reason provided'}</div>` : ''}
                     </div>
                 `;
             }).join('')}
@@ -974,19 +998,19 @@ function openReverseModal(requestId) {
     const infoHtml = `
         <div class="info-row">
             <span class="label">Society</span>
-            <span class="value">${escapeHtml(request.societyName || 'Unknown')}</span>
+            <span class="value">${request.societyName || 'Unknown'}</span>
         </div>
         <div class="info-row">
             <span class="label">Request</span>
-            <span class="value">${escapeHtml(request.itemName || request.name || 'Untitled')}</span>
+            <span class="value">${request.itemName || request.name || 'Untitled'}</span>
         </div>
         <div class="info-row">
             <span class="label">Current Status</span>
-            <span class="value"><span class="status-badge ${statusClass}">${escapeHtml(request.status || 'N/A')}</span></span>
+            <span class="value"><span class="status-badge ${statusClass}">${request.status || 'N/A'}</span></span>
         </div>
         <div class="info-row">
             <span class="label">New Status</span>
-            <span class="value"><span class="status-badge status-under-review">${escapeHtml(newStatus)}</span></span>
+            <span class="value"><span class="status-badge status-under-review">${newStatus}</span></span>
         </div>
     `;
 
@@ -1024,8 +1048,8 @@ function confirmReverse() {
     btn.textContent = 'Processing...';
 
     const originalStatus = request.status;
-    const actorName = userName || 'Officer';
-    const actorRole = userRole || 'officer';
+    const actorName = localStorage.getItem('userName') || 'Officer';
+    const actorRole = localStorage.getItem('userRole') || 'officer';
 
     const historyEntry = {
         timestamp: new Date().toISOString(),
@@ -1118,15 +1142,15 @@ function openDeleteModal(requestId) {
     const infoHtml = `
         <div class="info-row">
             <span class="label">Society</span>
-            <span class="value">${escapeHtml(request.societyName || 'Unknown')}</span>
+            <span class="value">${request.societyName || 'Unknown'}</span>
         </div>
         <div class="info-row">
             <span class="label">Request</span>
-            <span class="value">${escapeHtml(request.itemName || request.name || 'Untitled')}</span>
+            <span class="value">${request.itemName || request.name || 'Untitled'}</span>
         </div>
         <div class="info-row">
             <span class="label">Status</span>
-            <span class="value"><span class="status-badge ${statusClass}">${escapeHtml(request.status || 'N/A')}</span></span>
+            <span class="value"><span class="status-badge ${statusClass}">${request.status || 'N/A'}</span></span>
         </div>
     `;
 
@@ -1162,8 +1186,8 @@ function confirmDelete() {
     btn.disabled = true;
     btn.textContent = 'Processing...';
 
-    const actorName = userName || 'Officer';
-    const actorRole = userRole || 'officer';
+    const actorName = localStorage.getItem('userName') || 'Officer';
+    const actorRole = localStorage.getItem('userRole') || 'officer';
 
     const requestData = { ...request };
     delete requestData.id;
@@ -1230,15 +1254,15 @@ function openPermanentDeleteModal(deletedId) {
     const infoHtml = `
         <div class="info-row">
             <span class="label">Society</span>
-            <span class="value">${escapeHtml(request.societyName || 'Unknown')}</span>
+            <span class="value">${request.societyName || 'Unknown'}</span>
         </div>
         <div class="info-row">
             <span class="label">Request</span>
-            <span class="value">${escapeHtml(request.requestName || request.originalData?.itemName || 'Untitled')}</span>
+            <span class="value">${request.requestName || request.originalData?.itemName || 'Untitled'}</span>
         </div>
         <div class="info-row">
             <span class="label">Deleted By</span>
-            <span class="value">${escapeHtml(request.deletedBy || 'Unknown')}</span>
+            <span class="value">${request.deletedBy || 'Unknown'}</span>
         </div>
         <div class="info-row">
             <span class="label">Deleted At</span>
@@ -1351,7 +1375,7 @@ function openStatusModal(request) {
 
     let bodyHtml = `
         <p style="font-size:14px;color:var(--text-600);margin-bottom:16px;">
-            Changing status from <strong>${escapeHtml(pendingStatusUpdate.previousStatus)}</strong> to <strong>${escapeHtml(newStatus)}</strong>.
+            Changing status from <strong>${pendingStatusUpdate.previousStatus}</strong> to <strong>${newStatus}</strong>.
         </p>
     `;
 
@@ -1484,8 +1508,8 @@ if (newStatus === 'Revision Required') {
     }
 
     try {
-        const actorName = userName || 'Officer';
-        const actorRole = userRole || 'officer';
+        const actorName = localStorage.getItem('userName') || 'Officer';
+        const actorRole = localStorage.getItem('userRole') || 'officer';
 
         const historyEntry = {
             timestamp: new Date().toISOString(),
@@ -1585,20 +1609,16 @@ document.getElementById('permanentDeleteModal').addEventListener('click', functi
     }
 });
 
-//
-
 // ================================================================
 // LOAD DATA
 // ================================================================
 
-authReady.then(() => {
-    loadRequests();
-    loadDeletedRequests();
-});
+loadRequests();
+loadDeletedRequests();
 
 window.searchRequests = searchRequests;
 
-//Get submitter name from Firestore
+// Get submitter name from Firestore
 async function getSubmitterName(requestData) {
     if (!requestData.submittedBy) {
         return 'Not recorded';

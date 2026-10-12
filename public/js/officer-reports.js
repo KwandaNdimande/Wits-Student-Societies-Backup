@@ -50,6 +50,15 @@ const statusBadgeMap = {
     'Revision Required': 'pending'
 };
 
+const statusChartColors = {
+    'Submitted': '#6C757D',
+    'Under Review': '#2E6FBA',
+    'Approved': '#1E8E5A',
+    'Rejected': '#C0392B',
+    'Revision Required': '#B9720B',
+    'Resubmitted': '#3E7CB1'
+};
+
 // colors for issue types
 const issueTypeColors = {
     "Missing minutes do not detail request": "#B9720B",
@@ -479,10 +488,24 @@ function renderReport1() {
         chartCard.style.display = 'none';
     }
 
-    const chartData = [];
-    if (approved > 0) chartData.push({ label: 'Approved', count: approved, color: '#1E8E5A' });
-    if (review > 0) chartData.push({ label: 'Under Review', count: review, color: '#2E6FBA' });
-    if (rejected > 0) chartData.push({ label: 'Rejected', count: rejected, color: '#C0392B' });
+    const statusCounts = new Map();
+    filteredRequests.forEach(request => {
+        const status = String(request.status || 'Not specified');
+        statusCounts.set(status, (statusCounts.get(status) || 0) + 1);
+    });
+    const chartStatuses = Object.keys(statusChartColors);
+    const chartData = chartStatuses
+        .filter(status => statusCounts.has(status))
+        .map(status => ({
+            label: status,
+            count: statusCounts.get(status),
+            color: statusChartColors[status]
+        }));
+    statusCounts.forEach((count, status) => {
+        if (!chartStatuses.includes(status)) {
+            chartData.push({ label: status, count, color: '#6C757D' });
+        }
+    });
     
     if (chartData.length === 0) {
         document.getElementById('p1-chart').innerHTML = '<p style="color:#6c757d;font-size:14px;text-align:center;padding:20px 0;">No data available for this period</p>';
@@ -510,7 +533,7 @@ function renderReport1() {
                 <td class="strong">REQ-${escapeHtml(String(r.id).slice(0, 8))}</td>
                 <td>${escapeHtml(r.societyName || 'Unknown')}</td>
                 <td>${escapeHtml(r.type || 'N/A')}</td>
-                <td>R ${r.amount ? r.amount.toLocaleString() : '0'}</td>
+                <td class="amount-cell">R ${r.amount ? r.amount.toLocaleString() : '0'}</td>
                 <td>${r.submittedAt ? new Date(r.submittedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
                 <td><span class="badge ${statusBadgeMap[r.status] || 'pending'}"><span class="dot"></span>${escapeHtml(r.status || 'N/A')}</span></td>
             </tr>
@@ -721,7 +744,7 @@ function renderReport3() {
             <tr>
                 <td class="strong">${escapeHtml(r.societyName || 'Unknown')}</td>
                 <td>${escapeHtml(r.type || 'N/A')}</td>
-                <td>R ${r.amount ? r.amount.toLocaleString() : '0'}</td>
+                <td class="amount-cell">R ${r.amount ? r.amount.toLocaleString() : '0'}</td>
                 <td>${totalApproved > 0 ? Math.round(((r.amount || 0)/totalApproved)*100) : 0}%</td>
                 <td><span class="badge ${r.amount && r.amount > 10000 ? 'full' : 'partial'}"><span class="dot"></span>${r.amount && r.amount > 10000 ? 'Fully Allocated' : 'Partially Allocated'}</span></td>
             </tr>
@@ -824,7 +847,7 @@ function renderChart(containerId, data) {
     const max = Math.max(...data.map(d => d.count), 1);
     container.innerHTML = data.map(d => `
         <div class="bar-row">
-            <div class="bar-label">${d.label}</div>
+            <div class="bar-label">${escapeHtml(d.label)}</div>
             <div class="bar-track">
                 <div class="bar-fill" style="width:${Math.round((d.count/max)*100)}%;background:${d.color};"></div>
             </div>

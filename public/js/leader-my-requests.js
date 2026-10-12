@@ -187,105 +187,12 @@ async function loadRequests() {
         filteredRequests = [...allRequests];
         currentPage = 1;
         renderTable();
-        renderLeaderNotifications();
         openLeaderNotificationFromUrl();
         applyHighlightFromUrl();
     } catch (error) {
         console.error('Error loading requests:', error);
         document.getElementById('requests-container').innerHTML = '<p style="color:#dc3545;text-align:center;padding:40px;">Error loading requests. Please try again.</p>';
     }
-}
-
-// Notification helpers
-function initLeaderNotificationBell() {
-    const navLinks = document.querySelector('.nav-links');
-    if (!navLinks || navLinks.querySelector('.nav-bell')) return;
-    const bell = document.createElement('div');
-    bell.className = 'nav-bell';
-    bell.innerHTML = `
-        <button id="notificationBell" class="nav-bell-btn" type="button" aria-haspopup="true" aria-expanded="false">
-            🔔 <span id="notificationCount" class="notification-badge hidden">0</span>
-        </button>
-        <div id="notificationDropdown" class="notification-dropdown" style="left: 0; right: auto;"></div>
-    `;
-    navLinks.prepend(bell);
-    document.getElementById('notificationBell').addEventListener('click', function(event) {
-        event.stopPropagation();
-        toggleLeaderDropdown();
-    });
-    document.addEventListener('click', function(event) {
-        const dropdown = document.getElementById('notificationDropdown');
-        const bell = document.getElementById('notificationBell');
-        if (!dropdown || !dropdown.classList.contains('active')) return;
-        if (bell.contains(event.target) || dropdown.contains(event.target)) return;
-        closeLeaderDropdown();
-    });
-}
-
-function renderLeaderNotifications() {
-    initLeaderNotificationBell();
-    const lastSeen = parseInt(localStorage.getItem('leaderNotificationsLastSeen') || '0', 10);
-    const events = [];
-    allRequests.forEach(request => {
-        const history = request.statusHistory || [];
-        history.forEach(entry => {
-            if (entry.actorRole !== 'officer') return;
-            const ts = getTimestampMs(entry.timestamp);
-            if (ts <= lastSeen) return;
-            events.push({ request, entry, ts });
-        });
-    });
-    events.sort((a, b) => b.ts - a.ts);
-    const badge = document.getElementById('notificationCount');
-    if (badge) {
-        if (events.length > 0) {
-            badge.textContent = events.length;
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
-        }
-    }
-    const dropdown = document.getElementById('notificationDropdown');
-    if (!dropdown) return;
-    if (events.length === 0) {
-        dropdown.innerHTML = '<div class="notification-item empty">No new request updates.</div>';
-        return;
-    }
-    dropdown.innerHTML = events.slice(0, 5).map(item => {
-        const request = item.request;
-        const entry = item.entry;
-        const when = new Date(item.ts).toLocaleString();
-        const title = request.itemName || request.name || 'Request';
-        return `
-            <div class="notification-item" onclick="openLeaderNotification('${request.id}')">
-                <div class="title">${title} — ${entry.status || 'Updated'}</div>
-                <div class="meta">${request.societyName || ''} · ${when}</div>
-                ${entry.note ? `<div class="note">${entry.note}</div>` : ''}
-            </div>
-        `;
-    }).join('');
-}
-
-function toggleLeaderDropdown() {
-    const dropdown = document.getElementById('notificationDropdown');
-    if (!dropdown) return;
-    const isActive = dropdown.classList.toggle('active');
-    if (isActive) {
-        localStorage.setItem('leaderNotificationsLastSeen', Date.now().toString());
-        renderLeaderNotifications();
-    }
-}
-
-function closeLeaderDropdown() {
-    const dropdown = document.getElementById('notificationDropdown');
-    if (dropdown) {
-        dropdown.classList.remove('active');
-    }
-}
-
-function openLeaderNotification(requestId) {
-    closeLeaderDropdown();
-    window.location.href = `/leader/my-requests.html?openRequest=${encodeURIComponent(requestId)}`;
 }
 
 function openLeaderNotificationFromUrl() {

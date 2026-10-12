@@ -1,5 +1,8 @@
-const sharedNavUserName = localStorage.getItem('userName') || 'Guest';
-const sharedNavUserRole = localStorage.getItem('userRole') || '';
+let sharedNavUserName = localStorage.getItem('userName') || 'Guest';
+let sharedNavUserRole = localStorage.getItem('userRole') || '';
+let sharedNotificationEvents = [];
+let sharedNotificationError = '';
+let sharedNotificationOutsideClickReady = false;
 
 function capitalizeRole(role) {
     return role ? role.charAt(0).toUpperCase() + role.slice(1) : '';
@@ -25,6 +28,205 @@ function getSharedNavLinks() {
     ];
 
     return sharedNavUserRole === 'officer' ? officerLinks : leaderLinks;
+}
+
+function getSharedNotificationIds(role) {
+    return role === 'officer'
+        ? { button: 'officerNotificationBell', badge: 'officerNotificationCount', dropdown: 'officerNotificationDropdown' }
+        : { button: 'notificationBell', badge: 'notificationCount', dropdown: 'notificationDropdown' };
+}
+
+function getSharedNotificationMarkup(role) {
+    const ids = getSharedNotificationIds(role);
+    return `
+        <div class="nav-bell">
+            <button id="${ids.button}" class="nav-bell-btn" type="button" aria-label="Notifications" aria-haspopup="true" aria-expanded="false" aria-controls="${ids.dropdown}">
+                <span aria-hidden="true">🔔</span>
+                <span id="${ids.badge}" class="notification-badge hidden">0</span>
+            </button>
+            <div id="${ids.dropdown}" class="notification-dropdown" role="region" aria-label="Notifications">
+                <div class="notification-item empty">Loading notifications...</div>
+            </div>
+        </div>
+    `;
+}
+
+function getSharedTimestampMs(timestamp) {
+    if (!timestamp) return 0;
+    if (typeof timestamp === 'number') return timestamp;
+    if (typeof timestamp.toMillis === 'function') return timestamp.toMillis();
+    if (typeof timestamp.toDate === 'function') return timestamp.toDate().getTime();
+    if (typeof timestamp === 'string') return Date.parse(timestamp) || 0;
+    if (timestamp.seconds) return timestamp.seconds * 1000 + Math.round((timestamp.nanoseconds || 0) / 1e6);
+    return 0;
+}
+
+function collectSharedNotificationEvents(requests, role, lastSeen) {
+    const events = [];
+    requests.forEach(request => {
+        if (role === 'officer') {
+            const timestamp = getSharedTimestampMs(request.submittedAt);
+            if (timestamp > lastSeen) events.push({ request, timestamp });
+            return;
+        }
+
+        (request.statusHistory || []).forEach(entry => {
+            const timestamp = getSharedTimestampMs(entry.timestamp);
+            if (entry.actorRole === 'officer' && timestamp > lastSeen) {
+                events.push({ request, entry, timestamp });
+            }
+        });
+    });
+    return events.sort((a, b) => b.timestamp - a.timestamp);
+}
+
+function renderSharedNotifications() {
+    if (!sharedNavUserRole) return;
+    const ids = getSharedNotificationIds(sharedNavUserRole);
+    const badge = document.getElementById(ids.badge);
+    const dropdown = document.getElementById(ids.dropdown);
+    if (!dropdown) return;
+
+    if (sharedNotificationError) {
+        if (badge) badge.classList.add('hidden');
+        dropdown.innerHTML = `<div class="notification-item empty">${escapeHtml(sharedNotificationError)}</div>`;
+        return;
+    }
+
+    if (badge) {
+        if (sharedNotificationEvents.length > 0) {
+            badge.textContent = String(sharedNotificationEvents.length);
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    if (sharedNotificationEvents.length === 0) {
+        const emptyMessage = sharedNavUserRole === 'officer' ? 'No new submissions.' : 'No new request updates.';
+        dropdown.innerHTML = `<div class="notification-item empty">${emptyMessage}</div>`;
+        return;
+    }
+
+    dropdown.innerHTML = sharedNotificationEvents.slice(0, 5).map(event => {
+        const request = event.request;
+        const title = request.itemName || request.name || (sharedNavUserRole === 'officer' ? 'New Request' : 'Request');
+        const href = sharedNavUserRole === 'officer'
+            ? `/officer/all-requests.html?openRequest=${encodeURIComponent(request.id)}`
+            : `/leader/my-requests.html?openRequest=${encodeURIComponent(request.id)}`;
+        const meta = `${request.societyName || (sharedNavUserRole === 'officer' ? 'Leader' : '')} · ${new Date(event.timestamp).toLocaleString()}`;
+        const detail = sharedNavUserRole === 'officer'
+            ? 'New submission received.'
+            : `${event.entry.status || 'Updated'}${event.entry.note ? ` — ${event.entry.note}` : ''}`;
+
+        return `
+            <a class="notification-item" href="${escapeHtml(href)}">
+                <div class="title">${escapeHtml(title)}</div>
+                <div class="meta">${escapeHtml(meta)}</div>
+                <div class="note">${escapeHtml(detail)}</div>
+            </a>
+        `;
+    }).join('');
+}
+
+async function loadSharedNotifications(uid, role) {
+    sharedNotificationError = '';
+    sharedNotificationEvents = [];
+    renderSharedNotifications();
+
+    try {
+        const requests = firebase.firestore().collection('requests');
+        const snapshot = role === 'leader'
+            ? await requests.where('submittedBy', '==', uid).get()
+            : await requests.get();
+        const requestData = [];
+        snapshot.forEach(doc => requestData.push({ id: doc.id, ...doc.data() }));
+        const lastSeenKey = role === 'officer' ? 'officerNotificationsLastSeen' : 'leaderNotificationsLastSeen';
+        const lastSeen = Number(localStorage.getItem(lastSeenKey) || 0);
+        sharedNotificationEvents = collectSharedNotificationEvents(requestData, role, Number.isFinite(lastSeen) ? lastSeen : 0);
+        renderSharedNotifications();
+    } catch (error) {
+        console.error('Error loading shared notifications:', error);
+        sharedNotificationError = 'Could not load notifications. Please try again.';
+        renderSharedNotifications();
+    }
+}
+
+function closeSharedNotificationDropdown() {
+    if (!sharedNavUserRole) return;
+    const ids = getSharedNotificationIds(sharedNavUserRole);
+    const button = document.getElementById(ids.button);
+    const dropdown = document.getElementById(ids.dropdown);
+    if (dropdown) dropdown.classList.remove('active');
+    if (button) button.setAttribute('aria-expanded', 'false');
+}
+
+function toggleSharedNotificationDropdown() {
+    if (!sharedNavUserRole) return;
+    const ids = getSharedNotificationIds(sharedNavUserRole);
+    const button = document.getElementById(ids.button);
+    const badge = document.getElementById(ids.badge);
+    const dropdown = document.getElementById(ids.dropdown);
+    if (!button || !dropdown) return;
+
+    const isOpen = dropdown.classList.toggle('active');
+    button.setAttribute('aria-expanded', String(isOpen));
+    if (!isOpen) return;
+
+    const lastSeenKey = sharedNavUserRole === 'officer' ? 'officerNotificationsLastSeen' : 'leaderNotificationsLastSeen';
+    try {
+        localStorage.setItem(lastSeenKey, String(Date.now()));
+        if (badge) badge.classList.add('hidden');
+    } catch (error) {
+        console.error('Could not update notification read state:', error);
+    }
+}
+
+function initSharedNotifications() {
+    if (sharedNotificationOutsideClickReady) return;
+    sharedNotificationOutsideClickReady = true;
+
+    document.addEventListener('click', event => {
+        if (event.target?.closest?.('.nav-bell')) return;
+        closeSharedNotificationDropdown();
+    });
+
+    if (!window.firebase || !firebase.apps.length) {
+        console.error('Firebase is not available for shared notifications.');
+        sharedNotificationError = 'Notifications are unavailable.';
+        return;
+    }
+
+    firebase.auth().onAuthStateChanged(async user => {
+        if (!user) return;
+        if (!user.emailVerified) {
+            sharedNotificationError = 'Verify your email to view notifications.';
+            renderSharedNotifications();
+            return;
+        }
+
+        try {
+            const userSnapshot = await firebase.firestore().collection('users').doc(user.uid).get();
+            if (!userSnapshot.exists) throw new Error('No user profile found for the signed-in account.');
+            const profile = userSnapshot.data();
+            const role = profile.role || 'leader';
+            if (role !== 'officer' && role !== 'leader') throw new Error(`Unsupported account role: ${role}`);
+
+            sharedNavUserRole = role;
+            sharedNavUserName = [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim()
+                || profile.email || user.email || 'Name not recorded';
+            if (typeof authGuardSetHints === 'function') {
+                authGuardSetHints(user.uid, role, sharedNavUserName);
+            }
+
+            updateNavigation();
+            await loadSharedNotifications(user.uid, role);
+        } catch (error) {
+            console.error('Error initializing shared navigation:', error);
+            sharedNotificationError = 'Could not verify your account for notifications.';
+            renderSharedNotifications();
+        }
+    });
 }
 
 function createSharedNavStyles() {
@@ -97,6 +299,97 @@ function createSharedNavStyles() {
             background: rgba(220, 53, 69, 0.2);
             border-color: #dc3545;
             color: #fff;
+        }
+        .nav-bell {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .nav-bell-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #8FA6CC;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 999px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        }
+        .nav-bell-btn:hover {
+            background: rgba(255,255,255,0.12);
+        }
+        .nav-bell-btn:focus-visible {
+            outline: 2px solid #8FA6CC;
+            outline-offset: 2px;
+        }
+        .notification-badge {
+            min-width: 18px;
+            height: 18px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: #E53935;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .notification-badge.hidden {
+            display: none;
+        }
+        .notification-dropdown {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 0;
+            width: 320px;
+            max-width: calc(100vw - 24px);
+            background: #fff;
+            color: #0B1F3A;
+            border: 1px solid #E1E7F0;
+            border-radius: 14px;
+            box-shadow: 0 18px 48px rgba(0,0,0,0.16);
+            z-index: 1000;
+            display: none;
+        }
+        .notification-dropdown.active {
+            display: block;
+        }
+        .notification-item {
+            display: block;
+            padding: 14px 16px;
+            border-bottom: 1px solid #E1E7F0;
+            cursor: pointer;
+            color: #3D4A63;
+            text-decoration: none;
+        }
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        .notification-item:hover {
+            background: #F4F7FB;
+            color: #3D4A63;
+        }
+        .notification-item .title {
+            font-weight: 700;
+            color: #0B1F3A;
+            margin-bottom: 5px;
+        }
+        .notification-item .meta {
+            font-size: 12px;
+            color: #5A6B87;
+        }
+        .notification-item .note {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #3D4A63;
+        }
+        .notification-item.empty {
+            cursor: default;
+            color: #5A6B87;
         }
     @media (max-width: 768px) {
     .nav-links {
@@ -211,7 +504,13 @@ function updateNavigation() {
     }).join('');
     const logoutHtml = `<a href="/login.html" class="logout-link">Logout</a>`;
 
-    navLinks.innerHTML = `${userInfoHtml}${linksHtml}${logoutHtml}`;
+    navLinks.innerHTML = `${userInfoHtml}${linksHtml}${sharedNavUserRole ? getSharedNotificationMarkup(sharedNavUserRole) : ''}${logoutHtml}`;
+
+    const notificationButton = navLinks.querySelector('.nav-bell-btn');
+    if (notificationButton) {
+        notificationButton.addEventListener('click', toggleSharedNotificationDropdown);
+        renderSharedNotifications();
+    }
 
     // Apply the padding fix AFTER the nav is fully rendered
     // Use requestAnimationFrame to ensure the browser has painted the nav
@@ -241,6 +540,8 @@ function updateNavigation() {
 // ================================================================
 
 function initSharedNav() {
+    initSharedNotifications();
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', updateNavigation);
     } else {

@@ -220,7 +220,6 @@ async function loadRequests() {
         filteredRequests = [...allRequests];
         currentPage = 1;
         renderTable();
-        renderOfficerNotifications();
         openOfficerNotificationFromUrl();
         applyHighlightFromUrl();
     } catch (error) {
@@ -664,107 +663,6 @@ async function viewDeletedRequestDetails(deletedId) {
     document.getElementById('modalTitle').textContent = `Deleted Request - ${itemName}`;
     document.getElementById('modalBody').innerHTML = modalBody;
     document.getElementById('docModal').classList.add('active');
-}
-
-// ================================================================
-// NOTIFICATION FUNCTIONS
-// ================================================================
-
-function initOfficerNotificationBell() {
-    const navLinks = document.querySelector('.nav-links');
-    if (!navLinks || navLinks.querySelector('.nav-bell')) return;
-
-    const bell = document.createElement('div');
-    bell.className = 'nav-bell';
-    bell.innerHTML = `
-        <button id="officerNotificationBell" class="nav-bell-btn" type="button" aria-haspopup="true" aria-expanded="false">
-            🔔 <span id="officerNotificationCount" class="notification-badge hidden">0</span>
-        </button>
-        <div id="officerNotificationDropdown" class="notification-dropdown" style="left: 0; right: auto;"></div>
-    `;
-    navLinks.prepend(bell);
-
-    document.getElementById('officerNotificationBell').addEventListener('click', function(event) {
-        event.stopPropagation();
-        toggleOfficerDropdown();
-    });
-
-    document.addEventListener('click', function(event) {
-        const dropdown = document.getElementById('officerNotificationDropdown');
-        const bell = document.getElementById('officerNotificationBell');
-        if (!dropdown || !dropdown.classList.contains('active')) return;
-        if (bell.contains(event.target) || dropdown.contains(event.target)) return;
-        closeOfficerDropdown();
-    });
-}
-
-function renderOfficerNotifications() {
-    initOfficerNotificationBell();
-
-    const lastSeen = parseInt(localStorage.getItem('officerNotificationsLastSeen') || '0', 10);
-    const events = [];
-
-    allRequests.forEach(request => {
-        const submittedAt = getTimestampMs(request.submittedAt);
-        if (submittedAt > lastSeen) {
-            events.push({ request, ts: submittedAt });
-        }
-    });
-
-    events.sort((a,b) => b.ts - a.ts);
-
-    const badge = document.getElementById('officerNotificationCount');
-    if (badge) {
-        if (events.length > 0) {
-            badge.textContent = events.length;
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
-        }
-    }
-
-    const dropdown = document.getElementById('officerNotificationDropdown');
-    if (!dropdown) return;
-
-    if (events.length === 0) {
-        dropdown.innerHTML = '<div class="notification-item empty">No new submissions.</div>';
-        return;
-    }
-
-    dropdown.innerHTML = events.slice(0, 5).map(item => {
-        const request = item.request;
-        const when = new Date(item.ts).toLocaleString();
-        const title = request.itemName || request.name || 'New Request';
-        return `
-            <div class="notification-item" onclick="openOfficerNotification('${request.id}')">
-                <div class="title">${title}</div>
-                <div class="meta">${request.societyName || 'Leader'} · ${when}</div>
-                <div class="note">New submission received.</div>
-            </div>
-        `;
-    }).join('');
-}
-
-function toggleOfficerDropdown() {
-    const dropdown = document.getElementById('officerNotificationDropdown');
-    if (!dropdown) return;
-    const isActive = dropdown.classList.toggle('active');
-    if (isActive) {
-        localStorage.setItem('officerNotificationsLastSeen', Date.now().toString());
-        renderOfficerNotifications();
-    }
-}
-
-function closeOfficerDropdown() {
-    const dropdown = document.getElementById('officerNotificationDropdown');
-    if (dropdown) {
-        dropdown.classList.remove('active');
-    }
-}
-
-function openOfficerNotification(requestId) {
-    closeOfficerDropdown();
-    showRequestDetails(requestId);
 }
 
 function openOfficerNotificationFromUrl() {

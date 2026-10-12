@@ -549,7 +549,7 @@ const submitterName = await getSubmitterName(data);
     const society = request.societyName || 'Unknown Society';
     const status = 'Deleted';
     const type = data.type || 'N/A';
-    const amount = data.amount ? `R${data.amount.toLocaleString()}` : 'N/A';
+    const amount = formatAmount(data.amount);
     const submittedAt = data.submittedAt ? new Date(data.submittedAt.seconds * 1000).toLocaleString() : 'N/A';
     const description = data.description || 'No description provided.';
     const documents = data.documents || {};
@@ -804,7 +804,7 @@ async function viewRequestDetails(requestId) {
         const society = data.societyName || 'Unknown Society';
         const status = data.status || 'N/A';
         const type = data.type || 'N/A';
-        const amount = data.amount ? `R${data.amount.toLocaleString()}` : 'N/A';
+        const amount = formatAmount(data.amount);
         const submittedAt = data.submittedAt ? new Date(data.submittedAt.seconds * 1000).toLocaleString() : 'N/A';
         const description = data.description || 'No description provided.';
         const documents = data.documents || {};

@@ -1116,7 +1116,7 @@ app.delete('/api/societies/:id', requireOfficer, async (req, res) => {
 app.post('/api/societies/:id/archive', requireOfficer, async (req, res) => {
   try {
     const societyRef = db.collection('societies').doc(req.params.id);
-    const archivedBy = String(req.body.archivedBy || '').trim() || req.user.uid;
+    const archivedBy = req.user.uid; // from the verified token, never from the request body
     if (req.body.subscriptionQuota !== 'not-met') {
       return res.status(400).json({ error: 'Society can only be archived when subscription quota is not met' });
     }

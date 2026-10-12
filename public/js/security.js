@@ -16,6 +16,13 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+// Safe way to show a money amount. Anything that is not a real number becomes N/A.
+function formatAmount(value) {
+    const n = Number(value);
+    const usable = value !== null && value !== undefined && value !== '' && Number.isFinite(n) && n !== 0;
+    return usable ? 'R' + n.toLocaleString() : 'N/A';
+}
+
 function authGuardHomeFor(role) {
     return role === 'officer' ? '/officer/dashboard.html' : '/leader/dashboard.html';
 }
@@ -56,14 +63,16 @@ function requireRole(requiredRole) {
                 if (!snap.exists) throw new Error('No user profile');
                 const profile = snap.data();
                 const role = profile.role || 'leader'; // same default login.html uses
+                const name = ((profile.firstName || '') + ' ' + (profile.lastName || '')).trim();
+
+                // Always replace the saved hints with the real values, even when redirecting,
+                // so a forged role in browser storage cannot change what the next page shows.
+                authGuardSetHints(user.uid, role, name);
 
                 if (requiredRole && role !== requiredRole) {
                     window.location.replace(authGuardHomeFor(role));
                     return resolve(never);
                 }
-
-                const name = ((profile.firstName || '') + ' ' + (profile.lastName || '')).trim();
-                authGuardSetHints(user.uid, role, name);
                 resolve({ user: user, role: role, profile: profile });
             } catch (err) {
                 authGuardClearHints();

@@ -447,7 +447,7 @@ function openDetailView(requestId) {
     statusEl.textContent = request.status || 'N/A';
     statusEl.className = `status-badge ${statusColors[request.status] || 'status-submitted'}`;
 
-    const amountText = request.amount ? `R${request.amount.toLocaleString()}` : 'N/A';
+    const amountText = formatAmount(request.amount);
     const submittedDate = request.submittedAt ? new Date(request.submittedAt.seconds * 1000).toLocaleString() : 'N/A';
     const description = request.description || 'No description provided.';
     const documents = request.documents || {};
@@ -490,7 +490,7 @@ function openDetailView(requestId) {
 
     document.getElementById('detailBody').innerHTML = `
         <div class="detail-row"><div class="detail-label">Request Type</div><div class="detail-value">${escapeHtml(request.type || 'N/A')}</div></div>
-        <div class="detail-row"><div class="detail-label">Amount</div><div class="detail-value">${amountText}</div></div>
+        <div class="detail-row"><div class="detail-label">Amount</div><div class="detail-value">${escapeHtml(amountText)}</div></div>
         <div class="detail-row"><div class="detail-label">Submitted</div><div class="detail-value">${submittedDate}</div></div>
         <div class="detail-row"><div class="detail-label">Description</div><div class="detail-value">${escapeHtml(description)}</div></div>
         ${officerComment}

@@ -413,7 +413,9 @@ async function loadAllData() {
         const requestsSnapshot = await db.collection('requests').get();
         allRequests = [];
         requestsSnapshot.forEach(doc => {
-            allRequests.push({ id: doc.id, ...doc.data() });
+            const data = doc.data();
+            // amount must be a number; anything else becomes 0 so it can never reach the page as text
+            allRequests.push({ id: doc.id, ...data, amount: Number(data.amount) || 0 });
         });
 
         const societiesSnapshot = await db.collection('societies').get();

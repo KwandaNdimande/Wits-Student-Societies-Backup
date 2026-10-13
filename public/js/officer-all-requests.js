@@ -1,6 +1,6 @@
 // ---------- SUPABASE INITIALIZATION ----------
 const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-uYM9f7T8C0F2tfqB_4';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-XuYM9f7T8C0F2tfqB_4';
 
 window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
@@ -19,7 +19,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Gets the signed-in user's Firebase token so the server can verify who is calling
 function getIdToken() {
     return new Promise((resolve, reject) => {
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -30,7 +29,6 @@ function getIdToken() {
     });
 }
 
-// Check authentication
 const userUid = localStorage.getItem('userUid');
 const userRole = localStorage.getItem('userRole');
 if (!userUid || userRole !== 'officer') {
@@ -49,7 +47,6 @@ const deletedPageSize = 5;
 
 let currentTab = 'active';
 
-// Status colors
 const statusColors = {
     "Submitted": "status-submitted",
     "Under Review": "status-under-review",
@@ -76,9 +73,6 @@ let pendingReverseRequestId = null;
 let pendingDeleteRequestId = null;
 let pendingPermanentDeleteId = null;
 
-// ================================================================
-// HELPER: Get timestamp in milliseconds from any format
-// ================================================================
 function getTimestampMs(timestamp) {
     if (!timestamp) return 0;
     if (typeof timestamp === 'number') return timestamp;
@@ -89,9 +83,6 @@ function getTimestampMs(timestamp) {
     return 0;
 }
 
-// ================================================================
-// HELPER: Format timestamp to readable string
-// ================================================================
 function formatTimestamp(timestamp) {
     if (!timestamp) return 'Unknown time';
     const ms = getTimestampMs(timestamp);
@@ -99,9 +90,6 @@ function formatTimestamp(timestamp) {
     return new Date(ms).toLocaleString();
 }
 
-// ================================================================
-// INPUT VALIDATION HELPERS
-// ================================================================
 function getReasonError(value, label, required) {
     const text = String(value || '').trim();
     if (!text) return required ? `Error: ${label} is required.` : '';
@@ -186,9 +174,6 @@ function updateStatusSaveState() {
     saveBtn.disabled = !valid;
 }
 
-// ================================================================
-// TAB SWITCHING
-// ================================================================
 function switchTab(tab) {
     currentTab = tab;
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -203,9 +188,6 @@ function switchTab(tab) {
 }
 window.switchTab = switchTab;
 
-// ================================================================
-// LOAD ACTIVE REQUESTS
-// ================================================================
 async function loadRequests() {
     try {
         const requestsSnapshot = await db.collection('requests')
@@ -229,9 +211,6 @@ async function loadRequests() {
 }
 
 // ===== Highlight support =====
-// When arriving from the dashboard with ?highlight=<id>, the matching row
-// in the Active table is flashed with the same soft blue that the clickable
-// items use on the dashboard, then left to fade naturally.
 function applyHighlightFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const highlightId = params.get('highlight');
@@ -252,9 +231,6 @@ function cssEscape(s) {
     return String(s).replace(/["\\]/g, '\\$&');
 }
 
-// ================================================================
-// LOAD DELETED REQUESTS
-// ================================================================
 async function loadDeletedRequests() {
     try {
         const snapshot = await db.collection('deletedRequests')
@@ -277,9 +253,6 @@ async function loadDeletedRequests() {
     }
 }
 
-// ================================================================
-// SEARCH FUNCTION (Active)
-// ================================================================
 function searchRequests() {
     const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase().trim() || '';
     
@@ -297,10 +270,6 @@ function searchRequests() {
     currentPage = 1;
     renderTable();
 }
-
-// ================================================================
-// RENDER ACTIVE TABLE (with Update Status dropdown)
-// ================================================================
 
 function renderTable() {
     const container = document.getElementById('requests-container');
@@ -436,13 +405,12 @@ function renderTable() {
 
     container.innerHTML = html;
 
-    // Inject the highlight styling once
     if (!document.getElementById('all-requests-highlight-styles')) {
         const style = document.createElement('style');
         style.id = 'all-requests-highlight-styles';
         style.textContent = `
             #requests-container tbody tr.row-highlight td {
-                background: #F4F7FB;
+                background: #FFF6CC;
                 transition: background 0.6s ease;
             }
         `;
@@ -456,10 +424,6 @@ function changePage(page) {
     currentPage = page;
     renderTable();
 }
-
-// ================================================================
-// RENDER DELETED TABLE
-// ================================================================
 
 function renderDeletedTable() {
     const container = document.getElementById('deleted-requests-container');
@@ -559,10 +523,6 @@ function changeDeletedPage(page) {
     deletedPage = page;
     renderDeletedTable();
 }
-
-// ================================================================
-// VIEW DELETED REQUEST DETAILS
-// ================================================================
 
 async function viewDeletedRequestDetails(deletedId) {
     const request = deletedRequests.find(r => r.id === deletedId);
@@ -673,10 +633,6 @@ function openOfficerNotificationFromUrl() {
     }
 }
 
-// ================================================================
-// VIEW / DOWNLOAD FILE FUNCTIONS
-// ================================================================
-
 async function viewFileFromSupabase(filePath, fileName) {
     await openFileInNewTab(filePath);
 }
@@ -704,10 +660,6 @@ function getFileInfo(doc) {
     }
     return { path: null, name: null };
 }
-
-// ================================================================
-// REQUEST DETAIL VIEW
-// ================================================================
 
 function showRequestDetails(requestId) {
     return viewRequestDetails(requestId);
@@ -832,10 +784,6 @@ async function viewRequestDetails(requestId) {
     }
 }
 
-// ================================================================
-// ACTIVITY TIMELINE
-// ================================================================
-
 function getRequestHistoryHtml(history = []) {
     if (!Array.isArray(history) || history.length === 0) {
         return `<div style="margin-top:16px;padding:16px 0;color:var(--text-500);font-size:13px;">No activity history yet.</div>`;
@@ -877,10 +825,6 @@ function getRequestHistoryHtml(history = []) {
         </div>
     `;
 }
-
-// ================================================================
-// REVERSE DECISION FUNCTIONS
-// ================================================================
 
 function openReverseModal(requestId) {
     const request = allRequests.find(r => r.id === requestId);
@@ -1023,10 +967,6 @@ function confirmReverse() {
     });
 }
 
-// ================================================================
-// DELETE FUNCTIONS
-// ================================================================
-
 function openDeleteModal(requestId) {
     const request = allRequests.find(r => r.id === requestId);
     if (!request) {
@@ -1136,10 +1076,6 @@ function confirmDelete() {
     });
 }
 
-// ================================================================
-// PERMANENT DELETE FUNCTIONS
-// ================================================================
-
 function openPermanentDeleteModal(deletedId) {
     const request = deletedRequests.find(r => r.id === deletedId);
     if (!request) {
@@ -1231,10 +1167,6 @@ function confirmPermanentDelete() {
             btn.textContent = 'Permanently Delete';
         });
 }
-
-// ================================================================
-// STATUS UPDATE FUNCTIONS
-// ================================================================
 
 function prepareStatusChange(requestId, newStatus) {
     const request = allRequests.find(r => r.id === requestId);
@@ -1469,10 +1401,6 @@ if (newStatus === 'Revision Required') {
     }
 }
 
-// ================================================================
-// MODAL FUNCTIONS
-// ================================================================
-
 function showModal(title, bodyHTML) {
     document.getElementById('modalTitle').textContent = title;
     document.getElementById('modalBody').innerHTML = bodyHTML;
@@ -1507,16 +1435,11 @@ document.getElementById('permanentDeleteModal').addEventListener('click', functi
     }
 });
 
-// ================================================================
-// LOAD DATA
-// ================================================================
-
 loadRequests();
 loadDeletedRequests();
 
 window.searchRequests = searchRequests;
 
-// Get submitter name from Firestore
 async function getSubmitterName(requestData) {
     if (!requestData.submittedBy) {
         return 'Not recorded';

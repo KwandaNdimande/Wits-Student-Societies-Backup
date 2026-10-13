@@ -164,7 +164,7 @@ async function loadDashboard() {
                     }
                     .recent-section .recent-card:hover,
                     .recent-section .recent-row:hover {
-                        background: #F4F7FB;
+                        background: #FFF6CC;
                     }
                     .recent-section .recent-card:hover {
                         border-color: #c9d5e6;

@@ -2,7 +2,6 @@
 const supabaseUrl = 'https://ovrqbcjaxwmxgujdxyea.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92cnFiY2pheHdteGd1amR4eWVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2MzYwMzUsImV4cCI6MjEwMjIxMjAzNX0.ItYeye56cxBqkbaeOVS-66uX-XuYM9f7T8C0F2tfqB_4';
 
-// Create a global supabase client
 window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
 // Firebase configuration
@@ -20,7 +19,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Check authentication
 const userUid = localStorage.getItem('userUid');
 if (!userUid) {
     window.location.href = '/login.html';
@@ -34,7 +32,6 @@ const pageSize = 5;
 
 let currentRequestDocuments = {};
 
-// Status colors
 const statusColors = {
     "Submitted": "status-submitted",
     "Under Review": "status-under-review",
@@ -44,23 +41,18 @@ const statusColors = {
     "Resubmitted": "status-under-review"
 };
 
-// Document labels
 const docLabels = {
     'budgetForm': 'Budget Form',
     'meetingMinutes': 'Meeting Minutes',
     'vendorQuotation': 'Vendor Quotation'
 };
 
-// ============ FILE SLOT DEFINITIONS (for the Update modal) ============
 const FILE_SLOTS = [
     { key: 'budgetForm',       label: 'Budget Form',       accept: '.xlsx,.xls', acceptLabel: 'Excel' },
     { key: 'meetingMinutes',   label: 'Meeting Minutes',   accept: '.pdf',       acceptLabel: 'PDF' },
     { key: 'vendorQuotation',  label: 'Vendor Quotation',  accept: '.pdf',       acceptLabel: 'PDF' }
 ];
 
-// ================================================================
-// HELPER: Get timestamp in milliseconds from any format
-// ================================================================
 function getTimestampMs(timestamp) {
     if (!timestamp) return 0;
     if (typeof timestamp === 'number') return timestamp;
@@ -71,9 +63,6 @@ function getTimestampMs(timestamp) {
     return 0;
 }
 
-// ================================================================
-// HELPER: Format timestamp to readable string
-// ================================================================
 function formatTimestamp(timestamp) {
     if (!timestamp) return 'Unknown time';
     const ms = getTimestampMs(timestamp);
@@ -81,23 +70,14 @@ function formatTimestamp(timestamp) {
     return new Date(ms).toLocaleString();
 }
 
-// ================================================================
-// VIEW FILE IN NEW TAB
-// ================================================================
-
 async function viewFileFromSupabase(filePath, fileName) {
     await openFileInNewTab(filePath);
 }
-
-// ================================================================
-// DOWNLOAD FILE
-// ================================================================
 
 async function downloadFileFromSupabase(filePath, fileName) {
     await downloadFileFromServer(filePath, fileName);
 }
 
-// Helper: Extract filename and filepath from document object/string
 function getFileInfo(doc) {
     if (!doc) return { path: null, name: null };
     if (typeof doc === 'string') {
@@ -117,10 +97,6 @@ function getFileInfo(doc) {
     }
     return { path: null, name: null };
 }
-
-// ================================================================
-// VIEW DOCUMENTS DIRECTLY FROM TABLE (LEADER)
-// ================================================================
 
 async function viewLeaderDocuments(requestId) {
     try {
@@ -173,7 +149,6 @@ async function viewLeaderDocuments(requestId) {
     }
 }
 
-// Load requests
 async function loadRequests() {
     try {
         const requestsSnapshot = await db.collection('requests')
@@ -205,15 +180,13 @@ function openLeaderNotificationFromUrl() {
 
 // ===== Highlight support =====
 // When arriving from the dashboard with ?highlight=<id>, the matching row
-// in the table is flashed with the same soft blue that the clickable items
-// use on the dashboard, then left to fade naturally.
+// in the table is flashed with the gold that the clickable items use on
+// the dashboard, then left to fade naturally.
 function applyHighlightFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const highlightId = params.get('highlight');
     if (!highlightId) return;
 
-    // Make sure the row is on the currently rendered page (page 1 by default,
-    // and the Recent list only ever contains the top 5 requests, so it will be).
     const row = document.querySelector(`#requests-container tr[data-request-id="${cssEscape(highlightId)}"]`);
     if (!row) return;
 
@@ -229,7 +202,6 @@ function cssEscape(s) {
     return String(s).replace(/["\\]/g, '\\$&');
 }
 
-// Search function
 function searchRequests() {
     const searchTerm = document.getElementById('searchInput')?.value?.toLowerCase().trim() || '';
     if (searchTerm === '') {
@@ -244,10 +216,6 @@ function searchRequests() {
     currentPage = 1;
     renderTable();
 }
-
-// ================================================================
-// RENDER TABLE
-// ================================================================
 
 function renderTable() {
     const container = document.getElementById('requests-container');
@@ -354,13 +322,12 @@ function renderTable() {
     `;
     container.innerHTML = html;
 
-    // Inject the highlight styling once
     if (!document.getElementById('my-requests-highlight-styles')) {
         const style = document.createElement('style');
         style.id = 'my-requests-highlight-styles';
         style.textContent = `
             #requests-container tbody tr.row-highlight td {
-                background: #F4F7FB;
+                background: #FFF6CC;
                 transition: background 0.6s ease;
             }
         `;
@@ -374,10 +341,6 @@ function changePage(page) {
     currentPage = page;
     renderTable();
 }
-
-// ================================================================
-// OPEN DETAIL VIEW
-// ================================================================
 
 function openDetailView(requestId) {
     const request = allRequests.find(r => r.id === requestId);
@@ -449,10 +412,6 @@ function closeDetailView() {
     document.getElementById('controls').classList.remove('hidden');
 }
 
-// ================================================================
-// ACTIVITY TIMELINE
-// ================================================================
-
 function getRequestHistoryHtml(history = []) {
     if (!Array.isArray(history) || history.length === 0) {
         return `<div style="margin-top:16px;padding:16px 0;color:var(--text-500);font-size:13px;">No activity history yet.</div>`;
@@ -494,8 +453,6 @@ function getRequestHistoryHtml(history = []) {
         </div>
     `;
 }
-
-// ============ UPDATE DOCUMENTS MODAL ============
 
 async function openUpdateModal(requestId) {
     currentRequestId = requestId;
@@ -616,8 +573,6 @@ async function openUpdateModal(requestId) {
     }
 }
 
-// ============ COMMENT VALIDATION ============
-
 function getCommentError(value) {
     const text = String(value || '').trim();
     if (!text) return '';
@@ -648,8 +603,6 @@ function handleCommentInput() {
     checkUpdateFormValidity();
 }
 
-// ============ UPDATE FORM FILE VALIDATION ============
-
 function validateUpdateFile(key, input) {
     const errorEl = document.getElementById(`file_${key}_error`);
     if (!errorEl) return;
@@ -675,8 +628,6 @@ function validateUpdateFile(key, input) {
     }
 }
 
-// ============ SAME-FILE DETECTION (Update modal) ============
-// Same file when name and size both match.
 function isSameSelectedFile(a, b) {
     if (!a || !b) return false;
     return a.name === b.name && a.size === b.size;
@@ -753,8 +704,6 @@ function refreshUpdateDuplicateMarks() {
     });
 }
 
-// ============ FORM VALIDITY (Update modal) ============
-
 function checkUpdateFormValidity() {
     const btn = document.getElementById('updateResubmitBtn');
     if (!btn) return;
@@ -786,8 +735,6 @@ function checkUpdateFormValidity() {
     btn.style.opacity = btn.disabled ? '0.6' : '1';
     btn.style.cursor = btn.disabled ? 'not-allowed' : 'pointer';
 }
-
-// ============ SUBMIT UPDATE ============
 
 async function submitUpdate() {
     if (!currentRequestId) return;
@@ -892,8 +839,6 @@ async function submitUpdate() {
         btn.style.cursor = 'pointer';
     }
 }
-
-// ============ MODAL FUNCTIONS ============
 
 function closeUpdateModal() {
     document.getElementById('updateModal').classList.remove('active');
